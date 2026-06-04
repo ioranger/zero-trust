@@ -1,0 +1,52 @@
+{
+  "artifact_version": "mtim-marl-surrogate-artifact-v3",
+  "description": "Reproducible MTIM artifact with PyTorch offline parameterized MARL trust-policy surrogate training, stronger learned baselines, paper-level trust baselines, and ns-3 trace-driven validation scripts.",
+  "base_seed": 20260602,
+  "train_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "evaluation_seeds": {
+    "start": 1000,
+    "stop": 1049
+  },
+  "network": {
+    "default_uavs": 15,
+    "default_thinker_agents": 5,
+    "mission_duration_s": 5000,
+    "warmup_s": 1000,
+    "trust_update_interval_s": 10,
+    "mobility_model": "Random Waypoint abstraction",
+    "area_km2": [10, 10],
+    "communication_range_m": 300,
+    "inter_uav_bandwidth_mbps": 5
+  },
+  "experiments": {
+    "main_ratio": 0.30,
+    "ratio_grid": [0.10, 0.30, 0.50],
+    "figure_ratio_grid": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50],
+    "scalability_uavs": [5, 15, 30, 50],
+    "agent_grid": [2, 5, 10]
+  },
+  "classification": {
+    "trusted_threshold": 0.75,
+    "malicious_threshold": 0.30,
+    "mfa_threshold": 0.68,
+    "fuba_threshold": 0.69,
+    "galtrust_threshold": 0.30,
+    "gdm_dtm_threshold": 0.69,
+    "mtim_threshold": null
+  },
+  "marl_training": {
+    "epochs": 180,
+    "batch_size": 64,
+    "learning_rate": 0.0015,
+    "weight_decay": 0.0001,
+    "positive_class_weight": 2.0,
+    "decision_threshold": 0.60
+  },
+  "ns3": {
+    "scenario": "artifacts/ns3/mtim_uav_trust.cc",
+    "trace_output": "artifacts/outputs/logs/ns3_packet_trace.csv",
+    "trust_stream_output": "artifacts/outputs/logs/ns3_trust_streams.csv",
+    "trace_validation_output": "artifacts/outputs/tables/ns3_trace_validation.csv",
+    "status": "source-provided and trace-driven validation is reported for the bundled 500 s seed-1000 trace; main manuscript tables remain 50-seed trust-stream results unless multi-seed ns-3 is executed externally"
+  }
+}

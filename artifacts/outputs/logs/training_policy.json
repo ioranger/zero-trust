@@ -1,0 +1,139 @@
+{
+  "policy_type": "pytorch_parameterized_action",
+  "checkpoint_path": "artifacts/outputs/checkpoints/mtim_marl_policy.pt",
+  "input_dim": 13,
+  "feature_names": [
+    "1-T1_recent",
+    "1-T2_recent",
+    "1-T4_recent",
+    "1-T5_recent",
+    "1-T1_q10",
+    "1-T4_q10",
+    "low_T1_T4_fraction_0.58",
+    "low_T1_T4_fraction_0.62",
+    "T1_T4_amplitude",
+    "T1_T4_std",
+    "T1_T4_positive_slope",
+    "directed_T2T3_minus_T1T4_gap",
+    "directed_low_quantile_gap"
+  ],
+  "mean": [
+    0.27542105317115784,
+    0.28707656264305115,
+    0.2830803096294403,
+    0.2874608337879181,
+    0.40057432651519775,
+    0.40508684515953064,
+    0.15591110289096832,
+    0.21961121261119843,
+    0.34840166568756104,
+    0.1072377935051918,
+    0.013287218287587166,
+    0.030171014368534088,
+    0.029603775590658188
+  ],
+  "std": [
+    0.10203556716442108,
+    0.07987285405397415,
+    0.11541581153869629,
+    0.06318927556276321,
+    0.10205648094415665,
+    0.1164475753903389,
+    0.19395007193088531,
+    0.22349897027015686,
+    0.03580673038959503,
+    0.008598784916102886,
+    0.027717290446162224,
+    0.04897203668951988,
+    0.04783417657017708
+  ],
+  "threshold": 0.6,
+  "training": {
+    "epochs": 180,
+    "batch_size": 64,
+    "learning_rate": 0.0015,
+    "device": "cpu",
+    "train_samples": 450,
+    "train_positive": 150,
+    "train_negative": 300
+  },
+  "final_training_metrics": {
+    "epoch": 180,
+    "loss": 0.0024771019278301133,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f_score": 1.0,
+    "false_positive_rate": 0.0,
+    "mean_risk_malicious": 0.9996923804283142,
+    "mean_risk_benign": 0.00041993160266429186
+  },
+  "mean_trust_weights": {
+    "T1": 0.31426435708999634,
+    "T2": 0.14462105929851532,
+    "T3": 0.08090902864933014,
+    "T4": 0.32329171895980835,
+    "T5": 0.13691364228725433
+  },
+  "incentive_action_distribution": {
+    "-2": 95,
+    "-1": 55,
+    "0": 0,
+    "1": 204,
+    "2": 96
+  },
+  "learned_baselines": {
+    "feature_names": [
+      "1-T1_recent",
+      "1-T2_recent",
+      "1-T4_recent",
+      "1-T5_recent",
+      "1-T1_q10",
+      "1-T4_q10",
+      "low_T1_T4_fraction_0.58",
+      "low_T1_T4_fraction_0.62",
+      "T1_T4_amplitude",
+      "T1_T4_std",
+      "T1_T4_positive_slope",
+      "directed_T2T3_minus_T1T4_gap",
+      "directed_low_quantile_gap"
+    ],
+    "threshold": 0.6,
+    "baselines": {
+      "LR-Trust": {
+        "model_type": "linear",
+        "checkpoint_path": "artifacts/outputs/checkpoints/lr_trust.pt",
+        "input_dim": 13,
+        "threshold": 0.6,
+        "training_metrics": {
+          "epoch": 180,
+          "loss": 0.25711358891593084,
+          "accuracy": 0.9288888888888889,
+          "precision": 0.9041095890410958,
+          "recall": 0.88,
+          "f_score": 0.8918918918918919,
+          "false_positive_rate": 0.04666666666666667,
+          "mean_risk_malicious": 0.875723659992218,
+          "mean_risk_benign": 0.13243724405765533
+        }
+      },
+      "MLP-Trust": {
+        "model_type": "mlp",
+        "checkpoint_path": "artifacts/outputs/checkpoints/mlp_trust.pt",
+        "input_dim": 13,
+        "threshold": 0.6,
+        "training_metrics": {
+          "epoch": 180,
+          "loss": 0.0006283888862449455,
+          "accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_score": 1.0,
+          "false_positive_rate": 0.0,
+          "mean_risk_malicious": 0.9995526075363159,
+          "mean_risk_benign": 0.00034437442081980407
+        }
+      }
+    }
+  }
+}

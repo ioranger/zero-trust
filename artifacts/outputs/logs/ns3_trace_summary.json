@@ -1,0 +1,25 @@
+{
+  "trace": "artifacts/outputs/logs/ns3_trust_streams.csv",
+  "n_uavs": 15,
+  "trace_steps": 49,
+  "warmup_steps_used": 9,
+  "time_min_s": 10.0,
+  "time_max_s": 490.0,
+  "attack_coverage": [
+    {
+      "attack_type": "benign",
+      "nodes": 10,
+      "malicious_nodes": 0
+    },
+    {
+      "attack_type": "constant",
+      "nodes": 3,
+      "malicious_nodes": 3
+    },
+    {
+      "attack_type": "on-off",
+      "nodes": 2,
+      "malicious_nodes": 2
+    }
+  ]
+}
