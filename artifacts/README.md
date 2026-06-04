@@ -1,5 +1,9 @@
 # MTIM Reproducible Artifact
 
+Repository note: manuscript sources and publication figures are organized under
+`paper/`. This directory is reserved for executable replication materials and
+generated experiment outputs.
+
 This directory contains the executable artifact for the revised MTIM manuscript.
 It now includes:
 
@@ -125,9 +129,9 @@ reimplementations unless official code and original feature pipelines are added.
 - `artifacts/outputs/tables/correlation.csv`: trust-factor Pearson correlations.
 - `artifacts/outputs/tables/statistical_tests.csv`: paired tests with Holm correction.
 - `artifacts/outputs/tables/ns3_trace_validation.csv`: single-trace ns-3-derived sanity-check results.
-- `artifacts/outputs/figures/trust_value_evolution.png`: trust evolution figure.
-- `artifacts/outputs/figures/update_mechanism.png`: MTIM state-update and artifact-provenance mechanism figure.
-- `artifacts/outputs/figures/Fig5_energy_consumption.png`: comparative evaluation figure.
+- `artifacts/outputs/figures/trust_value_evolution.png`: generated trust evolution figure.
+- `artifacts/outputs/figures/update_mechanism.png`: generated MTIM state-update and artifact-provenance mechanism figure.
+- `artifacts/outputs/figures/Fig5_energy_consumption.png`: generated comparative evaluation figure.
 - `artifacts/outputs/figures/marl_training_trace.png`: PyTorch training diagnostics.
 
 All random number generation is seeded through `artifacts/configs/default.json`.

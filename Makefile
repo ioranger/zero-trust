@@ -1,5 +1,6 @@
+TEX_DIR ?= paper
 MAIN_TEX ?= template.tex
-PDF := $(MAIN_TEX:.tex=.pdf)
+PDF := $(TEX_DIR)/$(MAIN_TEX:.tex=.pdf)
 TECTONIC ?= /Applications/Codex.app/Contents/Resources/plugins/openai-bundled/plugins/latex/bin/tectonic
 
 .PHONY: all pdf clean
@@ -7,7 +8,7 @@ TECTONIC ?= /Applications/Codex.app/Contents/Resources/plugins/openai-bundled/pl
 all: pdf
 
 pdf:
-	@if command -v latexmk >/dev/null 2>&1; then \
+	@cd "$(TEX_DIR)" && if command -v latexmk >/dev/null 2>&1; then \
 		latexmk -pdf -interaction=nonstopmode -halt-on-error "$(MAIN_TEX)"; \
 	elif [ -x "$(TECTONIC)" ]; then \
 		"$(TECTONIC)" "$(MAIN_TEX)"; \
@@ -21,4 +22,4 @@ pdf:
 	@test -f "$(PDF)"
 
 clean:
-	@rm -f *.aux *.bbl *.blg *.fdb_latexmk *.fls *.log *.out *.synctex.gz
+	@rm -f "$(TEX_DIR)"/*.aux "$(TEX_DIR)"/*.bbl "$(TEX_DIR)"/*.blg "$(TEX_DIR)"/*.fdb_latexmk "$(TEX_DIR)"/*.fls "$(TEX_DIR)"/*.log "$(TEX_DIR)"/*.out "$(TEX_DIR)"/*.synctex.gz

@@ -84,7 +84,9 @@ def main() -> None:
     plt, patches = require_matplotlib()
     root = Path(__file__).resolve().parents[2]
     out_dir = root / "artifacts" / "outputs" / "figures"
+    manuscript_figures = root / "paper" / "figures"
     out_dir.mkdir(parents=True, exist_ok=True)
+    manuscript_figures.mkdir(parents=True, exist_ok=True)
 
     plt.rcParams.update(
         {
@@ -266,10 +268,10 @@ def main() -> None:
     label(ax, 0.045, 0.105, "Dashed arrows denote artifact/trace provenance; main numerical tables use PyTorch-trained trust-layer evaluation.", size=5.9, color="#555555", ha="left")
 
     fig.tight_layout(pad=0.25)
-    for output in [root / "update.png", out_dir / "update_mechanism.png"]:
+    for output in [manuscript_figures / "update.png", out_dir / "update_mechanism.png"]:
         fig.savefig(output, dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig)
-    print(f"Wrote {root / 'update.png'}")
+    print(f"Wrote {manuscript_figures / 'update.png'}")
     print(f"Wrote {out_dir / 'update_mechanism.png'}")
 
 

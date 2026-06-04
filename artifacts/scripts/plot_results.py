@@ -46,9 +46,12 @@ def diagnostic_trust(config, streams, policy, end_step: int) -> np.ndarray:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    root = Path(__file__).resolve().parents[2]
     outputs = config.outputs
     figures = outputs / "figures"
+    manuscript_figures = root / "paper" / "figures"
     figures.mkdir(parents=True, exist_ok=True)
+    manuscript_figures.mkdir(parents=True, exist_ok=True)
     plt = require_matplotlib()
 
     metrics = pd.read_csv(outputs / "logs" / "per_seed_metrics.csv")
@@ -93,7 +96,8 @@ def main() -> None:
     ax.grid(True, alpha=0.25)
     ax.legend(ncol=3, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.18))
     fig.tight_layout(rect=[0, 0.08, 1, 1])
-    fig.savefig(figures / "trust_value_evolution.png")
+    for output in [figures / "trust_value_evolution.png", manuscript_figures / "trust_value_evolution.png"]:
+        fig.savefig(output)
     plt.close(fig)
 
     fig, axes = plt.subplots(1, 3, figsize=(12.0, 3.8))
@@ -150,7 +154,8 @@ def main() -> None:
     axes[2].set_title("(c) TSR at 30% malicious")
 
     fig.tight_layout()
-    fig.savefig(figures / "Fig5_energy_consumption.png")
+    for output in [figures / "Fig5_energy_consumption.png", manuscript_figures / "Fig5_energy_consumption.png"]:
+        fig.savefig(output)
     plt.close(fig)
     print(f"Wrote figures to {figures}")
 
