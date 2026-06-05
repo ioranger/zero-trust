@@ -158,8 +158,8 @@ def main() -> None:
         0.22,
         "Thinker Agents",
         [
-            "PyTorch MARL pi_theta",
-            "omega_j and A_inc",
+            "local MARL policy",
+            "trust weights and actions",
         ],
         colors["gray_face"],
         colors["gray_edge"],
@@ -173,8 +173,8 @@ def main() -> None:
         0.22,
         "Intelligent Decision",
         [
-            "total trust score",
-            "policy and uncertainty",
+            "global trust score",
+            "uncertainty-aware fusion",
         ],
         colors["purple_face"],
         colors["purple_edge"],
@@ -189,8 +189,8 @@ def main() -> None:
         0.205,
         "Status Update",
         [
-            "decayed prior + T_obs",
-            "bounded T_k(t+1) in [0, 10]",
+            "decayed prior + observation",
+            "bounded trust score",
         ],
         colors["orange_face"],
         colors["orange_edge"],
@@ -205,7 +205,7 @@ def main() -> None:
         "Decision and Feedback",
         [
             "classify node state",
-            "apply incentive and log",
+            "apply reward or penalty",
         ],
         colors["red_face"],
         colors["red_edge"],
@@ -214,14 +214,14 @@ def main() -> None:
     draw_box(
         ax,
         patches,
-        0.045,
-        0.19,
+        0.055,
+        0.21,
         0.18,
-        0.145,
-        "Trace Bridge",
+        0.16,
+        "Trust Memory",
         [
-            "ns-3 smoke trace",
-            "converted to T1--T5",
+            "historical score",
+            "recent evidence window",
         ],
         "#FAFAFA",
         "#888888",
@@ -234,10 +234,10 @@ def main() -> None:
         0.865,
         0.185,
         0.105,
-        "Artifact Evidence",
+        "Policy Constraint",
         [
-            "checkpoint, logs,",
-            "baselines, statistics",
+            "budgeted reward",
+            "restricted access",
         ],
         "#FFFFFF",
         "#888888",
@@ -252,20 +252,17 @@ def main() -> None:
 
     # Feedback loop from the decision layer to the next update interval.
     poly_arrow(ax, [(0.80, 0.205), (0.80, 0.14), (0.28, 0.14), (0.36, 0.56)], color="#2E7D59", lw=1.45)
-    label(ax, 0.55, 0.155, "incentive feedback for next Delta t", size=6.3, color="#2E7D59")
+    label(ax, 0.55, 0.155, "incentive feedback for the next update", size=6.3, color="#2E7D59")
 
-    # Optional ns-3 bridge is deliberately dashed to avoid overstating the main evidence base.
-    arrow(ax, (0.225, 0.28), (0.09, 0.56), color="#777777", style=(0, (4, 3)), lw=1.35, rad=-0.08)
-    label(ax, 0.12, 0.455, "optional trace input", size=6.1, color="#666666")
-
-    # Artifact provenance connects to the executable components, not to a claimed flight test.
-    arrow(ax, (0.79, 0.865), (0.35, 0.78), color="#777777", style=(0, (4, 3)), lw=1.25, rad=0.14)
+    # Trust memory and policy constraints feed the next closed-loop decision.
+    arrow(ax, (0.235, 0.29), (0.31, 0.56), color="#777777", style=(0, (4, 3)), lw=1.35, rad=-0.12)
+    label(ax, 0.155, 0.425, "temporal evidence", size=6.1, color="#666666")
     arrow(ax, (0.82, 0.865), (0.80, 0.78), color="#777777", style=(0, (4, 3)), lw=1.25, rad=-0.08)
 
     # Lightweight lane labels.
-    label(ax, 0.045, 0.895, "MTIM update path aligned with Figure 1", size=8.2, color="#222222", weight="bold", ha="left")
+    label(ax, 0.045, 0.895, "MTIM trust-state update and incentive loop", size=8.2, color="#222222", weight="bold", ha="left")
     ax.plot([0.045, 0.92], [0.835, 0.835], color="#D7DCE2", lw=1.1)
-    label(ax, 0.045, 0.105, "Dashed arrows denote artifact/trace provenance; main numerical tables use PyTorch-trained trust-layer evaluation.", size=5.9, color="#555555", ha="left")
+    label(ax, 0.045, 0.105, "Dashed arrows denote temporal memory and policy constraints; solid arrows denote the operational path.", size=5.9, color="#555555", ha="left")
 
     fig.tight_layout(pad=0.25)
     for output in [manuscript_figures / "update.png", out_dir / "update_mechanism.png"]:
