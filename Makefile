@@ -1,7 +1,7 @@
 TEX_DIR ?= paper
 MAIN_TEX ?= template.tex
 PDF := $(TEX_DIR)/$(MAIN_TEX:.tex=.pdf)
-TECTONIC ?= /Applications/Codex.app/Contents/Resources/plugins/openai-bundled/plugins/latex/bin/tectonic
+TECTONIC ?= $(firstword $(wildcard /Applications/Codex.app/Contents/Resources/plugins/openai-bundled/plugins/latex/bin/tectonic /Applications/Codex 2.app/Contents/Resources/plugins/openai-bundled/plugins/latex/bin/tectonic /Applications/ChatGPT.app/Contents/Resources/plugins/openai-bundled/plugins/latex/bin/tectonic))
 
 .PHONY: all pdf clean
 

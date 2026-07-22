@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Deterministic trust-factor-level simulator for the MTIM artifact.
 
-The simulator works at the T1--T5 trust-factor interface used by the manuscript.
-MTIM itself is evaluated through the PyTorch policy trained by
-train_marl_pytorch.py; packet-level ns-3 traces can be converted into this
-interface with ns3_trace_to_trust.py.
+The main benchmark samples T1--T4 directly from configured distributions and
+derives T5 recursively.  It is not a packet-, mobility-, energy-, or radio-level
+simulation.  The PyTorch model is supervised; packet-level ns-3 traces can be
+converted into the same interface with ``ns3_trace_to_trust.py``.
 """
 
 from __future__ import annotations
@@ -218,7 +218,7 @@ def mtim_scores(
     n_agents: int | None = None,
     disabled_feature_names: Iterable[str] | None = None,
 ) -> np.ndarray:
-    if policy.get("policy_type") == "pytorch_parameterized_action":
+    if policy.get("policy_type") in {"pytorch_parameterized_action", "pytorch_supervised_multihead"}:
         from marl_policy import extract_marl_policy_features, load_torch_policy
 
         x, _ = extract_marl_policy_features(
@@ -241,7 +241,7 @@ def mtim_scores(
             out = model(torch.tensor(xs, dtype=torch.float32))
             return torch.sigmoid(out["risk_logit"]).numpy()
 
-    raise ValueError("MTIM evaluation requires a PyTorch parameterized-action policy. Run train_marl_pytorch.py.")
+    raise ValueError("MTIM evaluation requires a trained PyTorch multi-head model. Run train_marl_pytorch.py.")
 
 
 def method_predictions(
@@ -342,6 +342,12 @@ def task_success_rate(
     n_uavs: int,
     n_agents: int,
 ) -> float:
+    """Return a model-based task-success proxy, not a measured mission metric.
+
+    The MTIM branch receives mechanism-specific selection and success bonuses.
+    Cross-method TSR differences are therefore descriptive and cannot isolate
+    the learned auxiliary action head, which is not consumed here.
+    """
     rng = np.random.default_rng(int(config.raw["base_seed"]) + seed * 1777 + METHOD_OFFSETS[method] + n_agents * 41)
     eligibility = np.clip((score_for_tasks - 0.38) / 0.57, 0.0, 1.0)
     eligibility = np.where(prediction, eligibility * 0.22, eligibility)
@@ -369,6 +375,10 @@ def resource_metrics(
     n_uavs: int,
     n_agents: int,
 ) -> Tuple[float, float]:
+    """Generate synthetic cost proxies from affine formulas plus noise.
+
+    Returned values are neither serialized byte counts nor wall-clock timings.
+    """
     rng = np.random.default_rng(int(config.raw["base_seed"]) + seed * 229 + METHOD_OFFSETS[method] + n_uavs * 19)
     base_overhead = {
         "MFA": 8.0,

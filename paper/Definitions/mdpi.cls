@@ -43,7 +43,7 @@
   linkcolor=blue!55!black,
   citecolor=blue!55!black,
   urlcolor=blue!55!black,
-  pdftitle={MARL-based Trust Evaluation for Zero-Trust Low-Altitude UAV Networks}
+  pdftitle={Trust-Stream Evaluation of Trust-Guided Task Allocation in Low-Altitude UAV Networks}
 }
 
 \setlength{\parindent}{1.5em}

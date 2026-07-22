@@ -156,10 +156,10 @@ def main() -> None:
         0.56,
         0.18,
         0.22,
-        "Thinker Agents",
+        "Supervised Risk Model",
         [
-            "local MARL policy",
-            "trust weights and actions",
+            "shared encoder + risk head",
+            "auxiliary supervised heads",
         ],
         colors["gray_face"],
         colors["gray_edge"],
@@ -171,10 +171,10 @@ def main() -> None:
         0.56,
         0.185,
         0.22,
-        "Intelligent Decision",
+        "Proposed Aggregation",
         [
-            "global trust score",
-            "uncertainty-aware fusion",
+            "multi-observer fusion",
+            "not executed in artifact",
         ],
         colors["purple_face"],
         colors["purple_edge"],
@@ -187,10 +187,10 @@ def main() -> None:
         0.205,
         0.25,
         0.205,
-        "Status Update",
+        "Proposed State Update",
         [
             "decayed prior + observation",
-            "bounded trust score",
+            "not executed in artifact",
         ],
         colors["orange_face"],
         colors["orange_edge"],
@@ -202,10 +202,10 @@ def main() -> None:
         0.205,
         0.235,
         0.205,
-        "Decision and Feedback",
+        "Allocation Proxy",
         [
-            "classify node state",
-            "apply reward or penalty",
+            "score-weighted task sampling",
+            "simulator-specific rules",
         ],
         colors["red_face"],
         colors["red_edge"],
@@ -234,7 +234,7 @@ def main() -> None:
         0.865,
         0.185,
         0.105,
-        "Policy Constraint",
+        "Proposed Constraint",
         [
             "budgeted reward",
             "restricted access",
@@ -252,7 +252,7 @@ def main() -> None:
 
     # Feedback loop from the decision layer to the next update interval.
     poly_arrow(ax, [(0.80, 0.205), (0.80, 0.14), (0.28, 0.14), (0.36, 0.56)], color="#2E7D59", lw=1.45)
-    label(ax, 0.55, 0.155, "incentive feedback for the next update", size=6.3, color="#2E7D59")
+    label(ax, 0.55, 0.155, "proposed feedback (not executed)", size=6.3, color="#2E7D59")
 
     # Trust memory and policy constraints feed the next closed-loop decision.
     arrow(ax, (0.235, 0.29), (0.31, 0.56), color="#777777", style=(0, (4, 3)), lw=1.35, rad=-0.12)
@@ -260,9 +260,9 @@ def main() -> None:
     arrow(ax, (0.82, 0.865), (0.80, 0.78), color="#777777", style=(0, (4, 3)), lw=1.25, rad=-0.08)
 
     # Lightweight lane labels.
-    label(ax, 0.045, 0.895, "MTIM trust-state update and incentive loop", size=8.2, color="#222222", weight="bold", ha="left")
+    label(ax, 0.045, 0.895, "MTIM artifact and proposed deployment extensions", size=8.2, color="#222222", weight="bold", ha="left")
     ax.plot([0.045, 0.92], [0.835, 0.835], color="#D7DCE2", lw=1.1)
-    label(ax, 0.045, 0.105, "Dashed arrows denote temporal memory and policy constraints; solid arrows denote the operational path.", size=5.9, color="#555555", ha="left")
+    label(ax, 0.045, 0.105, "The risk model and allocation proxy are executable; aggregation, state feedback, and constraints are design extensions.", size=5.9, color="#555555", ha="left")
 
     fig.tight_layout(pad=0.25)
     for output in [manuscript_figures / "update.png", out_dir / "update_mechanism.png"]:

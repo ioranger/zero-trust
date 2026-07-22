@@ -1,5 +1,5 @@
 {
-  "policy_type": "pytorch_parameterized_action",
+  "policy_type": "pytorch_supervised_multihead",
   "checkpoint_path": "artifacts/outputs/checkpoints/mtim_marl_policy.pt",
   "input_dim": 13,
   "feature_names": [

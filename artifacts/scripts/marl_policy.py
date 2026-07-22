@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""PyTorch policy components for the MTIM artifact.
+"""PyTorch components for the supervised MTIM trust-stream artifact.
 
-The network is intentionally compact so the artifact can be trained on a
-workstation, but it preserves the paper's parameterized-action structure:
-continuous trust-factor weights and discrete incentive actions share an encoder.
+The auxiliary factor-weight, action-class, and value heads share an encoder with
+the risk classifier.  Their targets are supervised or heuristic; this module
+does not implement reinforcement learning.
 """
 
 from __future__ import annotations
@@ -20,7 +20,12 @@ MARL_EXTRA_FEATURES: list[str] = []
 
 
 def extract_marl_policy_features(config: Config, streams: np.ndarray, n_agents: int) -> Tuple[np.ndarray, list[str]]:
-    """Return per-node MTIM features augmented with thinker-agent context."""
+    """Return per-node MTIM features.
+
+    ``n_agents`` is retained for API compatibility but is not currently used.
+    Consequently, the artifact does not learn an agent-count or local-agent
+    context effect.
+    """
 
     base = extract_policy_features(config, streams)
     features = base

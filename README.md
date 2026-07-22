@@ -1,6 +1,6 @@
-# MARL-Based Trust Evaluation for Zero-Trust Low-Altitude UAV Networks
+# Trust-Stream Evaluation for Low-Altitude UAV Networks
 
-This repository contains the manuscript source, publication figures, and reproducible artifact package for the MTIM paper.
+This repository contains the manuscript source, figures, and reproducible artifact for a supervised MTIM trust-stream proof of concept. The main benchmark is synthetic; the bundled ns-3-derived input is a single short interface check.
 
 ## Repository Layout
 
@@ -51,4 +51,3 @@ The currently committed artifact outputs are intentionally preserved because the
 - Historical manuscript outputs and unused reference images: `paper/archive/`
 - Reproducibility code and experiment outputs: `artifacts/`
 - Local development environment: `.venv/` (ignored)
-

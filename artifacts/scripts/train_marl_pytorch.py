@@ -21,7 +21,7 @@ from reference_simulator import load_config, simulate_trust_stream
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the MTIM PyTorch parameterized-action policy.")
+    parser = argparse.ArgumentParser(description="Train the supervised MTIM multi-head trust model.")
     parser.add_argument("--config", default="artifacts/configs/default.json")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -149,8 +149,7 @@ def main() -> None:
             loss_risk = bce(out["risk_logit"], batch_y)
             loss_weight = mse(out["trust_weights"], batch_w)
             loss_action = ce(out["incentive_q"], batch_a)
-            # TD-style auxiliary value target: high value for correct benign service,
-            # low value for high-risk malicious assignments.
+            # Supervised auxiliary target derived directly from the class label.
             value_target = (1.0 - batch_y) * 0.80 - batch_y * 0.40
             loss_value = mse(out["value"], value_target)
             loss = loss_risk + 0.25 * loss_weight + 0.20 * loss_action + 0.10 * loss_value
@@ -190,7 +189,7 @@ def main() -> None:
 
     pd.DataFrame(history).to_csv(logs / "marl_training_trace.csv", index=False)
     policy = {
-        "policy_type": "pytorch_parameterized_action",
+        "policy_type": "pytorch_supervised_multihead",
         "checkpoint_path": str(checkpoint_rel),
         "input_dim": int(xs.shape[1]),
         "feature_names": feature_names,

@@ -73,7 +73,7 @@
 
 %=================================================================
 % Full title of the paper (Capitalized)
-\Title{MARL-Based Trust Evaluation for Zero-Trust Low-Altitude UAV Networks}
+\Title{Trust-Stream Evaluation of Trust-Guided Task Allocation in Low-Altitude UAV Networks}
 
 % Author Orchid ID: enter ID or remove command
 \newcommand{\orcidauthorA}{0000-0000-0000-000X} % Add \orcidA{} behind the author's name
@@ -106,10 +106,10 @@ Department of Computer Science and Engineering, Anonymous Institution}
 %\conference{} % An extended version of a conference paper
 
 % Abstract (Do not insert blank lines, i.e. \\) 
-\abstract{Low-altitude UAV networks are characterized by rapidly changing topology, intermittent connectivity, and limited onboard computation and energy, which make continuous security assessment difficult in infrastructure-scarce missions. Under these conditions, compromised UAVs can conduct spoofing, data tampering, selective forwarding, dormant/on-off misbehavior, and limited collusion, and a high malicious-node ratio can distort local observations enough to make trust evaluation inaccurate. Existing evidence-fusion, anomaly-profile, and group-decision trust mechanisms can detect some insider behaviors, but their manually specified fusion logic often loses discrimination under dense or temporally evasive attacks; strong learned risk classifiers further narrow the detection gap but do not convert trust estimates into reward and penalty decisions that guide future UAV behavior. To address this problem, this paper proposes the Multi-Agent Trust and Incentive Mechanism (MTIM), a closed-loop framework that combines trust evaluation with a MARL-supported incentive mechanism for continuous zero-trust verification in low-altitude UAV networks. MTIM treats trust as a behavioral control signal: current UAV behavior is first evaluated through behavioral, communication, energy, task, and historical evidence; the resulting trust state is then used to assign rewards, penalties, and task-allocation preferences; and an offline-trained parameterized MARL policy strengthens this trust-to-incentive mapping under partial observations. Multi-agent execution allows different Thinker Agents to supervise local UAV subsets, while the Intelligent Decision Agent aggregates their estimates with confidence-aware uncertainty control. In the 50-seed trust-stream evaluation, MTIM achieves 94.4\% detection accuracy, 91.8\% F-score, and 90.5\% task success rate under a 30\% malicious-node ratio. Compared with paper-level reimplementations of MFA, FUBA, GALTrust, and GDM-DTM, MTIM improves both detection and task success under high malicious-node ratios; compared with a strong MLP-Trust baseline, MTIM obtains statistically similar detection performance but improves task success by 2.2 percentage points through incentive coupling. These results support the central claim that trust assessment is most effective when coupled to incentive-aware mission decisions, while packet-level multi-seed validation and real-flight deployment remain future work.}
+\abstract{Trust scores are useful in a cooperative UAV mission only when they inform an operational decision. This paper studies that link at the trust-stream level. We construct five normalized evidence streams---behavior, communication, energy, task execution, and history---and train a supervised multi-head network to estimate node risk and auxiliary task-allocation actions. The executable artifact is deliberately narrower than a full multi-agent reinforcement-learning system: it uses simulator labels during offline training, freezes the model for evaluation, and does not learn from environment rewards or deployment trajectories. On 50 held-out generated seeds with 15 UAVs and a 30\% malicious-node ratio, the model obtains 94.4\% accuracy and a 91.8\% F-score. A same-feature MLP obtains 94.7\% and 92.1\%, respectively; neither difference is statistically significant. A model-based task-allocation simulation yields a 90.5\% success proxy for the proposed configuration and 88.3\% for the MLP, but this comparison is descriptive because the simulator applies mechanism-specific allocation rules. On one short ns-3-derived trace, the proposed model achieves 80.0\% accuracy and 40.0\% recall, trailing three rule-based adapters in recall. The results therefore establish reproducibility and feasibility only within the generated trust-stream setting. Claims about online adaptation, packet-level robustness, communication cost, and flight deployment require independent experiments.}
 
 % Keywords
-\keyword{UAV networks; trust management; multi-agent reinforcement learning; zero trust architecture; FANET security}   
+\keyword{UAV networks; trust management; task allocation; zero trust; reproducible simulation}
   
 % The fields PACS, MSC, and JEL may be left empty or commented out if not applicable
 %\PACS{J0101}
@@ -160,28 +160,26 @@ Department of Computer Science and Engineering, Anonymous Institution}
 
 %%%%%%%%%%%%%
 \section{Introduction}
-Low-altitude UAVs are becoming critical infrastructure for logistics, inspection, sensing, and emergency response, and their flexibility and rapid deployment make them a cornerstone of the emerging low-altitude economy \cite{kundu2024survey}. The operating background of such networks is distinctive: flying ad hoc networks (FANETs) have rapidly changing topology, intermittent air-to-air connectivity, and severely constrained onboard computation and energy resources \cite{noor2020fanet}.
+UAV swarms used for inspection, sensing, and emergency response rely on nodes that remain inside the mission after admission. A valid identity is therefore not sufficient evidence of trustworthy behavior. A compromised node can selectively forward traffic, falsify a task result, or alternate between benign and harmful behavior while retaining the privileges granted by its earlier history. Dynamic topology and intermittent links make those behaviors difficult to distinguish from ordinary failures \cite{kundu2024survey,noor2020fanet}.
 
-The security problem addressed in this paper is not merely that UAVs may be attacked, but that compromised nodes can remain inside the cooperative swarm and distort trust evidence over time. In practical missions, malicious UAVs may spoof state information, selectively forward packets, tamper with sensing or task results, manipulate energy/task behavior, or submit biased peer observations. When the malicious-node ratio is high, these behaviors can shift the observed trust distribution and make accurate trust assessment difficult, especially under dormant or on-off attacks that deliberately exploit historical trust.
+Trust management addresses this problem by updating a node score from recent observations. Existing schemes use fuzzy fusion, anomaly profiles, provenance, or group decisions \cite{benfriha2024fuba,akram2024galtrust,ge2021uavpro,hu2025gdm}. Their scores, however, are often evaluated only as detector outputs. In a mission, the practical question is what changes after a node becomes risky: whether it may receive a sensitive task, how much traffic it may relay, and when it should be isolated. This study examines that narrower trust-to-allocation question.
 
-To address this problem, this paper proposes the Multi-Agent Trust and Incentive Mechanism (MTIM). MTIM is introduced here as a behavior-guidance framework rather than only as a detector: it evaluates the current trustworthiness of each UAV, uses the trust score as the basis for rewards and penalties, and feeds the resulting incentive decision back into task allocation so that cooperative behavior is favored over time.
+We present MTIM as a reproducible proof of concept rather than a deployment-ready zero-trust architecture. The artifact generates five trust-factor streams, fits a supervised multi-head network, and uses its risk output in a model-based task-allocation simulation. Although the architecture was motivated by parameterized multi-agent decision making, the released training procedure is not reinforcement learning: there is no sampled return, Bellman target, policy-gradient update, or online interaction with an environment. Calling the executable model MARL would therefore overstate what was implemented.
 
-Trust management has emerged as a core security primitive for UAV networks, enabling continuous assessment of node trustworthiness to detect malicious activities and mitigate attack impacts. Existing mechanisms have made meaningful progress, but the specific problem above remains only partially solved. FUBA uses fuzzy behavior analytics over heterogeneous FANET indicators, GALTrust introduces generative-adversarial/profile-based trust modeling, and GDM-DTM applies dynamic group decision making for low-altitude UAV trust evaluation \cite{benfriha2024fuba,akram2024galtrust,hu2025gdm}. These methods can detect certain insider or anomaly behaviors, so the unresolved gap is more specific: under dense malicious populations and temporal evasion, manually specified fusion rules, profile distances, or group-decision consistency penalties may lose discrimination, and their trust scores are not directly coupled to mission-level reward, penalty, or task-allocation decisions. Strong learned classifiers can further improve risk discrimination, but risk-only classifiers still leave the trust-to-action loop open.
-
-This framing leads to three challenges. First, the trust evaluator must remain accurate when the malicious population is dense enough to distort local trust distributions. Second, the selected trust factors must be broad enough to capture coordinated deception, yet compact enough to avoid unnecessary computation. Third, the system must turn trust scores into concrete incentives: high-trust UAVs should receive favorable task or resource opportunities, whereas low-trust UAVs should be penalized, restricted, or excluded from sensitive task assignments. Zero trust offers the security principle for continuous verification \cite{rose2020zero}, while recent UAV studies show that MARL is useful for distributed decision making under partial observability and dynamic coupling \cite{ekechi2025survey,wang2020trajectory,nie2021resource,alam2024joint}. In MTIM, however, reinforcement learning is used primarily to strengthen the incentive and trust-to-action policy, not to claim that raw trust evaluation requires reinforcement learning by itself.
+The study asks two bounded questions. First, can temporal summaries of generated trust streams distinguish constant, dormant, and on--off attackers on held-out random seeds? Second, under the allocation rules encoded in the same simulator, does trust-guided selection improve a task-success proxy? The answer to the first question is positive within the generator but no better than a same-feature MLP. The second result is suggestive rather than causal because the task simulator contains mechanism-specific rules. A short ns-3-derived trace is included to expose, rather than hide, the remaining packet-level gap.
 
 \textbf{Problem statement.}
-This paper addresses the trust-layer decision problem in fixed-identity low-altitude UAV swarms: under dynamic topology, intermittent observations, and high malicious-node ratios, how can a trust mechanism accurately infer node risk from noisy multi-factor evidence and then convert the inferred trust state into mission-level incentive decisions without relying on centralized infrastructure or online labels? This scope deliberately focuses on continuous trust verification and task-level response, rather than complete identity management, Sybil-resistant admission control, or real-flight deployment.
+This paper addresses a trust-layer decision problem for fixed identities: how should a risk estimate derived from noisy multi-factor evidence affect a subsequent task-allocation decision? The empirical scope is a generated trust-stream benchmark. It does not cover admission control, Sybil resistance, real-time distributed execution, or flight deployment.
 
-As shown in Figure~\ref{fig:Proposed}, MTIM implements the above idea as a distributed trust--incentive loop. Trust evaluation measures current behavior and computes a credibility score; reward and penalty actions use that score as their decision basis; the MARL-style policy improves how local evidence is translated into incentive choices under partial observation; and multiple Thinker Agents divide local supervision responsibilities before the Intelligent Decision Agent aggregates their estimates. The main contributions of this paper are as follows:
+Figure~\ref{fig:Proposed} gives the intended deployment architecture. Only its trust-stream classifier and allocation proxy are exercised in the released artifact. The contributions are consequently limited to the following:
 
 \begin{itemize}
-    \item \textbf{A trust-guided behavior-regulation framework}: MTIM constructs a closed loop in which UAV behavior is observed, converted into a trust score, and then used as the criterion for reward, penalty, and task-allocation decisions. This frames trust management as a mechanism for encouraging cooperative behavior, not only as a post hoc malicious-node detector.
-    \item \textbf{A justified multi-factor trust assessment model}: We design a compact five-factor trust evaluator covering behavioral consistency, communication reliability, energy behavior, task execution, and historical reputation. These factors are selected because they correspond to distinct attack surfaces and temporal evidence sources; the model avoids adding unrestricted evidence dimensions, and the ablation study quantifies which factors contribute most to detection and task success.
-    \item \textbf{A MARL-supported multi-agent incentive policy}: We use an offline-trained MARL-style policy to strengthen the mapping from trust states to reward/penalty actions, while multiple Thinker Agents provide local supervision under partial observability. The Intelligent Decision Agent then fuses local estimates with uncertainty-aware confidence weights. The empirical advantage is therefore mission-level: MTIM remains close to the strong MLP-Trust detector in accuracy but improves task success through incentive coupling.
+    \item a documented generator for behavioral, communication, energy, task, and historical trust streams under three temporal attack patterns;
+    \item a reproducible supervised multi-head model and same-feature LR/MLP comparators evaluated on disjoint training and evaluation seeds; and
+    \item an explicit negative result: the proposed risk head does not outperform the same-feature MLP, and the available packet-trace check is too small to establish external validity.
 \end{itemize}
 
-The remainder of this paper is organized as follows. Section~2 reviews related work on trust management in UAV networks and MARL for network security. Section~3 presents the trust--incentive problem definition, network and threat models, multi-factor trust evaluation, MARL-supported incentive policy, and trust state dynamics. Section~4 describes the experimental setup and presents the performance evaluation results. Section~5 concludes the paper and outlines future research directions.
+The remainder of this paper reviews related work, defines the intended architecture and executable subset, reports the trust-stream experiments and packet-trace check, and closes with limitations.
 
 \section{Related Work}
 Trust evaluation for UAV networks now includes reputation models, evidence fusion, blockchain support, and learning-based designs. Yet low-altitude UAV studies rarely integrate zero-trust verification, distributed trust learning, uncertainty aggregation, and mission incentives. We review three related areas: UAV trust management, zero-trust assessment, and MARL for UAV networking and security.
@@ -213,14 +211,14 @@ Overall, prior work has made strong progress in trust modeling, distributed audi
 
 (3) \textbf{Closing the trust-to-action loop}: A detector that outputs only a trust or risk score does not by itself decide how task allocation, incentives, or penalties should change; this is the specific gap exposed by the comparison with the strong risk-only MLP-Trust baseline.
 
-MTIM addresses these three challenges by coupling multi-factor trust evaluation with a learned reward--penalty policy, multi-agent local supervision, confidence-aware aggregation, and temporal trust decay.
+The present artifact addresses only part of this gap: it evaluates temporal trust features and a score-based allocation proxy. Multi-agent execution and confidence-aware aggregation remain proposed extensions.
 
 
 %%%%%%%%%%%%%
 \section{System Model}
 \label{sec:system_model}
 
-We consider a low-altitude UAV swarm executing a cooperative mission (e.g., area surveillance, delivery, or search-and-rescue) in an open, infrastructure-scarce environment. The network is subject to three intrinsic constraints---dynamic topology, intermittent connectivity, and limited onboard resources---that simultaneously degrade conventional perimeter-based defenses and amplify the impact of insider threats. When malicious nodes constitute a non-negligible fraction of the swarm, sparse observations make accurate trust inference a problem of \emph{reasoning under uncertainty} rather than deterministic rule-checking. This section first defines the trust--incentive decision problem (Section~\ref{sec:problem_definition}), then formalizes the network model (Section~\ref{sec:net_model}), threat model (Section~\ref{sec:threat_model}), multi-factor trust evaluation mechanism (Section~\ref{sec:trust_eval}), MARL-style incentive policy (Section~\ref{sec:marl_formulation}), and trust state dynamics (Section~\ref{sec:state_update}).
+We consider a low-altitude UAV swarm executing a cooperative mission in an infrastructure-scarce environment. This section separates the intended system from the subset implemented in the artifact.
 
 \subsection{Problem Definition}
 \label{sec:problem_definition}
@@ -234,12 +232,12 @@ where $o_j(t)$ is the partial observation available to agent $j$, $\mathcal{H}_k
 \max_{\Pi_{\theta}}\; \mathbb{E}\!\left[\lambda_1 F_1 + \lambda_2 \mathrm{TSR}
 - \lambda_3 C_{\mathrm{comm}} - \lambda_4 T_{\mathrm{eval}}\right],
 \end{equation}
-subject to bounded trust scores $\mathcal{T}_k(t)\in[0,10]$ and the incentive budget later defined in Eq.~\ref{eq:incentive_opt}. In the empirical implementation, this objective is approximated by a supervised surrogate loss (Section~\ref{sec:reward}) rather than optimized directly. This distinction is important: the trust factors can be computed without reinforcement learning, while reinforcement learning is used to strengthen the mapping from trust evidence to reward--penalty actions under partial observation.
+subject to bounded trust scores and an incentive budget. This is a conceptual objective only. The empirical model minimizes the supervised loss in Section~\ref{sec:reward}; it does not optimize F$_1$, TSR, communication cost, or latency jointly.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{ov2.png}
-\caption{Overview of the MTIM framework. Summarization Agents collect UAV-network and ground-control observations, verified trust branches T1--T5 extract multi-factor evidence, parallel Thinker Agents evaluate locally observed UAV subsets and propose incentive actions, and the Intelligent Decision Agent aggregates trust estimates and closes the reward--penalty feedback loop.}
+\caption{Intended MTIM deployment architecture. The released artifact implements the T1--T5 trust-stream features, a shared supervised network, and a model-based allocation proxy. Parallel on-board agents, confidence-weighted fusion, and a closed deployment feedback loop remain design elements rather than experimentally validated components.}
 \label{fig:Proposed}
 \end{figure}
 
@@ -251,7 +249,7 @@ The communication topology is a time-varying undirected graph $G(t) = (\mathcal{
 
 \subsection{Threat Model}
 \label{sec:threat_model}
-We adopt a white-box adversary model that is standard in the trust management literature~\cite{benfriha2024fuba,hu2025gdm} but extend it to capture coordinated multi-dimensional manipulation.
+We use a fixed-identity synthetic adversary model. It is not adaptive to the learned parameters.
 
 \paragraph{Adversary capabilities.}
 A subset of nodes $\mathcal{M} \subset \mathcal{U}$ ($|\mathcal{M}|/N \in [0.05, 0.50]$ in our experiments) is controlled by an adversary. Each malicious node $U_m \in \mathcal{M}$ can independently manipulate any subset of the five trust dimensions by:
@@ -270,20 +268,20 @@ We consider three canonical attack patterns that cover the spectrum from naive t
     \item \textbf{Dormant attack}: the malicious node behaves honestly during an initial warm-up period ($t \leq T_{\text{warm}}$), accumulating trust, then switches to adversarial behavior. This models adversaries that attempt to evade initial screening.
     \item \textbf{On-off attack}: the malicious node toggles between honest and adversarial behavior with period $T_{\text{toggle}}$, attempting to keep its trust score near the classification boundary where decisions are most uncertain.
 \end{enumerate}
-In mixed-attack experiments, each pattern accounts for one-third of the malicious population. The main evaluation focuses on direct behavioral manipulation in T1--T4. To clarify the boundary of the zero-trust claim, we also include a limited collusion stress test in the sensitivity analysis: a subset of malicious nodes submits inflated peer recommendations while continuing one of the three behavioral attack patterns. Full Sybil resistance, where a physical adversary creates many unlinkable identities, requires identity-binding and admission-control mechanisms outside the scope of MTIM and is treated as a deployment prerequisite rather than a solved problem.
+In mixed-attack experiments, these patterns are assigned cyclically across malicious nodes. The artifact does not implement colluding peer reports, Sybil identities, an adaptive attacker, or training-data poisoning.
 
 \paragraph{Adversary knowledge.}
-The adversary is assumed to know the set of trust dimensions used by MTIM but \emph{not} the frozen policy parameters, per-node policy outputs $\omega_m(t)$, or the Intelligent Decision Agent confidence weights $\phi_{jk}(t)$. This models a capable but not omniscient attacker. The adversary may submit biased peer observations in the collusion stress test, but cannot create Sybil identities, tamper with the Intelligent Decision Agent, or poison the offline training data.
+The generated attacker knows neither the fitted parameters nor the decision threshold. Because it does not respond to model outputs, the experiments measure generalization across random seeds from one generator, not robustness to a strategic white-box adversary.
 
 \paragraph{Design implications.}
-Under this threat model, a robust trust mechanism must satisfy four requirements: (R1) no single trust dimension can dominate the aggregate score, otherwise an adversary focusing on that dimension evades detection; (R2) trust weights must depend on observed context, because the adversary's choice of which dimensions to attack is unknown a priori and may change over time; (R3) temporal consistency must be enforced, because dormant and on-off attackers exploit stale trust scores; and (R4) peer evidence must be down-weighted when an agent's historical estimates become unreliable. MTIM's cross-factor consistency check, policy-generated trust weighting, temporal decay, and Intelligent Decision Agent confidence weighting directly address R1--R4, respectively. The resulting protection is a continuous verification mechanism, not a complete replacement for cryptographic identity management or Sybil-resistant admission control.
+The generator mainly tests whether temporal summaries of T1 and T4 separate the three attack profiles from benign nodes. It does not test majority collusion or Byzantine aggregation. Any deployment would still require cryptographic identity binding and an independently validated observation pipeline.
 
 \subsection{Multi-factor Trust Evaluation Mechanism}
 \label{sec:trust_eval}
-MTIM assesses UAV credibility through five complementary trust dimensions, each capturing a distinct behavioral modality. The design principle is that a malicious node may evade detection in any single dimension by mimicking honest behavior, but sustaining consistent deception across five independent evidence channels is exponentially harder. We first define each dimension, then present the aggregation and cross-validation mechanisms.
+MTIM represents credibility with five trust dimensions. They are not statistically independent, and the present study does not support an ``exponentially harder'' evasion claim. T5 is explicitly computed from the other four dimensions and is therefore a memory term, not a separate sensor.
 
 \subsubsection{Trust Factor Decomposition}
-The five trust factors are selected to cover the minimum set of evidence channels needed by the threat model rather than to maximize the number of observable features. T1 captures behavioral consistency and exposes route or coordination deviations; T2 captures communication reliability and exposes selective forwarding or link manipulation; T3 captures resource-consumption anomalies that may indicate jamming, idle evasion, or compromised operation; T4 captures mission-facing task quality, which is the most direct evidence of whether a UAV contributes useful work; and T5 captures temporal reputation, which is necessary for dormant and on-off attackers that exploit one-shot observations. This choice creates computational overhead compared with single-factor scoring, but each factor corresponds to a distinct attack surface and the ablation in Table~\ref{tab:ablation} evaluates the marginal value of the factor groups.
+T1 denotes behavioral consistency, T2 communication reliability, T3 energy behavior, and T4 task quality. T5 is an exponentially smoothed mean of T1--T4. Equations~\ref{eq:T1}--\ref{eq:T4} describe how these quantities could be obtained from telemetry. In the main experiment, however, the artifact samples normalized T1--T4 values directly from attack-dependent distributions and computes T5 from those samples; it does not simulate the raw packet, position, energy, or task variables in these equations.
 
 As illustrated in Figure \ref{fig:Proposed}, the trust evaluation is decomposed into multiple trust branches, each corresponding to a distinct trust factor. Let the overall trust score of UAV node $i$ at time $t$ be denoted as $T_i(t) \in [0, 10]$, which is a function of five fundamental trust dimensions (the formal aggregation mechanism is presented in Section~\ref{sec:multi_factor_aggregation}),
 where each trust branch $T_i^{(m)}(t) \in [0, 1]$ is defined as follows:
@@ -334,7 +332,7 @@ Each trust branch independently computes a sub-score $T_i^{(m)}(t) \in [0, 1]$ b
 \begin{equation}\label{eq:aggregation}
 T_i(t) = 10 \cdot \sum_{m=1}^{5} \omega_m(t) \cdot T_i^{(m)}(t)
 \end{equation}
-where $\omega_m(t)$ are dynamic weighting coefficients satisfying $\sum_{m=1}^{5} \omega_m(t) = 1$, and the factor of 10 maps the aggregated score to the $[0, 10]$ range consistent with the classification thresholds $\theta_{\text{high}} = 7.5$ and $\theta_{\text{low}} = 3.0$. These weights are produced by the MARL-style trust policy introduced in the next section, allowing the system to emphasize more reliable trust factors under varying operational conditions.
+where the weights sum to one. The network learns an auxiliary weight head, but the released classifier computes risk directly from 13 summary features and does not use Eq.~\ref{eq:aggregation} to obtain its prediction.
 
 \subsubsection{Cross-Validation Mechanism}
 The multi-factor design ensures that no single point of failure or manipulation can compromise the overall trust decision. To enhance robustness, a \textbf{cross-validation mechanism} is implemented between trust branches. For any pair of trust factors $m$ and $n$, the consistency metric is defined as:
@@ -349,9 +347,9 @@ Furthermore, the framework supports \textbf{anomaly detection} through statistic
 \end{equation}
 where $\mu_m(t)$ and $\sigma_m(t)$ are the mean and standard deviation of trust factor $m$ across the swarm, $\chi^2_{\alpha,5}$ is the chi-squared threshold with 5 degrees of freedom at significance level $\alpha = 0.05$. This redundancy and diversity in trust evidence form the foundation for robust and adaptive trust management in UAV swarms, enabling the detection of sophisticated attacks that may manipulate multiple dimensions simultaneously.
 
-\subsection{MARL-Supported Incentive Policy and Multi-Agent Execution}
+\subsection{Supervised Multi-Head Risk Model and Allocation Proxy}
 \label{sec:marl_formulation}
-Having defined the trust evidence channels, we now formulate how MTIM uses the resulting trust state to choose reward and penalty actions. MTIM employs $M$ Thinker Agents, where each agent supervises a subset $\mathcal{N}_j \subset \mathcal{U}$ of UAV nodes, maps local trust evidence to risk-aware trust-factor weights, and issues incentive actions that shape task allocation. The multi-agent design is used for local supervision under partial observability: each Thinker Agent sees only part of the swarm, while the Intelligent Decision Agent fuses their estimates into a global decision. The closed-loop system is modeled as a Dec-POMDP and follows a MARL design pattern, but the implementation uses an \emph{offline-trained parameterized MARL trust--incentive surrogate}: the policy is trained from simulator-labeled trust streams and then frozen for all held-out evaluation seeds. We therefore avoid claiming online TD convergence or deployment-time reinforcement learning in the present study.
+The intended architecture divides observation across local agents and forwards their estimates to a decision node. The executable artifact is simpler. It applies one shared supervised network independently to each node's diagnostic feature vector. Agent assignments do not enter the feature extractor, and neither confidence-weighted fusion nor budget projection is executed. We retain the broader formulation below to define a possible deployment target, but distinguish it from the evaluated model.
 
 \subsubsection{Dec-POMDP Elements}
 We consider a UAV swarm consisting of $N$ UAV nodes. The trust management system employs $M$ Thinker Agents, where each agent $j \in \{1, 2, \dots, M\}$ is responsible for a subset of UAV nodes. The overall system can be modeled as a Dec-POMDP (decentralized partially observable Markov decision process)~\cite{oliehoek2008optimal}:
@@ -370,11 +368,11 @@ where $\mathbf{T}_k(t) = [T_k^{(1)}(t), T_k^{(2)}(t), T_k^{(3)}(t), T_k^{(4)}(t)
 
 \textbf{Action Space}: The action $a_j(t) \in \mathcal{A}_j$ for Thinker Agent $j$ is a hybrid parameterized action consisting of (1) a continuous trust-weight vector $\boldsymbol{\omega}_j(t) = [\omega_{j}^{(1)}(t), \dots, \omega_{j}^{(5)}(t)] \in \Delta^4$ on the probability simplex, and (2) a discrete incentive allocation vector $\boldsymbol{\pi}_j(t) = [\pi_{jk}(t)]_{k \in \mathcal{N}_j}$ specifying the incentive level for each supervised node. Incentive levels are quantized into five bins $\{-2, -1, 0, 1, 2\}$, corresponding to strong penalty, weak penalty, neutral allocation, weak reward, and strong reward. Thus, trust evaluation provides the state used to judge behavior, while the learned policy decides whether the node should be rewarded with more favorable task participation or penalized through restricted access. If a sampled incentive vector violates the cycle budget $B_{\text{total}}(t)$, incentives are projected greedily by retaining actions with the largest expected utility gain per unit cost until the budget is satisfied.
 
-\textbf{Architecture}: The implemented policy follows centralized offline training and decentralized execution, matching the CTDE motivation of MARL while using a supervised surrogate loss. During training, the simulator provides node labels only for the loss function; labels are never included in the deployed observations. During execution, each Thinker Agent acts only from local trust evidence and fixed learned parameters, ensuring that all reported decisions are label-free.
+\textbf{Evaluated architecture}: Training is centralized and supervised. Simulator labels determine the risk, action, and value targets. At inference, labels are absent, but the artifact does not emulate decentralized message exchange; it evaluates all per-node feature vectors in one process.
 
 \textbf{State Transition}: The state transition $\mathcal{P}$ is defined implicitly through the trust update equations (Eqs.~\ref{eq:decay}--\ref{eq:bayes_update}) in Section \ref{sec:state_update}, which govern how trust scores evolve based on observations, incentives, and temporal decay.
 
-\subsubsection{Executable Parameterized MARL Trust--Incentive Network}
+\subsubsection{Executable Multi-Head Network}
 The implemented policy network uses per-node diagnostic features extracted from the post-warm-up trust streams. These features include recent weakness in T1, T2, T4, and T5; low-quantile T1/T4 evidence; low-score duration; T1/T4 amplitude and standard deviation; positive degradation slope; and directional cross-factor gaps. The same feature mapping is used by MTIM and by the learned baselines introduced in Section~\ref{sec:sim_setup}.
 
 For node $k$, let $\mathbf{x}_k \in \mathbb{R}^{13}$ denote the standardized diagnostic feature vector. A shared encoder maps $\mathbf{x}_k$ to a hidden representation $h_k$:
@@ -391,19 +389,19 @@ v_k &= g_v(h_k),
 \end{aligned}
 \label{eq:policy_heads}
 \end{equation}
-where $p_k$ is the malicious-risk probability, $\boldsymbol{\omega}_k$ is the trust-factor weight vector, $\mathbf{q}_k^{\pi}$ contains the five incentive-bin scores, and $v_k$ is an auxiliary value estimate. The local diagnostic trust score is
+where $p_k$ is the malicious-risk probability, $\boldsymbol{\omega}_k$ is an auxiliary trust-factor weight vector, $\mathbf{q}_k^{\pi}$ contains five supervised action scores, and $v_k$ is an auxiliary service-value estimate. Only $p_k$ is consumed by the released evaluation path; the auxiliary heads are trained and logged but do not determine the reported task-allocation probabilities. The local diagnostic trust score is
 \begin{equation}
 \hat{T}_{jk}=10(1-p_k),
 \end{equation}
-and a node is flagged as malicious when $p_k > 0.60$. The selected incentive bin is
+and a node is flagged as malicious when $p_k > 0.60$. A potential deployment could select an incentive bin as
 \begin{equation}
 \pi_{jk}^{raw} = \arg\max_{\ell \in \{-2,-1,0,1,2\}} q_{k,\ell}^{\pi},
 \end{equation}
-followed by the budget projection described above.
+followed by a budget projection. That projection is not implemented in the current artifact.
 
-\subsubsection{Offline MARL Surrogate Training Objective}
+\subsubsection{Supervised Training Objective}
 \label{sec:reward}
-The executable training objective is a MARL surrogate objective with supervised and auxiliary terms rather than an online temporal-difference update. Let $y_k \in \{0,1\}$ be the simulator label used only during offline training. Let $\boldsymbol{\omega}_k^{*}$ be a heuristic trust-weight target derived from the same diagnostic evidence, $\pi_k^{*}$ an incentive-bin target derived from the label and risk hint, and $v_k^{*}$ a bounded service-value target. The policy minimizes
+Let $y_k \in \{0,1\}$ be the simulator label used during training. Let $\boldsymbol{\omega}_k^{*}$ be a heuristic weight target derived from the diagnostic features, $\pi_k^{*}$ an action target derived from $y_k$ and a risk hint, and $v_k^{*}$ a service-value target derived directly from $y_k$. The network minimizes
 \begin{equation}
 \begin{aligned}
 \mathcal{L}(\theta) ={}& \mathrm{BCE}_{w}(y_k,p_k)
@@ -413,9 +411,9 @@ The executable training objective is a MARL surrogate objective with supervised 
 \end{aligned}
 \label{eq:implemented_loss}
 \end{equation}
-The primary risk term is weighted binary cross-entropy with a positive-class weight of 2.0. Training uses seeds 0--9 and a fixed decision threshold of 0.60. Evaluation seeds 1000--1049 are not used for training, threshold selection, or auxiliary-target tuning. This implementation makes the method-code correspondence explicit: MTIM's reported policy is an offline-trained MARL-style trust--incentive policy, not a deployment-time online reinforcement-learning implementation.
+The primary term is weighted binary cross-entropy with a positive-class weight of 2.0. There is no reward return or temporal-difference target in Eq.~\ref{eq:implemented_loss}; the value target is $0.8$ for benign nodes and $-0.4$ for malicious nodes. The action target also depends on the ground-truth class. Training uses seeds 0--9 and a fixed decision threshold of 0.60. Evaluation seeds 1000--1049 are not used for fitting. The method is therefore a multi-task supervised classifier, not an offline or online reinforcement-learning algorithm.
 
-The Intelligent Decision Agent in Figure~\ref{fig:Proposed} serves as the decision node that combines verified trust-branch outputs and Thinker-Agent estimates to produce the total trust score and incentive policy. This introduces a coordination point, so the claim is not that MTIM eliminates coordination cost. Instead, the hierarchical design addresses partial observability: local Thinker Agents observe different UAV subsets, while the Intelligent Decision Agent reconciles their estimates using confidence-aware uncertainty quantification (Eq.~\ref{eq:ida_uncertainty}). The decision node can be replicated with Byzantine fault-tolerant consensus in safety-critical deployments, though we leave this extension to future work. The Intelligent Decision Agent uses the following confidence-weighted inference mechanism:
+The following aggregation equations specify an unevaluated extension for deployments in which several agents observe the same node. They are not invoked by the released Python evaluation.
 
 \textbf{Total Trust Score Aggregation}: The Intelligent Decision Agent computes the total trust score $\mathcal{T}_k(t)$ for each UAV node $k$ by combining the individual trust scores from all Thinker Agents that have observed or interacted with node $k$:
 \begin{equation}\label{eq:ida_global}
@@ -427,11 +425,11 @@ where $\phi_{jk}(t) \in [0, 1]$ is the confidence weight assigned to Thinker Age
 \end{equation}
 with $\varepsilon_{jk}(t) = \frac{1}{t} \sum_{\tau=1}^{t} \left| \hat{T}_{jk}(\tau) - T_{jk}^{obs}(\tau) \right|$ representing the mean absolute error of agent $j$ for node $k$ over time, and $\gamma = 2.0$ a scaling parameter.
 
-\textbf{Uncertainty Quantification}: The Intelligent Decision Agent also quantifies the uncertainty in global trust assessments using a Bayesian posterior variance:
+\textbf{Dispersion measure}: A deployment may quantify disagreement among local estimates as
 \begin{equation}\label{eq:ida_uncertainty}
 \sigma_k^2(t) = \frac{\sum_{j=1}^{M} \phi_{jk}(t) \left( \hat{T}_{jk}(t) - \mathcal{T}_k(t) \right)^2}{\sum_{j=1}^{M} \phi_{jk}(t)} + \sigma_0^2
 \end{equation}
-where $\sigma_0^2 = 0.1$ represents the inherent measurement noise variance. This uncertainty metric is crucial for risk-aware decision-making in zero-trust environments.
+where $\sigma_0^2 = 0.1$ is a variance floor. This weighted dispersion is not a Bayesian posterior variance unless a probabilistic observation model is supplied.
 
 \textbf{Final Trust Classification}: Based on the total trust score and uncertainty, the Intelligent Decision Agent classifies nodes into trust categories:
 \begin{equation}\label{eq:ida_classification}
@@ -444,7 +442,7 @@ C_k(t) =
 \end{equation}
 where $\theta_{\text{high}}$ and $\theta_{\text{low}}$ are trust thresholds, and $\sigma_{\text{th}}$ is the uncertainty threshold.
 
-The Intelligent Decision Agent generates the incentive policy that coordinates the actions of individual Thinker Agents to promote network-wide trustworthiness. The incentive policy $\boldsymbol{\Pi}(t)$ is a mapping from global trust assessments to resource allocation decisions:
+A future decision node could map global trust assessments to resource-allocation actions:
 \begin{equation}\label{eq:incentive_policy}
 \boldsymbol{\Pi}(t) = \left\{ \pi_{jk}(t) : j \in [1, M], k \in \mathcal{N}_j \right\},
 \end{equation}
@@ -456,11 +454,11 @@ subject to the budget constraint $\sum_{j=1}^{M} \sum_{k \in \mathcal{N}_j} c(\p
 \begin{equation}\label{eq:utility}
 U_k\!\left( \mathcal{T}_k(t), \pi_{\cdot k}(t) \right) = \mathcal{T}_k(t) \cdot \bigl(1 + \delta \cdot \mathbb{I}(\pi_{\cdot k}(t) > 0)\bigr) - \kappa \cdot \mathbb{I}\bigl(\mathcal{T}_k(t) < \theta_{\text{low}}\bigr),
 \end{equation}
-with $\delta = 0.2$ and $\kappa = 2.0$. The first term rewards high-trust nodes with proportional benefits, while the second term imposes a fixed penalty on nodes classified as Malicious, creating a natural pressure toward trustworthy behavior. In practice, the optimization in Eq.~\ref{eq:incentive_opt} is solved greedily per update cycle due to the 50~s incentive interval constraint (Table~\ref{tab:arch_params}).
+with $\delta = 0.2$ and $\kappa = 2.0$. These equations are design specifications. The current task-success simulator instead converts each method's score to a sampling weight and applies a stronger down-weighting rule to MTIM; it does not solve Eq.~\ref{eq:incentive_opt}.
 
 \subsubsection{State Update Mechanism for Trust Evolution}
 \label{sec:state_update}
-The state update mechanism governs how trust scores evolve over time as a function of node behavior, incentive actions, and network conditions. Trust evaluation uses Bayesian inference, and the overall trust dynamics constitute a Markov process because the trust score at time $t+1$ depends only on the trust score at time $t$ and the current observations and incentives, not on the full history. The state transition can be decomposed as:
+The following state update is a proposed deployment mechanism, not the recurrence used in the main generator. In the artifact, T5 follows $T_5(t)=0.84T_5(t-1)+0.16\bar{T}_{1:4}(t)$ and the trained risk model is evaluated on summary windows. Incentive outputs do not alter later trust streams. A possible deployment transition is
 \begin{equation}
 \mathbf{T}(t+1) = f\left( \mathbf{T}(t), \mathbf{A}^{inc}(t), \mathbf{A}^{task}(t), \mathbf{E}(t) \right)
 \end{equation}
@@ -489,14 +487,14 @@ with $\mathcal{M}_k(t+1)$ denoting the set of agents that observed node $k$ at t
 
 \textbf{Boundedness and Empirical Stability}: The trust update mechanism in Eqs.~\ref{eq:decay}--\ref{eq:bayes_update} admits bounded updates under the $[0, 10]$ trust scale. Since $\mathcal{T}_k(t) \in [0, 10]$ and $\tilde{\mathcal{T}}_k(t+1) = \mathcal{T}_k(t) \cdot \exp(-\rho \Delta t) \in [0, 10]$, and the Bayesian fusion in Eq.~\ref{eq:bayes_update} is a convex combination of two bounded terms (with coefficients in $[0, 1]$ that sum to one), the trust score remains in $[0, 10]$ for all $t$, preventing numerical divergence.
 
-We do not claim a finite-sample convergence guarantee for the full Dec-POMDP, because the empirical policy is trained offline rather than by solving the Dec-POMDP online. Instead, we provide boundedness of the trust-state update and empirical stability evidence. Section~\ref{sec:trust_evolution} shows that trust scores reach quasi-steady-state separation within the 5000~s simulation window for all tested configurations.
+We do not claim convergence of the Dec-POMDP or of the generated trajectories. The boundedness argument applies only to the proposed convex update.
 
-\textbf{Trust-Driven Network Evolution}: The state update mechanism creates a positive feedback loop where trustworthy behavior is rewarded with higher trust scores and corresponding incentives, while malicious behavior leads to trust degradation and restricted access. Over time, this mechanism induces a stabilization effect where the distribution of trust scores across the swarm converges, as verified empirically in Section~\ref{sec:trust_evolution}.
+\textbf{Scope of the update claim}: Equations~\ref{eq:decay}--\ref{eq:bayes_update} show boundedness of the proposed update only. They do not establish convergence, and the released simulator does not close the action-to-future-state loop.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{update.png}
-\caption{MTIM state-update and incentive-feedback mechanism aligned with Figure~\ref{fig:Proposed}. The forward path maps Summarization-Agent observations and verified trust branches to Thinker-Agent policy actions, Intelligent Decision Agent confidence-weighted scoring, temporally decayed status updates, and classification-driven reward--penalty decisions. The feedback path returns incentive outcomes to the next update interval so that task allocation and future trust evolution are coupled.}
+\caption{Proposed state-update and allocation loop. Solidly implemented elements in the artifact are trust-stream generation, feature extraction, risk inference, and a task-allocation proxy. Confidence fusion, budgeted incentives, and action-dependent future trust remain unvalidated extensions.}
 \label{fig:update}
 \end{figure}
 
@@ -521,9 +519,9 @@ Ground-truth labels are assigned at simulation initialization according to the a
 \begin{equation}\label{eq:tsr}
 \mathrm{TSR} = N_{\mathrm{succ}} \,/\, N_{\mathrm{all}},
 \end{equation}
-where a task succeeds iff it completes before the mission timeout with at least one Trusted UAV contributing, and fails if it times out or is assigned exclusively to Suspicious/Malicious nodes.
+In the artifact, each trial samples 220 single-node assignments. A benign selection succeeds with base probability 0.90 and a malicious selection with 0.30, followed by a small score adjustment. The reported TSR is therefore a simulator-specific task-success proxy, not a measured mission completion rate.
 
-\textbf{Efficiency Metrics}: Communication overhead $C_{\text{comm}}$ (bytes/UAV/update cycle) and per-cycle evaluation latency $T_{\text{eval}}$ (ms) are reported to quantify deployment feasibility. The evaluation latency is measured end-to-end from observation ingestion to Intelligent Decision Agent classification output.
+\textbf{Resource-model outputs}: Communication overhead and evaluation latency are generated from method-specific affine formulas plus Gaussian noise. They are not byte counts or wall-clock measurements and cannot establish deployment feasibility.
 
 \subsubsection{Algorithm Summary}
 Table~\ref{alg:mtim} consolidates the MTIM trust evaluation and incentive loop for a single update cycle.
@@ -539,15 +537,13 @@ Table~\ref{alg:mtim} consolidates the MTIM trust evaluation and incentive loop f
 \multicolumn{2}{@{}l}{\textbf{Output:} Global trust scores $\{\mathcal{T}_k(t)\}_{k=1}^{N}$, classifications $\{C_k(t)\}_{k=1}^{N}$, and incentives $\{\pi_{jk}(t)\}$.}\\
 \midrule
 1 & For each Thinker Agent $j = 1,\dots,M$, collect local observations $o_j(t)=\{\mathbf{T}_k(t)\}_{k\in\mathcal{N}_j}$.\\
-2 & Extract diagnostic features and compute $p_k$, $\boldsymbol{\omega}_j(t)$, and $\boldsymbol{\pi}_j(t)$ using the frozen policy in Eq.~\ref{eq:policy_heads}.\\
+2 & Extract diagnostic features and compute $p_k$ and auxiliary heads using the frozen network in Eq.~\ref{eq:policy_heads}.\\
 3 & Estimate local trust as $\hat{T}_{jk}(t)=10(1-p_k)$ and retain $\boldsymbol{\omega}_j(t)$ for factor-level interpretability.\\
 4 & Apply the cross-validation check in Eq.~\ref{eq:consistency} and flag inconsistent nodes.\\
-5 & Update Intelligent Decision Agent confidence weights $\phi_{jk}(t)$ via Eq.~\ref{eq:ida_weight}.\\
-6 & Compute global trust $\mathcal{T}_k(t)$ and uncertainty $\sigma_k^2(t)$ using Eqs.~\ref{eq:ida_global}--\ref{eq:ida_uncertainty}.\\
-7 & Classify nodes with Eq.~\ref{eq:ida_classification}.\\
-8 & Solve the constrained incentive allocation in Eq.~\ref{eq:incentive_opt} greedily under $B_{\text{total}}(t)$.\\
-9 & Apply temporal decay and Bayesian update using Eqs.~\ref{eq:decay}--\ref{eq:bayes_update}.\\
-10 & Log observations and decisions for audit; deployment-time policy parameters remain fixed unless an offline retraining cycle is explicitly triggered.\\
+5 & Classify nodes at the fixed risk threshold $p_k>0.60$.\\
+6 & Convert each method's trust score to an allocation weight in the task-success proxy.\\
+7 & Sample tasks and log classification and proxy outcomes.\\
+8 & Treat confidence fusion, budget projection, and action-dependent state updates as future deployment work.\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -558,26 +554,26 @@ Table~\ref{alg:mtim} consolidates the MTIM trust evaluation and incentive loop f
 
 Our evaluation targets four questions:
 \begin{enumerate}[label={(\textbf{Q\arabic*})},leftmargin=*]
-    \item \textbf{Detection performance:} How accurately does MTIM classify nodes under varying malicious-node ratios and attack patterns, and how does it compare against state-of-the-art baselines?
-    \item \textbf{Incentive effect:} Does coupling trust scores to reward and penalty decisions improve task success beyond risk-only classification?
-    \item \textbf{Trust-factor contribution:} Which evidence factors and temporal mechanisms are necessary for robust behavior assessment?
-    \item \textbf{Scalability:} How do latency, overhead, and accuracy scale with swarm size?
+    \item \textbf{In-generator detection:} How accurately does the model classify nodes drawn from the same trust-stream generator on held-out seeds?
+    \item \textbf{Allocation proxy:} What task-success values arise under the simulator's score-to-selection rules?
+    \item \textbf{Feature dependence:} Which temporal summaries are associated with the result?
+    \item \textbf{External check:} Does the ranking persist on the bundled ns-3-derived trace?
 \end{enumerate}
 
 \subsection{Simulation Setup}
 \label{sec:sim_setup}
 
-\paragraph{Hardware and software.}
-The evaluation was implemented with a reproducible trust-stream simulator and an offline-trained policy network. All compared methods consume the same normalized T1--T5 evidence streams and are evaluated under identical random seeds and attack schedules. A packet-trace conversion check is included as an interface sanity test; the numerical results reported below, however, should be read as trust-layer simulation evidence rather than multi-seed packet-level channel validation or flight-test validation.
+\paragraph{Implementation.}
+The evaluation uses a reproducible trust-stream generator and a supervised PyTorch network. All methods consume the same normalized T1--T5 arrays. FUBA, GALTrust, and GDM-DTM are local adapters rather than the original implementations. A separate converter is exercised on one ns-3-derived trace.
 
 \paragraph{Network and mobility.}
-All scenario parameters are consolidated in Table~\ref{tab:arch_params}. The reference simulator abstracts mobility and channel variation into seeded trust-factor streams that include node heterogeneity, intermittent observation gaps, and attack-dependent perturbations. The mission duration is 5000~s; the first 1000~s serve as a warm-up during which trust scores are accumulated but no incentive actions are enforced.
+The main generator runs for 500 steps at a nominal 10~s interval. It samples T1--T4 directly from fixed benign and attack-dependent means, adds Gaussian noise and node bias, and updates T5 recursively. Area, radio range, speed, bandwidth, and battery capacity do not enter the main trust-stream equations; they describe only the separate ns-3 scenario.
 
 \paragraph{Adversary configuration.}
 Malicious nodes implement the three attack strategies defined in Section~\ref{sec:threat_model}: constant (adversarial from $t=0$), dormant (switch to adversarial at $t = T_{\text{warm}} + \Delta$, where $\Delta \sim \mathcal{U}(200, 500)$~s), and on-off (toggle with period $T_{\text{toggle}} = 500$~s). In mixed-attack experiments, each type accounts for one-third of the malicious population. The malicious-node ratio $|\mathcal{M}|/N$ is varied from 5\% to 50\% in anti-manipulation experiments and fixed at 30\% for the main comparison.
 
 \paragraph{Training protocol.}
-MTIM uses a compact parameterized MARL trust--incentive surrogate matching the action structure in Section~\ref{sec:marl_formulation}: a shared encoder outputs a malicious-risk logit, a five-dimensional trust-weight softmax, five incentive-bin scores, and an auxiliary value estimate. Training seeds 0--9 fit the network using trust-evidence features derived from recent weakness, low-quantile T1/T4 evidence, low-score duration, amplitude, degradation slope, and directional cross-factor gaps. The risk head supports trust assessment with weighted binary cross-entropy, while the incentive head learns reward/penalty bins from label-derived risk hints and service-value targets. The decision threshold is fixed at 0.60 before held-out evaluation. Evaluation seeds 1000--1049 are never used for training or threshold selection.
+The network has a shared encoder and four heads: risk, factor weights, action class, and service value. All targets are supervised or heuristic. Seeds 0--9 produce 450 node-level training samples; evaluation uses seeds 1000--1049. The fixed threshold is 0.60. Because all seeds use the same generator parameters, this split tests stochastic replication within one data-generating process, not distribution shift.
 
 \paragraph{Evaluation protocol.}
 Each configuration is evaluated over 50 independent trials with different random seeds controlling malicious-node identities, attack schedules, trust-factor noise, and observation gaps. Unless otherwise specified, the evaluation seeds are indexed from 1000 to 1049. All reported results are computed from the trained execution policy and fixed baseline thresholds, and are reported as mean $\pm$ standard deviation.
@@ -587,35 +583,26 @@ Each configuration is evaluated over 50 independent trials with different random
   \setlength{\belowcaptionskip}{6pt}
   \setlength{\tabcolsep}{5pt}
   \centering
-  \caption{Reference-simulation parameters. Physical-layer and mobility values are scenario descriptors; the evaluation operates at the trust-factor-stream level.}
+  \caption{Executable trust-stream and training parameters.}
   \label{tab:arch_params}
   \scalebox{0.92}{
   \begin{tabular}{lcl}
     \toprule
     \textbf{Category} & \textbf{Parameter} & \textbf{Value} \\
     \midrule
-    \multirow{3}{*}{Scenario}
-      & Simulation area & $10 \times 10$ km$^2$ \\
-      & Mission duration & 5000~s (warm-up: 1000~s) \\
+    \multirow{4}{*}{Generator}
+      & Steps / nominal interval & 500 / 10~s \\
+      & Warm-up & 100 steps \\
       & UAV count $N$ & 5--50 (default: 15) \\
+      & Trust-stream noise & Gaussian, $\sigma=0.10$ \\
     \midrule
-    \multirow{3}{*}{Mobility}
-      & UAV speed & $\mathcal{U}(3, 15)$ m/s \\
-      & Communication range $R_{\text{comm}}$ & 300 m \\
-      & Inter-UAV bandwidth & 5 Mbit/s \\
-    \midrule
-    \multirow{2}{*}{Energy}
-      & Initial energy & $\mathcal{U}(50, 200)$ Wh \\
-      & Power consumption & $\mathcal{U}(100, 120)$ W \\
-    \midrule
-    \multirow{4}{*}{Trust}
-      & Trust update interval $\Delta t$ & 10 s \\
-      & Incentive update interval & 50 s \\
-      & Classification thresholds & $\theta_{\text{high}}=7.5$, $\theta_{\text{low}}=3.0$ \\
-      & Uncertainty threshold $\sigma_{\text{th}}$ & 0.5 \\
+    \multirow{3}{*}{Attacks}
+      & Types & constant, dormant, on--off \\
+      & Main malicious ratio & 30\% \\
+      & Ratio grid & 5--50\% \\
     \midrule
     \multirow{5}{*}{Training}
-      & Policy network & PyTorch parameterized MARL trust--incentive surrogate \\
+      & Network & PyTorch supervised multi-head MLP \\
       & Training seeds & 0--9 \\
       & Evaluation seeds & 1000--1049 \\
       & Decision threshold & 0.60 (fixed before held-out evaluation) \\
@@ -638,13 +625,10 @@ We compare MTIM against six methods spanning the design spectrum from naive fusi
 
 All baselines share the identical generated trust-factor streams and ground-truth labels as MTIM. Because official source code and original feature pipelines for FUBA, GALTrust, and GDM-DTM are not bundled, those baseline results should be interpreted as paper-level reimplementations under a common T1--T5 interface, not as definitive re-evaluations of the original authors' implementations. LR-Trust and MLP-Trust are added specifically to test whether MTIM's advantage persists against stronger learned classifiers with identical input information.
 
-\paragraph{Baseline fairness and statistical protocol.}
-To reduce implementation bias, all compared methods consume the same five normalized trust-factor streams and are evaluated on the same 50 held-out attack seeds. The MTIM, LR-Trust, and MLP-Trust networks are trained only on seeds 0--9 and are not re-tuned on evaluation seeds 1000--1049. The baseline thresholds are fixed before evaluation.
+\paragraph{Comparison and statistical protocol.}
+All methods consume the same generated streams and use the same 50 evaluation seeds. MTIM, LR-Trust, and MLP-Trust use the same feature vectors. The rule-based adapters receive additional method-specific Gaussian perturbations in the evaluation code, so their comparison is controlled but not a faithful reproduction of the cited algorithms.
 
-Statistical comparison is performed at the trial level. For each evaluation seed, we compute paired differences between MTIM and each baseline for Accuracy, F-score, and TSR. Paired $t$-test statistics use a normal approximation and Holm correction across the 18 comparisons (6 baselines $\times$ 3 metrics), together with paired differences and standardized effect sizes. MTIM significantly improves Accuracy, F-score, and TSR over MFA, FUBA, GALTrust, GDM-DTM, and LR-Trust after Holm correction at $p<0.01$. Against MLP-Trust, Accuracy and F-score are not significantly different, while MTIM significantly improves TSR. Communication overhead and latency are treated as resource trade-offs rather than superiority objectives.
-
-\paragraph{Collusion stress test.}
-To test whether Intelligent Decision Agent confidence weighting can suppress biased peer evidence, we additionally evaluate a limited collusion setting in which 20\% of malicious nodes submit inflated recommendations for other malicious nodes while continuing their assigned behavioral attack pattern. Because MTIM does not implement Sybil-resistant admission control, this stress test assumes fixed physical node identities and focuses only on false peer-report inflation. Results from this setting are reported qualitatively in the sensitivity analysis and are used to bound, rather than broaden, the security claim.
+For each seed, we compute paired differences in accuracy, F-score, and the task-success proxy. The artifact labels its statistic as a paired $t$ test, but calculates the two-sided $p$ value with a standard-normal approximation. We apply Holm correction across 18 comparisons. Accuracy and F-score do not differ significantly between MTIM and MLP-Trust. The proxy difference is statistically nonzero under the simulator, but should not be read as evidence of a superior learned incentive policy.
 
 \begin{table}[!htbp]
   \centering
@@ -656,7 +640,7 @@ To test whether Intelligent Decision Agent confidence weighting can suppress bia
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{l c c c c c}
     \toprule
-    Method & Accuracy & F-score & TSR & Comm. Overhead (KB/UAV) & Eval. Time (ms) \\
+    Method & Accuracy & F-score & TSR proxy & Cost model (KB/UAV) & Time model (ms) \\
     \midrule
     MFA & 80.3\% $\pm$ 10.5\% & 69.4\% $\pm$ 16.3\% & 79.7\% $\pm$ 4.8\% & 11.3 $\pm$ 1.8 & 10.2 $\pm$ 4.5 \\
     FUBA \cite{benfriha2024fuba} & 84.1\% $\pm$ 9.2\% & 76.1\% $\pm$ 14.6\% & 82.5\% $\pm$ 4.2\% & 16.7 $\pm$ 1.7 & 17.1 $\pm$ 4.1 \\
@@ -669,21 +653,21 @@ To test whether Intelligent Decision Agent confidence weighting can suppress bia
   \end{tabular}}
 \end{table}
 
-\noindent\footnotesize{$^{(*)}$ MFA = Multi-factor Average. TSR = Task Success Rate. Comm. Overhead = per-UAV communication overhead per update cycle. Eval. Time = trust evaluation latency per update interval. Under Holm correction, MTIM's Accuracy and F-score are significant over MFA, FUBA, GALTrust, GDM-DTM, and LR-Trust at $p<0.01$, but not over MLP-Trust. MTIM's TSR is significant over all baselines, including MLP-Trust. Overhead and latency are reported as trade-offs rather than optimization objectives.}
+\noindent\footnotesize{TSR is a model-based proxy. The cost and time columns are outputs of affine formulas with injected noise; they are not measurements. Under Holm correction, MTIM's Accuracy and F-score differ from the rule adapters and LR-Trust, but not from MLP-Trust.}
 \normalsize
 
 \paragraph{Analysis of Table~\ref{tab:baseline_comparison}.}
-MTIM achieves 94.4\% accuracy, 91.8\% F-score, and 90.5\% TSR. Three observations explain the result:
+MTIM achieves 94.4\% accuracy, a 91.8\% F-score, and a 90.5\% task-success proxy. Three observations delimit the result:
 
-\textbf{(i) Learned temporal evidence vs.\ manual/profile-based fusion.} MFA reaches 80.3\% accuracy, FUBA reaches 84.1\%, and GDM-DTM reaches 85.1\%. MTIM improves over GDM-DTM by 9.3~pp in accuracy and 14.5~pp in F-score because it uses low-quantile and degradation-slope evidence that exposes dormant and on-off attackers. This advantage persists at the 50\% malicious-node ratio (95.5\% vs.\ 82.4\%; Table~\ref{tab:multi_ratio}).
+\textbf{(i) Temporal features fit the generator.} MFA reaches 80.3\% accuracy, FUBA 84.1\%, and GDM-DTM 85.1\%. The learned models exploit low-quantile and slope features that closely match how dormant and on--off attacks are generated. This is an in-distribution advantage, not evidence of robustness to unseen attack mechanisms.
 
 \textbf{(ii) Strong learned baselines narrow the detection claim.} LR-Trust improves over non-neural fusion baselines but still trails MTIM by 6.3~pp in accuracy. MLP-Trust reaches 94.7\% accuracy and 92.1\% F-score, which are statistically indistinguishable from MTIM's 94.4\% and 91.8\%. Thus, the evidence does not support claiming that MTIM is a strictly better detector than a strong neural risk classifier with the same features; the stronger claim is that MTIM links comparable detection quality to better mission-level action.
 
-\textbf{(iii) Incentive coupling closes the mission loop.} MTIM achieves the best TSR (90.5\%), exceeding GDM-DTM by 9.2~pp and MLP-Trust by 2.2~pp. The MLP-Trust comparison is important: detection alone is nearly tied, but MTIM's incentive head and task-allocation coupling produce a measurable mission-level gain.
+\textbf{(iii) The allocation result is confounded by simulator rules.} MTIM's proxy is 2.2~pp above MLP-Trust, but the task simulator down-weights nodes predicted malicious more strongly for MTIM and adds 0.02 to benign MTIM assignments. The reported incentive head is not used in this calculation. The difference therefore cannot be attributed to learned incentive coupling.
 
 \noindent\textbf{Overhead trade-off.}\par
 \noindent
-MTIM's per-cycle latency (58.3~ms) and communication overhead (34.0~KB/UAV) are higher than all baselines, including MLP-Trust (36.1~ms and 25.2~KB/UAV), but remain well within the 10~s update budget in the reference simulator. Most latency comes from multi-agent aggregation, diagnostic-feature extraction, and incentive-policy output. If a mission requires a shorter update interval, the number of Thinker Agents $M$ can be reduced, with sparser observation coverage as the trade-off.
+The values in the last two columns are generated by \texttt{resource\_metrics}; no packets are serialized and no inference path is timed. They are retained only to make the artifact outputs auditable and should not be compared with measured system costs.
 
 \paragraph{Robustness across malicious-node ratios.}
 Table~\ref{tab:multi_ratio} reports accuracy and TSR at 10\%, 30\%, and 50\% malicious-node ratios. MTIM retains the best TSR across all three ratios. For detection accuracy, MTIM and MLP-Trust are closely matched: MLP-Trust is slightly higher at 10\% and 30\%, whereas MTIM is higher at 50\%. GALTrust has strong accuracy at 10\% because its anomaly-profile threshold is conservative when the attack population is sparse, but it degrades sharply as the malicious ratio increases. MTIM's accuracy remains between 94.4\% and 96.8\%, while TSR remains above 88\%, indicating that the trained policy continues to support mission-level decisions under dense adversarial pressure. The slightly higher accuracy at 50\% than at 30\% reflects stronger aggregate separation in the generated attack streams and should not be interpreted as a universal monotonic robustness guarantee.
@@ -717,18 +701,18 @@ On training seeds 0--9, the final MTIM policy reaches 100.0\% training accuracy 
 
 \subsection{Trust Evolution Analysis}
 \label{sec:trust_evolution}
-Figure~\ref{fig:trust_value_evolution} tracks the MTIM diagnostic trust index of benign and malicious UAVs from the post-warm-up phase to 5000~s under $M \in \{2, 5, 10\}$ Thinker Agents. The index is computed from the trained risk policy and maps lower risk to higher trust on a 0--10 scale. Three dynamics merit attention:
+Figure~\ref{fig:trust_value_evolution} tracks the diagnostic trust index from the post-warm-up phase to 5000~s under $M \in \{2,5,10\}$. The curves are recomputed by repeatedly truncating each generated stream and applying the same fitted model. Because $M$ affects the generator's random seed but does not enter the policy features, these curves do not isolate an agent-count effect.
 
-\textbf{Divergence rate vs.\ agent count.} Benign nodes remain mostly above 8.0 after warm-up, whereas malicious nodes decline as low-quantile and degradation-slope evidence accumulates. The $M=5$ configuration shows a smoother decline than $M=2$ and $M=10$, reflecting the trade-off between sparse observation coverage and aggregation latency. The default $M = 5$ balances these effects in the reference simulator.
+Benign nodes remain mostly above 8.0, while malicious nodes decline as low-quantile and slope evidence accumulates. Differences among the three $M$ curves may reflect different random streams and should not be interpreted as an aggregation trade-off.
 
 \textbf{Attack-pattern sensitivity.} Dormant attackers initially resemble benign nodes but decline after the post-warm-up switch because the policy uses low T1/T4 quantiles and positive degradation slope, not only the final average score. On-off attackers oscillate because honest phases partially restore recent averages, but amplitude and low-score-duration features keep the diagnostic index below the benign trajectory.
 
-\textbf{Steady-state behavior.} After approximately 3800~s, the malicious diagnostic index remains near or below the Suspicious/Malicious boundary in most runs, while benign nodes remain high despite observation gaps. The residual fluctuations reflect seeded trust-factor noise and on-off behavior rather than formal convergence of the full Dec-POMDP.
+After approximately 3800~s, the generated malicious index remains below the benign index in most runs. This descriptive separation is not a convergence result.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.72\textwidth]{trust_value_evolution.png}
-\caption{Temporal evolution of the MTIM diagnostic trust index for benign (solid) and malicious (dashed) UAVs under $M = 2, 5, 10$ Thinker Agents after warm-up. The index is recomputed from the trained risk policy over sliding trust-factor windows; lower values indicate higher malicious risk.}
+\caption{Diagnostic trust index on generated streams for three seed conditions labeled by $M$. Since $M$ is not a policy feature, the curves do not identify a causal agent-count effect. Lower values indicate higher predicted risk.}
 \label{fig:trust_value_evolution}
 \end{figure}
 
@@ -736,7 +720,7 @@ Figure~\ref{fig:trust_value_evolution} tracks the MTIM diagnostic trust index of
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{Fig5_energy_consumption.png}
-\caption{Comparative evaluation results. (a) Detection accuracy vs.\ malicious-node ratio: MTIM remains high across 5--50\% malicious ratios and is closely matched by MLP-Trust, while GALTrust degrades sharply under dense adversarial pressure. (b) MTIM diagnostic trust-index dynamics under benign, constant-attack, dormant-attack, and on-off behavior. (c) TSR comparison at a 30\% malicious-node ratio using the same baselines as Table~\ref{tab:baseline_comparison}; MTIM yields the highest task success rate.}
+\caption{Results from the generated trust-stream environment. (a) Detection accuracy across malicious-node ratios. (b) Diagnostic index for the generator's four behavior profiles. (c) Model-based task-success proxy at a 30\% malicious-node ratio.}
 \label{fig:Fig5_energy_consumption}
 \end{figure}
 
@@ -747,13 +731,10 @@ MTIM maintains high accuracy for malicious ratios of 20\% and above, with 94.4\%
 Constant and dormant attackers decline below the benign diagnostic index as low T1/T4 evidence accumulates. Dormant attackers fall after their switch despite initially high scores, while on-off attackers oscillate because their honest phases restore recent averages. This behavior supports a conservative interpretation: MTIM identifies many on-off attackers as high risk, but their oscillatory trajectory remains the hardest case and drives the wide F-score variance in Table~\ref{tab:baseline_comparison}.
 
 \textbf{Task success comparison (Figure~\ref{fig:Fig5_energy_consumption}(c)).}
-MTIM achieves the highest TSR (90.5\%), followed by MLP-Trust (88.3\%) and LR-Trust (87.6\%). The TSR ranking does not exactly mirror the accuracy ranking because task success depends on which nodes are selected after classification, not only on the binary detection count. The incentive mechanism therefore matters most at the mission-decision layer, as confirmed by the ablation in Table~\ref{tab:ablation}.\par
-
-\textbf{Collusion stress-test interpretation.}
-Under inflated peer recommendations, MTIM's Intelligent Decision Agent confidence weights down-weight agents whose historical estimates diverge from subsequently observed behavior. This reduces the impact of biased reports, but it does not eliminate collusion risk when the colluding group controls most local observations for a node. Therefore, the reported robustness should be interpreted as resistance to limited false-report inflation under fixed identities, not as a complete solution to collusion or Sybil attacks.
+MTIM has the highest simulated proxy (90.5\%), followed by MLP-Trust (88.3\%) and LR-Trust (87.6\%). This ordering is partly built into the allocation function, which applies MTIM-specific multipliers. It is not evidence that the auxiliary incentive head learned a better policy.\par
 
 \textbf{Stress cases not claimed.}
-We explicitly do not claim robustness against three stronger adversaries: (i) Sybil identity inflation, where one physical attacker creates many unlinkable UAV identities; (ii) majority local-observation collusion, where colluding nodes dominate all observations available for a target node; and (iii) Intelligent Decision Agent compromise or training-pipeline poisoning. These cases require identity binding, Byzantine-resilient aggregation, secure bootstrapping, or robust training defenses that are orthogonal to MTIM's trust-scoring layer. The present evaluation should therefore be read as a fixed-identity behavioral-manipulation study with a limited false-report stress test.
+The artifact does not test Sybil identities, colluding peer reports, decision-node compromise, adaptive evasion, or training-pipeline poisoning. The evaluation is limited to fixed-identity profiles sampled by the reference generator.
 
 \paragraph{ns-3 trace-driven sanity check.}
 To connect the trust-stream interface to packet/mobility observations, we converted the bundled 500~s ns-3-derived trace into T1--T5 streams and evaluated all methods on the converted trace. This is a single seed-1000 trace with 15 UAVs, 49 update steps, 10 benign nodes, three constant attackers, and two on-off attackers; it is not a multi-seed packet-level validation. Table~\ref{tab:ns3_trace_validation} shows that MTIM correctly preserves all benign nodes but detects only two of five malicious nodes on this short trace. In this trace-only setting, MFA, FUBA, and GDM-DTM detect three malicious nodes. Therefore, the ns-3 trace path should be interpreted as an interface-validation sanity check and as evidence that packet-level validation can expose harder short-horizon behavior than the main trust-stream simulator.
@@ -781,7 +762,7 @@ To connect the trust-stream interface to packet/mobility observations, we conver
 \end{table}
 \subsection{Ablation Study}
 \label{sec:ablation}
-To quantify the marginal contribution of each architectural component, we conduct a structured ablation study. Each variant removes exactly one component while keeping all others intact. All variants are evaluated under the identical setting (30\% malicious, $N = 15$, 50 trials).
+Table~\ref{tab:ablation} reports code-level variants. These are not clean single-component ablations: several rows replace the trained model with a hand-coded scoring rule, add noise, or subtract a fixed 0.09 from the task-success proxy. They are retained for transparency but cannot identify causal component contributions.
 
 \begin{table}[!htbp]
   \centering
@@ -793,7 +774,7 @@ To quantify the marginal contribution of each architectural component, we conduc
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{l c c c}
     \toprule
-    \textbf{Variant} & \textbf{Accuracy} & \textbf{F-score} & \textbf{TSR} \\
+    \textbf{Code-level variant} & \textbf{Accuracy} & \textbf{F-score} & \textbf{TSR proxy} \\
     \midrule
     MTIM (full) & 94.4\% $\pm$ 5.6\% & 91.8\% $\pm$ 7.9\% & 90.5\% $\pm$ 3.7\% \\
     \midrule
@@ -812,38 +793,29 @@ To quantify the marginal contribution of each architectural component, we conduc
   \end{tabular}}
   \vspace{2pt}
   \raggedright\scriptsize
-  $^{\flat}$ T5-only operates on the raw T1--T4 instantaneous values as its input features and applies only exponential smoothing ($\beta = 0.7$) without any aggregation or learning. It represents the best achievable performance using temporal smoothing alone.
+  $^{\flat}$ T5-only applies exponential smoothing to T1--T4 without a learned model. It is one hand-coded temporal baseline, not an upper bound on temporal smoothing.
 \end{table}
 
 \paragraph{Analysis of Table~\ref{tab:ablation}.}
-The ablation results reveal a more nuanced component picture than the conceptual model alone suggests:
-
-\textbf{Tier 1---Mission-critical: incentives and temporal/adaptive evidence.}
-Removing the incentive mechanism leaves detection accuracy essentially unchanged (94.3\%) but reduces TSR from 90.5\% to 81.4\%, showing that the trust score must be coupled to task allocation to improve mission outcomes. Removing temporal decay reduces accuracy by 14.9~pp and F-score by 39.0~pp, confirming that dormant and on-off attacks cannot be handled reliably from final averages alone. Removing the adaptive policy reduces accuracy by 12.1~pp, because fixed aggregation cannot exploit low-quantile and degradation-slope evidence.
-
-\textbf{Tier 2---Decision-agent fusion: Bayesian confidence weighting.}
-Removing Bayesian aggregation reduces accuracy by 10.3~pp and TSR by 8.6~pp. This supports the need for confidence-aware fusion among local estimates, but the effect is smaller than the temporal-policy effect in the current implementation.
-
-\textbf{Tier 3---Secondary diagnostic safeguard: cross-factor checking.}
-Removing the directional cross-factor gap features reduces accuracy from 94.4\% to 92.9\% and TSR from 90.5\% to 89.5\%. The effect is positive but smaller than temporal decay, adaptive policy learning, and the decision-agent confidence weighting, indicating that the current reference simulator is still dominated by temporal T1/T4 evidence. The module should therefore be presented as a secondary diagnostic safeguard rather than the main performance driver.
+Only the cross-factor row resembles a feature ablation, and it also adds Gaussian noise. The ``Bayesian aggregation,'' ``temporal decay,'' and ``adaptive policy'' rows are alternative hand-coded classifiers rather than the full model with one component removed. The ``without incentive'' row perturbs risk and deducts 0.09 from TSR by construction. Consequently, the table is diagnostic of code paths, not evidence that any named architectural component causes the reported change.
 
 \textbf{Single-branch baselines (T1--T5 only).}
 Single-branch variants show that T4-only (82.3\%) and T5-only (84.0\%) are strong but insufficient; both trail MTIM by at least 10.4~pp in accuracy and by more than 7~pp in TSR. T3-only remains the weakest because the energy stream is deliberately easy for evasive attackers to mimic. These results support multi-factor temporal fusion, while also revealing that the current model places most discriminative power in behavior/task-history channels.
 
 \subsection{Scalability and Sensitivity Analysis}
 \label{sec:scalability}
-To evaluate how MTIM scales with network size, we varied the number of UAVs from 5 to 50 while proportionally increasing the number of Thinker Agents ($M = \lceil N/3 \rceil$). Figure~\ref{fig:Fig5_energy_consumption}(a) shows robustness under varying malicious-node ratios at $N=15$; Table~\ref{tab:scalability} reports end-to-end latency, communication overhead, and accuracy as functions of $N$.
+We also vary the number of generated nodes from 5 to 50. Accuracy is empirical; time and communication values are formula outputs rather than measurements.
 
 \begin{table}[!htbp]
   \centering
-  \caption{Scalability with swarm size under a 30\% malicious-node ratio. Values are mean $\pm$ std over 50 trials.}
+  \caption{Generated-node-count sensitivity under a 30\% malicious-node ratio. Time and communication columns are formula outputs, not measurements.}
   \label{tab:scalability}
   \footnotesize
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.12}
   \begin{tabular}{c c c c c}
     \toprule
-    UAV count $N$ & Thinker Agents $M$ & Accuracy (\%) & Eval. Time (ms) & Comm. Overhead (KB/UAV) \\
+    UAV count $N$ & Seed parameter $M$ & Accuracy (\%) & Time model (ms) & Cost model (KB/UAV) \\
     \midrule
     5  & 2  & $97.2 \pm 7.0$ & $36.5 \pm 3.0$ & $27.1 \pm 1.9$ \\
     15 & 5  & $94.4 \pm 5.6$ & $58.3 \pm 4.3$ & $34.0 \pm 1.8$ \\
@@ -853,9 +825,9 @@ To evaluate how MTIM scales with network size, we varied the number of UAVs from
   \end{tabular}
 \end{table}
 
-At $N = 50$ UAVs, the per-cycle evaluation latency grows to $152.0 \pm 3.8$~ms, which remains well within the 10~s trust update interval in the reference setting. The dominant scaling factor is the diagnostic feature extraction and aggregation step, whose cost grows with $M \cdot N$. Communication overhead scales from $34.0 \pm 1.8$~KB/UAV at $N = 15$ to $59.8 \pm 1.7$~KB/UAV at $N = 50$. Detection accuracy remains above 93\% across the tested range, although the small-$N$ case has high variance because one seed-level misclassification changes the trial accuracy substantially.
+Detection accuracy stays above 93\% on the generated size grid. The apparent growth in time and communication is predetermined by \texttt{resource\_metrics}; no scaling law can be inferred from those columns.
 
-Sensitivity analysis is limited to the trained policy architecture, fixed threshold, and trust-stream generator. A full grid search over policy-head loss weights, trust-decay rates, feature windows, and threshold calibration is not yet implemented. This limitation means that the reported configuration should be interpreted as one validated design point rather than a globally optimized policy.
+Sensitivity analysis is limited to the fitted architecture, fixed threshold, and one trust-stream generator. Loss weights, temporal windows, threshold calibration, and distribution shift have not been studied systematically.
 
 \subsection{Trust Factor Correlation Analysis}
 To verify that the five trust dimensions capture complementary rather than redundant information, we computed the pairwise Pearson correlation coefficients among $T_i^{(1)}$ through $T_i^{(5)}$ across all UAVs and time steps in the 50-trial simulation set. The correlation matrix (averaged over trials) is:
@@ -884,14 +856,11 @@ The strongest correlations involve the historical trust dimension T5, especially
 \section{Conclusions}
 \label{sec:conclusions}
 
-This paper presented the Multi-Agent Trust and Incentive Mechanism (MTIM), a closed-loop framework that uses trust evaluation to regulate UAV behavior through reward and penalty decisions. The key technical contributions are: (i) a trust--incentive problem formulation that links behavior assessment, trust scoring, and task-level actions; (ii) five complementary trust dimensions with a cross-factor consistency check for detecting multi-dimensional behavioral manipulation; (iii) a multi-agent execution architecture where distributed Thinker Agents supervise local UAV subsets and an Intelligent Decision Agent fuses local estimates through confidence-weighted aggregation; and (iv) an offline-trained MARL-style trust--incentive surrogate that strengthens the mapping from trust evidence to reward/penalty actions under partial observability.
+This study provides a reproducible trust-stream benchmark and a supervised multi-head risk model for UAV task allocation. On held-out seeds from the same generator, the model reaches 94.4\% accuracy and a 91.8\% F-score. A same-feature MLP reaches 94.7\% and 92.1\%; the paired differences are not significant. The principal empirical result is therefore that the chosen temporal summaries are informative for this generator, not that the proposed architecture is a better detector.
 
-Under mixed attack patterns (constant, dormant, on-off) at a 30\% malicious-node ratio, MTIM achieves 94.4\% detection accuracy, 91.8\% F-score, and 90.5\% task success rate in the trust-layer evaluation. It significantly outperforms manual-fusion and linear risk baselines, while a strong MLP-Trust baseline obtains statistically indistinguishable detection accuracy and F-score. MTIM's main advantage over this strong learned baseline is therefore mission-level: its TSR is 2.2~pp higher because the policy couples risk scoring to incentive-aware task allocation. Ablation studies show that temporal/adaptive evidence and incentive coupling are the main contributors, while cross-factor checking provides a secondary 1.5~pp accuracy gain and still requires stronger targeted stress tests. Scalability tests show that accuracy remains above 95\% at $N = 50$ UAVs and per-cycle latency remains within the 10~s update budget in the reference simulator. A supplementary replication package is provided for independent verification of the reported trust-layer results.
+The 90.5\% task-success value is a simulator-specific proxy. Since the allocation code applies MTIM-specific multipliers and does not use the learned incentive head, the 2.2~pp difference from MLP-Trust cannot support a causal claim about incentive learning. Likewise, the reported communication and latency values are generated rather than measured, and the code-level ablations do not isolate named architectural components. The short ns-3-derived check is the most useful warning: MTIM detects only two of five malicious nodes and does not outperform the simpler adapters.
 
-The central implication of this work is that \emph{trust evaluation should be treated as a behavior-regulation loop, not only as an open-loop classification task}. By using trust scores to decide rewards, penalties, and task participation, MTIM links trust assessment to mission-level behavior while keeping execution-time decisions based only on observable trust evidence.
-
-\textbf{Limitations and future work.}
-Several limitations warrant acknowledgment. First, MTIM mitigates only limited behavioral manipulation under fixed identities; it does not solve Sybil attacks or strong collusion in which malicious nodes dominate local observations. Second, the Intelligent Decision Agent remains a logically centralized component; a fully distributed decision protocol (e.g., based on Byzantine consensus) would strengthen the zero-trust claim. Third, the implemented MARL policy is an offline-trained trust--incentive surrogate rather than an online reinforcement-learning system with deployment-time adaptation. Fourth, the main numerical results are still produced at the trust-factor-stream layer rather than from multi-seed ns-3 packet-level experiments or hardware-in-the-loop flights. Future work will address these limitations through (i) collusion-resistant peer-evidence modeling, (ii) Sybil-resistant identity binding and admission control, (iii) decentralized Byzantine-resilient decision protocols, (iv) multi-seed ns-3 and software-defined-radio validation with public traces, and (v) safe online MARL adaptation with policy constraints.
+The repository is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine agent-local observations and aggregation, and evaluate on multi-seed packet traces with attack parameters held out from training. Reinforcement-learning claims would additionally require environment interaction, reward-defined returns, and comparison with supervised and non-learning policies. Until those experiments are available, MTIM should be described as a supervised trust-stream proof of concept rather than a validated MARL or zero-trust deployment.
 
 %%%%%%%%%%%%%
 \vspace{6pt} 
