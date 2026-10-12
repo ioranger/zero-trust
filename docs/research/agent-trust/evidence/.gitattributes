@@ -1,0 +1,7 @@
+# Normalize published text to LF for portable snapshot checksums.
+*.csv text eol=lf
+*.json text eol=lf
+*SHA256SUMS.txt text eol=lf
+*.png binary
+*.md text eol=lf
+.gitattributes text eol=lf

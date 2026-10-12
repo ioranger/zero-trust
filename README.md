@@ -2,6 +2,15 @@
 
 This repository contains the manuscript source, figures, and reproducible artifact for a supervised MTIM trust-stream proof of concept. The main benchmark is synthetic; the bundled ns-3-derived input is a single short interface check.
 
+## Current Research Design
+
+The [UAV agent trust and cooperative task design](docs/research/agent-trust/README.md)
+records the current proposal in Chinese: local agent context, direct and recommended
+trust, result voting, task transfer, energy accounting, and candidate temporal/GNN
+models. It includes a small evidence snapshot from the separate task simulator.
+The snapshot reports negative results as well as improvements; the full task
+simulator and trajectories are not included in this documentation update.
+
 ## Repository Layout
 
 ```text
