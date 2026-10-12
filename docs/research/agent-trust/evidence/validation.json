@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "test_runs": 880,
+  "environment_seeds": 8,
+  "scenarios": 10,
+  "policies": 11,
+  "tasks_checked": 84480,
+  "ballots_checked": 104656,
+  "audit_checks_reconciled": 651012,
+  "common_environment_configs": 80,
+  "task_size_summary_sha256": "b9cb1c8b0de55bc8005aca158e0377411b4b6567d553596ee42dece7b69619f1",
+  "validator_sha256": "a654b2e9c01a040ba64c0428e8801f7cc7be72df7ef1933f2830fe463c913057"
+}
