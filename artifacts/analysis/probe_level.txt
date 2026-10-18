@@ -1,0 +1,8 @@
+seeds=1000..1048 n_uavs=30 ratio=0.3 op point=0.05 benign FPR
+shape features: acf_excess, acf_prominence, flip_rate, two_level, switch_cv
+
+         13 marginal auc=0.9724 acc=91.56 f1=85.61 constant=93.2 dormant=95.2 onoff=62.6
+        5 shape only auc=0.8993 acc=84.63 f1=70.26 constant=17.0 dormant=71.4 onoff=93.2
+    5 shape shuffled auc=0.7353 acc=69.86 f1=18.42 constant=8.2 dormant=19.7 onoff=6.1
+   18 = 13 + 5 shape auc=0.9915 acc=95.31 f1=92.48 constant=98.0 dormant=97.3 onoff=93.2
+  18, shape shuffled auc=0.9772 acc=92.38 f1=87.19 constant=93.9 dormant=96.6 onoff=68.7

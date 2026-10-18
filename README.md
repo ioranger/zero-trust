@@ -1,17 +1,21 @@
-# Trust-Stream Evaluation for Low-Altitude UAV Networks
+# Structural Blind Spots of Window-Based Trust Aggregation in Low-Altitude UAV Networks
 
-This repository contains the manuscript source, figures, and reproducible artifact for a supervised MTIM trust-stream proof of concept. The main benchmark is synthetic; the bundled ns-3-derived input is a single short interface check.
+**Current manuscript: [`paper/template.pdf`](paper/template.pdf)** (source: `paper/template.tex`).
+
+This repository contains the manuscript source, figures, and reproducible artifact for a supervised, shape-augmented trust-stream study of UAV task allocation. The method is named S-TIM (Shape-augmented Trust Inference Model). The main benchmark is synthetic; the bundled ns-3-derived input is a single short interface check.
+
+**Archived earlier drafts** live in `paper/archive/` and are retained for audit only — they report numbers produced under a biased comparison protocol and are not the current results. See [`paper/archive/README.md`](paper/archive/README.md).
 
 ## Repository Layout
 
 ```text
 .
-├── paper/                 # Manuscript source, journal template, figures, and archived PDFs
-│   ├── template.tex       # Main LaTeX manuscript
-│   ├── template.pdf       # Latest compiled manuscript PDF
+├── paper/                 # Manuscript source, journal template, figures, and archived drafts
+│   ├── template.tex       # Main LaTeX manuscript (current)
+│   ├── template.pdf       # Latest compiled manuscript PDF (current)
 │   ├── Definitions/       # MDPI LaTeX class used by the manuscript
 │   ├── figures/           # Figures currently referenced by template.tex
-│   └── archive/           # Older PDFs and unused/reference figures
+│   └── archive/           # Superseded v4 renders, kept for audit; NOT current
 ├── artifacts/             # Reproducibility package for the reported experiments
 │   ├── configs/           # Experiment configuration
 │   ├── scripts/           # Training, evaluation, plotting, and trace-conversion scripts
@@ -63,9 +67,11 @@ The currently committed artifact outputs are intentionally preserved because the
 
 ## File Classification
 
+- **Current manuscript PDF**: `paper/template.pdf`
 - Manuscript source: `paper/template.tex`
 - Journal class/template dependency: `paper/Definitions/mdpi.cls`
 - Manuscript figures in active use: `paper/figures/`
-- Historical manuscript outputs and unused reference images: `paper/archive/`
+- Superseded manuscript renders (audit only, biased v4 tables): `paper/archive/`
 - Reproducibility code and experiment outputs: `artifacts/`
+- Legacy comparison protocol retained only to audit the old tables: `artifacts/configs/legacy_paper_protocol.json`
 - Local development environment: `.venv/` (ignored)
