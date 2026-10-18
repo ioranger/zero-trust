@@ -41,6 +41,48 @@ def choose_device(value: str):
     return torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 
+def domain_augment(streams: np.ndarray, malicious: np.ndarray, rng) -> np.ndarray:
+    """Randomise calibration and residual attack strength on training streams.
+
+    The trace-driven check in the manuscript fails for a concrete reason: on a
+    converted packet trace the malicious nodes carry a trust score around 0.69,
+    which is further inside the trusted region than anything the training split
+    contains, so the network places every attacker on the trusted side. Two
+    properties of the training generator cause that. Its per-channel
+    calibration is fixed, and its residual attack strength is concentrated by
+    the Beta camouflage draw near (1 - camo) ~ 0.4.
+
+    This widens both. Each channel gets an independent gain and offset, so the
+    model has to read relative pattern rather than absolute level. Malicious
+    nodes get an extra per-node dilution toward the benign profile, so weak
+    attacks -- including attacks the generator would otherwise never produce --
+    appear in training.
+
+    Applied to training streams only. The evaluation seeds and the ns-3 trace
+    are never augmented, so this cannot flatter any reported number; it can
+    only change what the model generalises to.
+    """
+    out = streams.copy()
+    n_nodes = streams.shape[1]
+    n_ch = streams.shape[2]
+
+    gain = rng.uniform(0.85, 1.15, size=(1, n_nodes, n_ch))
+    offset = rng.normal(0.0, 0.015, size=(1, n_nodes, n_ch))
+    out[:, :, :4] = out[:, :, :4] * gain[:, :, :4] + offset[:, :, :4]
+
+    # Dilute each malicious node toward the benign reference by a random
+    # factor, emulating an attack the generator under-represents.
+    dil = rng.uniform(0.0, 1.0, size=n_nodes)
+    for node in np.flatnonzero(malicious):
+        w = float(dil[node])
+        if w <= 0.0:
+            continue
+        blended = 0.75 * out[:, node, :4] + 0.25 * out[:, node, 4:5]
+        out[:, node, :4] = (1.0 - w) * out[:, node, :4] + w * blended
+
+    return np.clip(out, 0.02, 0.98)
+
+
 def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
     """Return (features, binary labels, attack-modality labels, feature names).
 
@@ -55,6 +97,7 @@ def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]
     row_seeds = []
     default_n = int(config.raw["network"]["default_uavs"])
     default_agents = int(config.raw["network"]["default_thinker_agents"])
+    augment = bool(config.raw["marl_training"].get("domain_augmentation", False))
     for ratio in config.raw["experiments"]["ratio_grid"]:
         for seed in config.train_seeds:
             streams, malicious, attack_types = simulate_trust_stream(
@@ -64,6 +107,12 @@ def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]
                 malicious_ratio=float(ratio),
                 n_agents=default_agents,
             )
+            if augment:
+                # Derive the augmentation stream from the same seed so the
+                # augmented dataset is itself reproducible.
+                streams = domain_augment(
+                    streams, malicious,
+                    np.random.default_rng(int(seed) * 31 + int(ratio * 100)))
             x, names = extract_marl_policy_features(config, streams, default_agents)
             rows.append(x)
             labels.append(malicious.astype(np.float32))
