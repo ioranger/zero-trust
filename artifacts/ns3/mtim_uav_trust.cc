@@ -1,4 +1,4 @@
-// ns-3 scenario for MTIM trace generation.
+// ns-3 scenario for S-TIM trace generation.
 //
 // Copy this file into scratch/mtim_uav_trust.cc in an ns-3 source tree and run:
 //   ./ns3 run "scratch/mtim_uav_trust --nUavs=15 --maliciousRatio=0.30 --seed=1000 --csv=mtim_ns3_trace.csv"

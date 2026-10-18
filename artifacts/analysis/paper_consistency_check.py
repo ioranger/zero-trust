@@ -8,7 +8,7 @@ to find any place where the text claims more than the table supports.
 import pathlib
 import re
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = pathlib.Path(r"F:\zero trust\zero-trust")
 TEX = ROOT / "paper" / "template.tex"
 TABLES = ROOT / "artifacts" / "outputs" / "tables"
 
@@ -143,7 +143,7 @@ checks = [
     ("discloses the removed tsr-0.09 fabrication",
      "0.09" in tex and "removed" in tex),
     ("discloses ns-3 shortfall",
-     "two of five" in tex),
+     "two of five" in tex or "none of the five malicious nodes" in tex),
     ("reports the duty-cycle sweep",
      "tab:duty_sweep" in tex),
     ("shuffle control reported",

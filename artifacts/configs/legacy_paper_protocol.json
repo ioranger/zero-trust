@@ -66,7 +66,7 @@
     "fuba_threshold": 0.69,
     "galtrust_threshold": 0.3,
     "gdm_dtm_threshold": 0.69,
-    "mtim_threshold": null
+    "s_tim_threshold": null
   },
   "fairness": {
     "_comment": "LEGACY PROTOCOL - reproduces the biased v4 tables. Do not use for new analysis.",

@@ -68,7 +68,7 @@
     "gdm_dtm_threshold": 0.69,
     "ahp_entropy_threshold": 0.62,
     "ahp_entropy_lambda": 0.5,
-    "mtim_threshold": null
+    "s_tim_threshold": null
   },
   "fairness": {
     "_comment": "Comparison-protocol controls. The legacy manuscript protocol (reproducible with configs/legacy_paper_protocol.json) injected per-method score noise into the rule-based adapters only, applied MTIM-specific task-allocation multipliers plus a +0.02 success-probability bonus, and reported affine-formula cost/latency columns that were never measured. The defaults below disable all three so every method is scored under one common rule.",
