@@ -1,0 +1,102 @@
+{
+  "artifact_version": "mtim-supervised-trust-stream-artifact-v4",
+  "description": "Same as default.json with the temporal-shape feature block enabled (5 scale-free transition/autocorrelation statistics added to the 13 marginal features). Controls for comparing feature gain against structural gain.",
+  "base_seed": 20260602,
+  "train_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "evaluation_seeds": {
+    "start": 1000,
+    "stop": 1049
+  },
+  "network": {
+    "default_uavs": 15,
+    "default_thinker_agents": 5,
+    "mission_duration_s": 5000,
+    "warmup_s": 1000,
+    "trust_update_interval_s": 10,
+    "mobility_model": "Random Waypoint abstraction",
+    "area_km2": [
+      10,
+      10
+    ],
+    "communication_range_m": 300,
+    "inter_uav_bandwidth_mbps": 5
+  },
+  "experiments": {
+    "main_ratio": 0.3,
+    "ratio_grid": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "figure_ratio_grid": [
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5
+    ],
+    "scalability_uavs": [
+      5,
+      15,
+      30,
+      50
+    ],
+    "agent_grid": [
+      2,
+      5,
+      10
+    ]
+  },
+  "classification": {
+    "trusted_threshold": 0.75,
+    "malicious_threshold": 0.3,
+    "mfa_threshold": 0.68,
+    "fuba_threshold": 0.69,
+    "galtrust_threshold": 0.3,
+    "gdm_dtm_threshold": 0.69,
+    "ahp_entropy_threshold": 0.62,
+    "ahp_entropy_lambda": 0.5,
+    "mtim_threshold": null
+  },
+  "fairness": {
+    "_comment": "Comparison-protocol controls. The legacy manuscript protocol (reproducible with configs/legacy_paper_protocol.json) injected per-method score noise into the rule-based adapters only, applied MTIM-specific task-allocation multipliers plus a +0.02 success-probability bonus, and reported affine-formula cost/latency columns that were never measured. The defaults below disable all three so every method is scored under one common rule.",
+    "baseline_noise_enabled": false,
+    "baseline_noise": {
+      "MFA": 0.035,
+      "FUBA": 0.03,
+      "GALTrust": 0.025,
+      "GDM-DTM": 0.026,
+      "AHP-Entropy": 0.0
+    },
+    "method_specific_tsr_adjustments": false,
+    "emit_resource_proxy_columns": false
+  },
+  "marl_training": {
+    "epochs": 180,
+    "batch_size": 64,
+    "learning_rate": 0.0015,
+    "weight_decay": 0.0001,
+    "positive_class_weight": 2.0,
+    "decision_threshold": 0.6,
+    "shape_features": true
+  },
+  "ns3": {
+    "scenario": "artifacts/ns3/mtim_uav_trust.cc",
+    "trace_output": "artifacts/outputs/logs/ns3_packet_trace.csv",
+    "trust_stream_output": "artifacts/outputs/logs/ns3_trust_streams.csv",
+    "trace_validation_output": "artifacts/outputs/tables/ns3_trace_validation.csv",
+    "status": "source-provided and trace-driven validation is reported for the bundled 500 s seed-1000 trace; main manuscript tables remain 50-seed trust-stream results unless multi-seed ns-3 is executed externally"
+  }
+}

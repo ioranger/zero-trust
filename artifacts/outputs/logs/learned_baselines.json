@@ -1,0 +1,122 @@
+{
+  "feature_names": [
+    "1-T1_recent",
+    "1-T2_recent",
+    "1-T4_recent",
+    "1-T5_recent",
+    "1-T1_q10",
+    "1-T4_q10",
+    "low_T1_T4_fraction_0.58",
+    "low_T1_T4_fraction_0.62",
+    "T1_T4_amplitude",
+    "T1_T4_std",
+    "T1_T4_positive_slope",
+    "directed_T2T3_minus_T1T4_gap",
+    "directed_low_quantile_gap",
+    "shape_acf_excess",
+    "shape_acf_prominence",
+    "shape_flip_rate",
+    "shape_two_level",
+    "shape_switch_cv"
+  ],
+  "threshold": 0.6,
+  "early_stopping": true,
+  "validation_seeds": [
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159
+  ],
+  "baselines": {
+    "LR-Trust": {
+      "model_type": "linear",
+      "checkpoint_path": "artifacts\\outputs\\checkpoints\\lr_trust.pt",
+      "input_dim": 18,
+      "threshold": 0.6,
+      "selected_epoch": 179,
+      "validation_risk_loss": 0.13496550917625427,
+      "training_metrics": {
+        "epoch": 179,
+        "loss": NaN,
+        "accuracy": 0.9574074074074074,
+        "precision": 0.9365962180200222,
+        "recall": 0.9355555555555556,
+        "f_score": 0.9360755975541967,
+        "false_positive_rate": 0.03166666666666667,
+        "mean_risk_malicious": 0.929681122303009,
+        "mean_risk_benign": 0.07389196753501892
+      },
+      "train_fit_metrics": {
+        "epoch": 179,
+        "loss": NaN,
+        "accuracy": 0.9574074074074074,
+        "precision": 0.9373259052924791,
+        "recall": 0.9347222222222222,
+        "f_score": 0.9360222531293462,
+        "false_positive_rate": 0.03125,
+        "mean_risk_malicious": 0.9281163811683655,
+        "mean_risk_benign": 0.07422637194395065
+      },
+      "validation_metrics": {
+        "epoch": 179,
+        "loss": NaN,
+        "accuracy": 0.9574074074074074,
+        "precision": 0.9337016574585635,
+        "recall": 0.9388888888888889,
+        "f_score": 0.9362880886426593,
+        "false_positive_rate": 0.03333333333333333,
+        "mean_risk_malicious": 0.9359402060508728,
+        "mean_risk_benign": 0.0725543424487114
+      }
+    },
+    "MLP-Trust": {
+      "model_type": "mlp",
+      "checkpoint_path": "artifacts\\outputs\\checkpoints\\mlp_trust.pt",
+      "input_dim": 18,
+      "threshold": 0.6,
+      "selected_epoch": 8,
+      "validation_risk_loss": 0.04072996973991394,
+      "training_metrics": {
+        "epoch": 8,
+        "loss": NaN,
+        "accuracy": 0.987037037037037,
+        "precision": 0.9737130339539978,
+        "recall": 0.9877777777777778,
+        "f_score": 0.9806949806949807,
+        "false_positive_rate": 0.013333333333333334,
+        "mean_risk_malicious": 0.980782687664032,
+        "mean_risk_benign": 0.025038981810212135
+      },
+      "train_fit_metrics": {
+        "epoch": 8,
+        "loss": NaN,
+        "accuracy": 0.987037037037037,
+        "precision": 0.9726775956284153,
+        "recall": 0.9888888888888889,
+        "f_score": 0.9807162534435262,
+        "false_positive_rate": 0.013888888888888888,
+        "mean_risk_malicious": 0.9809727072715759,
+        "mean_risk_benign": 0.0255502387881279
+      },
+      "validation_metrics": {
+        "epoch": 8,
+        "loss": NaN,
+        "accuracy": 0.987037037037037,
+        "precision": 0.9779005524861878,
+        "recall": 0.9833333333333333,
+        "f_score": 0.9806094182825484,
+        "false_positive_rate": 0.011111111111111112,
+        "mean_risk_malicious": 0.9800221920013428,
+        "mean_risk_benign": 0.022993965074419975
+      }
+    }
+  }
+}
