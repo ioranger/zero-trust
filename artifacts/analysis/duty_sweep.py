@@ -51,7 +51,7 @@ N_UAVS = 30
 RATIO = 0.30
 N_AGENTS = int(config.raw["network"]["default_thinker_agents"])
 DUTIES = [0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
-METHODS = ["MTIM", "MLP-Trust", "LR-Trust", "GDM-DTM"]
+METHODS = ["S-TIM", "MLP-Trust", "LR-Trust", "GDM-DTM"]
 
 
 def wilson(k, n, z=1.96):
@@ -114,10 +114,10 @@ def main():
     print()
     print("absolute gap, shape-block learners minus rule aggregator (pp)")
     print("-" * 96)
-    print(f"{'duty':>6s} {'MTIM-GDM':>10s} {'MLP-GDM':>10s} {'LR-GDM':>10s}")
+    print(f"{'duty':>6s} {'S-TIM-GDM':>10s} {'MLP-GDM':>10s} {'LR-GDM':>10s}")
     for duty in DUTIES:
         vals = []
-        for m in ("MTIM", "MLP-Trust", "LR-Trust"):
+        for m in ("S-TIM", "MLP-Trust", "LR-Trust"):
             h, t, _, _ = results[(duty, m)]
             g, gt, _, _ = results[(duty, "GDM-DTM")]
             vals.append(100.0 * h / max(1, t) - 100.0 * g / max(1, gt))
@@ -138,7 +138,7 @@ def main():
     print("sample counts per row (on-off nodes pooled)")
     print("-" * 96)
     for duty in DUTIES:
-        h, t, _, _ = results[(duty, "MTIM")]
+        h, t, _, _ = results[(duty, "S-TIM")]
         print(f"  duty {duty:.2f}: {t} on-off nodes pooled, {h} detected")
 
     out = HERE / "duty_sweep.txt"

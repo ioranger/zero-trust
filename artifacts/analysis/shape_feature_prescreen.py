@@ -1,4 +1,4 @@
-"""Design and pre-screen five temporal-shape features before touching MTIM.
+"""Design and pre-screen five temporal-shape features before touching the encoder.
 
 Motivation, from the already-verified diagnosis:
 
@@ -160,7 +160,7 @@ def evaluate(X, y, groups, mal, kinds, fpr=0.05):
 
 def main():
     print("=" * 84)
-    print("temporal shape features: pre-screen before any MTIM retraining")
+    print("temporal shape features: pre-screen before any retraining")
     print(f"seeds=7000..{7000+N_SEEDS-1}  uavs={N_UAVS}  malicious={RATIO:.0%}  "
           f"post-warmup steps={config.steps - config.warmup_steps}")
     print("no attack period is encoded in any feature (lags 3..120, scale-free)")
