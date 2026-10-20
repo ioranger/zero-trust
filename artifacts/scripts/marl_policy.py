@@ -129,6 +129,24 @@ def spatial_features_enabled(config: Config) -> bool:
     return bool((config.raw.get("spatial") or {}).get("features", False))
 
 
+def baselines_get_spatial_block(config: Config) -> bool:
+    """Whether the learned per-node baselines are also handed the neighbourhood block.
+
+    The main comparison protocol keeps the neighbourhood block away from LR-Trust
+    and MLP-Trust, because they are per-node aggregators by construction and
+    handing them a neighbourhood-relative feature would make the comparison
+    about input width rather than about architecture.
+
+    A fusion-mechanism ablation needs the opposite: the *same* feature vector
+    fed to three different fusion mechanisms, so that any difference is
+    attributable to how the blocks are combined rather than to what was
+    available. That arm switches this on explicitly, is labelled as a control
+    of the proposed model, and never touches the published configuration.
+    """
+    return bool((config.raw.get("fairness") or {}).get(
+        "learned_baselines_get_spatial_block", False))
+
+
 def resolve_spatial_adjacency(config: Config, seed: int, n_uavs: int,
                               malicious_ratio: float):
     """Neighbourhood matrix for this seed, or None when spatial is off.
@@ -145,7 +163,7 @@ def resolve_spatial_adjacency(config: Config, seed: int, n_uavs: int,
         return None
     if not spatial_features_enabled(config):
         return None
-    _, A, _, _, _ = spatial_geometry(config, int(seed), int(n_uavs),
+    _, A, _, _, _, _, _ = spatial_geometry(config, int(seed), int(n_uavs),
                                       float(malicious_ratio))
     return A
 
@@ -197,6 +215,41 @@ def extract_marl_policy_features(
         *(extras if extras else MARL_EXTRA_FEATURES),
     ]
     return features, names
+
+
+def baseline_feature_view(
+    config: Config,
+    streams: np.ndarray,
+    n_agents: int,
+    seed: int | None = None,
+    n_uavs: int | None = None,
+    malicious_ratio: float | None = None,
+    spatial_adjacency=None,
+) -> Tuple[np.ndarray, list[str]]:
+    """The feature matrix the learned per-node baselines are scored on.
+
+    One code path for both training and inference, so the width a baseline was
+    trained at is necessarily the width it is scored at.
+
+    With the switch off (the published protocol) the neighbourhood block is
+    withheld, so the baselines stay per-node aggregators. With the switch on
+    the baseline sees exactly the vector the proposed model sees, which is what
+    the fusion-mechanism ablation needs.
+
+    Note that ``spatial_adjacency`` is *ignored* when the switch is off. The
+    caller may hold a non-None adjacency for the proposed model; handing that
+    same matrix to the baselines would silently move the published protocol,
+    so the switch is the only thing that may widen the baseline input.
+    """
+    adj = None
+    if baselines_get_spatial_block(config):
+        adj = spatial_adjacency
+        if (adj is None and seed is not None and n_uavs is not None
+                and malicious_ratio is not None):
+            adj = resolve_spatial_adjacency(
+                config, int(seed), int(n_uavs), float(malicious_ratio))
+    return extract_marl_policy_features(
+        config, streams, n_agents, spatial_adjacency=adj)
 
 
 def heuristic_weight_targets(features: np.ndarray, names: Iterable[str]) -> np.ndarray:

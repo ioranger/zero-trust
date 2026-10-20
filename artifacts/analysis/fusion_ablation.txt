@@ -1,0 +1,113 @@
+========================================================================================================
+MODALITY COMPLEMENTARITY -- real trained models, per-attack-class detection rate (%)
+========================================================================================================
+
+--- MFA ---------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            88.8              87.6              83.3              76.5              21.2
+23d marginal+shape+spatial                    88.8              87.6              83.3              76.5              21.2
+23d fusion ablation                           88.8              87.6              83.3              76.5              21.2
+
+
+--- FUBA --------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            90.1              88.8              84.2              77.1              20.7
+23d marginal+shape+spatial                    90.1              88.8              84.2              77.1              20.7
+23d fusion ablation                           90.1              88.8              84.2              77.1              20.7
+
+
+--- GALTrust ----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            85.0              81.6              75.0              67.9              30.3
+23d marginal+shape+spatial                    85.0              81.6              75.0              67.9              30.3
+23d fusion ablation                           85.0              81.6              75.0              67.9              30.3
+
+
+--- GDM-DTM -----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            90.2              88.9              84.2              77.1              20.7
+23d marginal+shape+spatial                    90.2              88.9              84.2              77.1              20.7
+23d fusion ablation                           90.2              88.9              84.2              77.1              20.7
+
+
+--- AHP-Entropy -------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            85.4              82.7              77.2              68.9              28.9
+23d marginal+shape+spatial                    85.4              82.7              77.2              68.9              28.9
+23d fusion ablation                           85.4              82.7              77.2              68.9              28.9
+
+
+--- LR-Trust ----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            57.1              89.4              86.3               6.2              93.5
+23d marginal+shape+spatial                    57.1              89.4              86.3               6.2              93.4
+23d fusion ablation                           50.8              86.1              82.1              60.8              91.3
+
+
+--- MLP-Trust ---------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            88.9              95.7              91.9               3.5              96.1
+23d marginal+shape+spatial                    89.1              95.6              92.5               4.2              96.2
+23d fusion ablation                           88.9              93.9              92.5              84.5              95.6
+
+
+--- S-TIM -------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+18d marginal+shape                            82.1              92.2              89.3               2.1              97.4
+23d marginal+shape+spatial                    87.2              93.4              91.7              83.6              96.1
+23d fusion ablation                           87.2              93.4              91.7              83.6              96.1
+
+========================================================================================================
+PAIRED COMPARISON: 23d fusion ablation   MINUS   23d marginal+shape+spatial
+same seeds, same configuration except the block under test
+========================================================================================================
+method                 attack class    delta pp         t           p         d     n
+--------------------------------------------------------------------------------------------------------
+MFA                        constant         0.0      0.00      1.0000      0.00    20
+MFA                         dormant         0.0      0.00      1.0000      0.00    20
+MFA                          on-off         0.0      0.00      1.0000      0.00    20
+MFA           position-inconsistent         0.0      0.00      1.0000      0.00    20
+MFA                          benign         0.0      0.00      1.0000      0.00    20
+FUBA                       constant         0.0      0.00      1.0000      0.00    20
+FUBA                        dormant         0.0      0.00      1.0000      0.00    20
+FUBA                         on-off         0.0      0.00      1.0000      0.00    20
+FUBA          position-inconsistent         0.0      0.00      1.0000      0.00    20
+FUBA                         benign         0.0      0.00      1.0000      0.00    20
+GALTrust                   constant         0.0      0.00      1.0000      0.00    20
+GALTrust                    dormant         0.0      0.00      1.0000      0.00    20
+GALTrust                     on-off         0.0      0.00      1.0000      0.00    20
+GALTrust      position-inconsistent         0.0      0.00      1.0000      0.00    20
+GALTrust                     benign         0.0      0.00      1.0000      0.00    20
+GDM-DTM                    constant         0.0      0.00      1.0000      0.00    20
+GDM-DTM                     dormant         0.0      0.00      1.0000      0.00    20
+GDM-DTM                      on-off         0.0      0.00      1.0000      0.00    20
+GDM-DTM       position-inconsistent         0.0      0.00      1.0000      0.00    20
+GDM-DTM                      benign         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                constant         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                 dormant         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                  on-off         0.0      0.00      1.0000      0.00    20
+AHP-Entropy   position-inconsistent         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                  benign         0.0      0.00      1.0000      0.00    20
+LR-Trust                   constant        -6.3     -4.93      0.0001     -1.10    20
+LR-Trust                    dormant        -3.3     -5.16      0.0001     -1.15    20
+LR-Trust                     on-off        -4.2     -4.85      0.0001     -1.08    20
+LR-Trust      position-inconsistent        54.6     36.68      0.0000      8.20    20
+LR-Trust                     benign        -2.2     -8.00      0.0000     -1.79    20
+MLP-Trust                  constant        -0.2     -0.19      0.8488     -0.04    20
+MLP-Trust                   dormant        -1.7     -3.33      0.0035     -0.74    20
+MLP-Trust                    on-off         0.1      0.16      0.8743      0.04    20
+MLP-Trust     position-inconsistent        80.2     67.68      0.0000     15.13    20
+MLP-Trust                    benign        -0.6     -3.67      0.0016     -0.82    20
+S-TIM                      constant         0.0      0.00      1.0000      0.00    20
+S-TIM                       dormant         0.0      0.00      1.0000      0.00    20
+S-TIM                        on-off         0.0      0.00      1.0000      0.00    20
+S-TIM         position-inconsistent         0.0      0.00      1.0000      0.00    20
+S-TIM                        benign         0.0      0.00      1.0000      0.00    20

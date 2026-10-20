@@ -227,20 +227,44 @@ def simulate_trust_stream(
     return streams, malicious, attack_types
 
 
-def spatial_topology(n_uavs: int, side_m: float, range_m: float, rng) -> tuple[np.ndarray, np.ndarray]:
-    """Sample node positions and build a row-normalised neighbour matrix.
+def adjacency_from_positions(pos: np.ndarray, range_m: float) -> np.ndarray:
+    """Row-normalised neighbour matrix for the given positions.
 
-    Returns (positions, A) where A[i, j] is 1/|N(i)| when j is within range of i
-    and 0 otherwise. Isolated nodes get an all-zero row, which is the honest
-    representation: they have no neighbourhood and no spatial feature can be
-    computed for them.
+    A[i, j] is 1/|N(i)| when j is within range of i and 0 otherwise. Isolated
+    nodes get an all-zero row, which is the honest representation: they have
+    no neighbourhood and no spatial feature can be computed for them.
     """
-    pos = rng.uniform(0.0, side_m, size=(n_uavs, 2))
     d = np.linalg.norm(pos[:, None, :] - pos[None, :, :], axis=-1)
     adj = (d <= range_m).astype(float)
     np.fill_diagonal(adj, 0.0)
     deg = adj.sum(axis=1)
-    return pos, adj / np.maximum(deg, 1.0)[:, None]
+    return adj / np.maximum(deg, 1.0)[:, None]
+
+
+def spatial_topology(n_uavs: int, side_m: float, range_m: float, rng) -> tuple[np.ndarray, np.ndarray]:
+    """Sample node positions and build a row-normalised neighbour matrix.
+
+    Returns (positions, A).
+    """
+    pos = rng.uniform(0.0, side_m, size=(n_uavs, 2))
+    return pos, adjacency_from_positions(pos, range_m)
+
+
+def field_at(grid_values: np.ndarray, pos: np.ndarray, side_m: float,
+             grid: int) -> np.ndarray:
+    """Bilinear interpolation of the coarse field grid at the given positions."""
+    cell = side_m / max(1, grid - 1)
+    fx = np.clip(pos[:, 0] / cell, 0, grid - 1 - 1e-9)
+    fy = np.clip(pos[:, 1] / cell, 0, grid - 1 - 1e-9)
+    x0, y0 = np.floor(fx).astype(int), np.floor(fy).astype(int)
+    x1, y1 = np.minimum(x0 + 1, grid - 1), np.minimum(y0 + 1, grid - 1)
+    tx, ty = fx - x0, fy - y0
+    v00 = grid_values[x0, y0]
+    v01 = grid_values[x0, y1]
+    v10 = grid_values[x1, y0]
+    v11 = grid_values[x1, y1]
+    return ((1 - tx) * (1 - ty) * v00 + (1 - tx) * ty * v01
+            + tx * (1 - ty) * v10 + tx * ty * v11)
 
 
 def spatial_field(n_uavs: int, side_m: float, range_m: float, grid: int,
@@ -252,22 +276,13 @@ def spatial_field(n_uavs: int, side_m: float, range_m: float, grid: int,
     gives a neighbourhood any information to offer. The field is a coarse
     random grid bilinearly interpolated at node positions, which yields
     spatially smooth values with no dependence on the node count.
+
+    Returns (value, A, positions, grid_values); the grid is exposed so that a
+    caller can evaluate the field at a position it chooses.
     """
     grid_values = rng.normal(0.0, 1.0, size=(grid, grid))
     pos, A = spatial_topology(n_uavs, side_m, range_m, rng)
-    cell = side_m / max(1, grid - 1)
-    fx = np.clip(pos[:, 0] / cell, 0, grid - 1 - 1e-9)
-    fy = np.clip(pos[:, 1] / cell, 0, grid - 1 - 1e-9)
-    x0, y0 = np.floor(fx).astype(int), np.floor(fy).astype(int)
-    x1, y1 = np.minimum(x0 + 1, grid - 1), np.minimum(y0 + 1, grid - 1)
-    tx, ty = fx - x0, fy - y0
-    v00 = grid_values[x0, y0]
-    v01 = grid_values[x0, y1]
-    v10 = grid_values[x1, y0]
-    v11 = grid_values[x1, y1]
-    value = ((1 - tx) * (1 - ty) * v00 + (1 - tx) * ty * v01
-             + tx * (1 - ty) * v10 + tx * ty * v11)
-    return value, A, pos
+    return field_at(grid_values, pos, side_m, grid), A, pos, grid_values
 
 
 def spatial_cfg(config: Config) -> dict | None:
@@ -277,13 +292,14 @@ def spatial_cfg(config: Config) -> dict | None:
 
 
 def spatial_geometry(config: Config, seed: int, n_uavs: int,
-                      malicious_ratio: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                      malicious_ratio: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Deterministically replay spatial geometry for a given seed.
 
-    Returns (field, A, positions, malicious_idx, camouflage). Both the stream
-    generator and the feature extractor call this, so the neighbourhood a
-    feature is computed against is exactly the neighbourhood the stream was
-    generated with, with no side channel between them.
+    Returns (field, A, positions, malicious_idx, camouflage, grid_values,
+    pos_nodes). Both the stream generator and the feature extractor call this,
+    so the neighbourhood a feature is computed against is exactly the
+    neighbourhood the stream was generated with, with no side channel between
+    them.
     """
     spatial = spatial_cfg(config) or {}
     rng = stable_rng(config, seed, n_uavs, malicious_ratio, 0)
@@ -293,7 +309,7 @@ def spatial_geometry(config: Config, seed: int, n_uavs: int,
     placement = str(spatial.get("attacker_placement", "random"))
 
     n_mal = malicious_count(n_uavs, malicious_ratio)
-    field, A, pos = spatial_field(n_uavs, side, rng_m, grid, rng)
+    field, A, pos, grid_values = spatial_field(n_uavs, side, rng_m, grid, rng)
 
     if placement == "clustered" and n_mal > 1:
         seed_node = int(rng.integers(n_uavs))
@@ -315,7 +331,32 @@ def spatial_geometry(config: Config, seed: int, n_uavs: int,
     camo = np.zeros(n_uavs)
     if n_mal:
         camo[malicious_idx] = rng.beta(2.7, 1.8, n_mal)
-    return field, A, pos, malicious_idx, camo
+
+    # A telemetry-forging attacker reports channels indistinguishable from the
+    # benign population, but is placed where the RF field differs from what it
+    # reports. Its own statistics therefore carry no signal and only a
+    # comparison against its neighbourhood reveals it. The ratio is zero by
+    # default, so every published configuration is unchanged.
+    pos_ratio = float(spatial.get("position_attack_ratio", 0.0))
+    n_pos = int(round(pos_ratio * n_mal)) if n_mal else 0
+    pos_nodes = np.zeros(0, dtype=int)
+    if n_pos > 0:
+        # Place them where the field is strong, so the mismatch is not a coin
+        # flip: a forger in a neutral cell has nothing to be inconsistent with.
+        cand = rng.uniform(0.0, side, size=(max(64, 32 * n_pos), 2))
+        cand_f = field_at(grid_values, cand, side, grid)
+        order = np.argsort(-np.abs(cand_f))
+        chosen = [int(c) for c in order[:n_pos]]
+        pos = pos.copy()
+        for k, node in enumerate(malicious_idx):
+            if k < n_pos:
+                pos[node] = cand[chosen[k]]
+        pos_nodes = np.array([int(n) for k, n in enumerate(malicious_idx) if k < n_pos],
+                              dtype=int)
+        A = adjacency_from_positions(pos, rng_m)
+        field = field_at(grid_values, pos, side, grid)
+
+    return field, A, pos, malicious_idx, camo, grid_values, pos_nodes
 
 
 def simulate_trust_stream_spatial(
@@ -349,7 +390,7 @@ def simulate_trust_stream_spatial(
     coupling = float(spatial.get("attacker_field_coupling", 0.7))
 
     rng = stable_rng(config, seed, n_uavs, malicious_ratio, n_agents)
-    field, A, _pos, malicious_idx, camouflage = spatial_geometry(
+    field, A, _pos, malicious_idx, camouflage, _grid, pos_nodes = spatial_geometry(
         config, seed, n_uavs, malicious_ratio)
 
     n_mal = len(malicious_idx)
@@ -359,6 +400,9 @@ def simulate_trust_stream_spatial(
     cycle = ["constant", "dormant", "on-off"]
     for pos_i, node in enumerate(malicious_idx):
         attack_types[node] = cycle[pos_i % len(cycle)]
+    if pos_nodes.size:
+        attack_types[pos_nodes] = "position-inconsistent"
+    is_pos = attack_types == "position-inconsistent"
 
     dormant_switch = {int(node): config.warmup_steps + int(rng.integers(20, 70))
                       for node in malicious_idx}
@@ -375,24 +419,39 @@ def simulate_trust_stream_spatial(
     history = np.full(n_uavs, 0.77) + rng.normal(0.0, 0.045, n_uavs)
     noise = rng.normal(0.0, 0.10, (config.steps, n_uavs, 4))
 
-    benign_reference = np.array([0.80, 0.76, 0.72, 0.80])
-    evasive_reference = np.array([0.74, 0.73, 0.72, 0.75])
+    # The whole profile set is shifted down so that the zero-mean field clips
+    # symmetrically against the upper and lower bounds. Without the shift the
+    # field's spread sits next to the upper bound, the clipped benign mean
+    # drifts away from the reference, and a forger that carries no field spread
+    # becomes visible to a purely behavioural method for the wrong reason.
+    shift = float(spatial.get("reference_shift", 0.0))
+    benign_reference = np.array([0.80, 0.76, 0.72, 0.80]) - shift
+    evasive_reference = np.array([0.74, 0.73, 0.72, 0.75]) - shift
     attack_profiles = {
-        "constant": np.array([0.36, 0.47, 0.69, 0.32]),
-        "dormant": np.array([0.53, 0.72, 0.70, 0.42]),
-        "on-off": np.array([0.56, 0.70, 0.70, 0.52]),
+        "constant": np.array([0.36, 0.47, 0.69, 0.32]) - shift,
+        "dormant": np.array([0.53, 0.72, 0.70, 0.42]) - shift,
+        "on-off": np.array([0.56, 0.70, 0.70, 0.52]) - shift,
     }
+    attack_profiles = {k: np.maximum(v, 0.05) for k, v in attack_profiles.items()}
 
+    # The field is applied to all four evidence channels, not just T1 and T4.
+    # Applying it to a subset makes the cross-channel gap features a proxy for
+    # the field value, so a node that carries no field offset becomes anomalous
+    # in them for the wrong reason. A common-mode shift leaves the cross-channel
+    # gaps field-invariant, which is what they are meant to measure.
     field_offset = np.zeros((n_uavs, 4))
-    field_offset[:, 0] = amp * own_field
-    field_offset[:, 3] = amp * own_field
+    field_offset[:, :] = amp * own_field[:, None]
+    # A telemetry forger does not reflect the local RF field in what it
+    # reports, which is precisely what its neighbours do reflect.
+    if is_pos.any():
+        field_offset[is_pos] = 0.0
 
     is_constant = attack_types == "constant"
     is_dormant = attack_types == "dormant"
     is_onoff = attack_types == "on-off"
     switch = np.array([dormant_switch.get(n, config.steps) for n in range(n_uavs)])
     camo = camouflage[:, None]
-    idle_mean = np.array([0.79, 0.76, 0.72, 0.79])[None, :] + node_bias * 0.45
+    idle_mean = (np.array([0.79, 0.76, 0.72, 0.79]) - shift)[None, :] + node_bias * 0.45
     benign_mean = benign_reference[None, :] + node_bias
     outage_drop = np.array([0.22, 0.26, 0.08, 0.17])
     streams = np.zeros((config.steps, n_uavs, 5), dtype=float)
@@ -401,6 +460,8 @@ def simulate_trust_stream_spatial(
         wave = (0.045 * np.sin(step / 23.0 + np.arange(n_uavs) * 0.9)[:, None]
                 + 0.025 * math.cos(step / 47.0))
         base = np.where(malicious[:, None], idle_mean, benign_mean) + wave
+        # A telemetry forger is not attacking the behaviour channels at all.
+        base = np.where(is_pos[:, None], benign_mean + wave, base)
         base = base + field_offset
 
         active = is_constant.copy()
@@ -426,6 +487,20 @@ def simulate_trust_stream_spatial(
         history = 0.84 * history + 0.16 * values.mean(axis=1)
         streams[step, :, :4] = values
         streams[step, :, 4] = history
+
+    if is_pos.any():
+        # A replay attacker transmits a genuine benign node's recorded stream
+        # verbatim while occupying a different cell of the airspace. Its own
+        # behavioural evidence is therefore, distributionally, exactly a benign
+        # node's, and no method reading only a node's own behaviour has anything
+        # to work with. The inconsistency that remains is between the replayed
+        # telemetry and the RF conditions its neighbours are in, and only a
+        # neighbourhood-relative statistic can see it.
+        benign_nodes = np.where(~malicious)[0]
+        if len(benign_nodes):
+            for node in np.where(is_pos)[0]:
+                source = int(benign_nodes[rng.integers(len(benign_nodes))])
+                streams[:, node, :] = streams[:, source, :]
 
     return streams, malicious, attack_types
 
@@ -612,12 +687,18 @@ def method_predictions(
             streams, config.warmup_steps, baseline_cfg, _baseline_noise(config, rng, method, n_uavs)
         )
     elif method in {"LR-Trust", "MLP-Trust"}:
-        from marl_policy import extract_marl_policy_features, load_torch_risk_baseline
+        from marl_policy import (
+            baseline_feature_view,
+            load_torch_risk_baseline,
+        )
 
         learned = policy.get("learned_baselines", {}).get("baselines", {})
         if method not in learned:
             raise ValueError(f"Learned baseline metadata for {method} is missing. Run train_marl_pytorch.py.")
-        x, _ = extract_marl_policy_features(config, streams, n_agents)
+        x, _ = baseline_feature_view(
+            config, streams, n_agents,
+            seed=int(seed), n_uavs=int(n_uavs),
+            malicious_ratio=float(malicious_ratio))
         # Each learned baseline carries its own feature width and
         # normalisation. Using S-TIM's statistics here would silently impose
         # the proposed model's input on a comparator that never saw it.

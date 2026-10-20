@@ -12,6 +12,7 @@ python -u artifacts/analysis/modality_probe.py             # information-provena
 python -u artifacts/analysis/probe_level_eval.py           # probe-level marginal vs shape
 python -u artifacts/analysis/duty_sweep.py                 # paired duty-cycle sweep
 python -u artifacts/analysis/trace_regime_check.py         # ns-3 trace regime diagnosis
+python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + fusion ablation
 ```
 
 ## What each one establishes
@@ -25,6 +26,22 @@ python -u artifacts/analysis/trace_regime_check.py         # ns-3 trace regime d
 | `probe_level_eval.py` | What does the shape block add, and how much of that is sequence order rather than added dimensionality? |
 | `duty_sweep.py` | How far does the blind spot extend as the attacker's duty cycle falls? |
 | `trace_regime_check.py` | Why does the 49-step ns-3 trace degenerate six of the eighteen input columns? |
+| `position_attack_probe.py` | Is the spatial block complementary to the behaviour channels, or an addition to them? Per-attack-class probe detection for the marginal, shape and spatial blocks. |
+| `modality_complementarity.py` | The same question for the real trained models: per-attack-class detection per feature-block combination, with a paired test across seeds. |
+| `spatial_study_report.py` | Runs the whole spatio-temporal study in one pass and writes the two table files. |
+| `SPATIAL_STUDY.md` | The written study: what the spatial block buys, what it costs, and which generator artefacts had to be removed first. |
+| `finalise_modality_study.py` | Builds the modality ladder and the fusion-mechanism ablation from the committed arm logs. |
+| `check_fusion_switch.py` | Is the fusion-mechanism switch a strict no-op for every configuration that does not ask for it? |
+| `compare_snapshot_to_published.py` | Does a given run snapshot reproduce the published Table 2 cell for cell? |
+| `compact_arm.py` | Extracts the four files an arm needs out of a full run snapshot. |
+| `diagnose_rule_threshold_transfer.py` | Is the rule-based collapse a threshold-transfer failure or an information failure? |
+| `diagnose_spatial_counterfactuals.py` | Which generator choice causes the rule-based collapse: the field, the reference shift or the forger? |
+| `diagnose_forger_visibility.py` | Per-feature effect sizes of the telemetry-replay attacker against the benign population. |
+| `diagnose_clipping_artifact.py` | Isolates the clipping artefact that turned a zero-mean field into a non-zero mean shift. |
+| `verify_citations_crossref.py` | Checks every citation's metadata against the Crossref record. |
+| `compile_check.py` | Byte-compiles the scripts so a syntax error cannot reach a background arm. |
+| `inspect_attack_type_log.py` | Shows the seed, method and attack-type structure of a per-seed attack log, including its duplicate rows. |
+| `diff_devtree_vs_gitwork.py` | Lists the files that differ between the development tree and the git worktree. |
 
 ## `runs/`
 
@@ -36,10 +53,15 @@ regenerable and are not committed.
 | Arm | Configuration |
 |---|---|
 | `paper_18dim_check` | the published configuration: value 0.10, trust-weight 0.25, incentive-action 0.20, modality 0.00 |
+| `paper_18dim_recheck` | the published configuration re-run after the generator changes; reproduces Table 2 cell for cell |
 | `heads_risk_only` | control: all four auxiliary loss weights 0 |
 | `heads_mod_only` | only the modality head supervised, weight 0.30 |
 | `heads_full` | all four auxiliary heads supervised |
 | `marginal_13dim` | the 13-dimensional ablation with no shape block |
+| `spatial_position_13dim` | telemetry-forging scenario, marginal features only (13 dims) |
+| `spatial_position_18dim` | telemetry-forging scenario, marginal + shape (18 dims) |
+| `spatial_position_23dim` | telemetry-forging scenario, marginal + shape + spatial (23 dims) |
+| `spatial_position_fusion` | the same 23 dims fed to every learner, so the linear, MLP and multi-head fusion can be compared on one input |
 
 To regenerate an arm from scratch:
 
@@ -48,6 +70,18 @@ python -u artifacts/scripts/train_marl_pytorch.py     --config artifacts/configs
 python -u artifacts/scripts/run_reference_experiment.py --config artifacts/configs/heads_mod_only.json
 python -u artifacts/scripts/summarize_results.py       --config artifacts/configs/heads_mod_only.json
 ```
+
+## The comparison protocol for the neighbourhood block
+
+The main protocol withholds the neighbourhood block from LR-Trust and
+MLP-Trust, because both are per-node aggregators by construction: handing
+them a neighbourhood-relative feature would turn the comparison into a
+statement about input width rather than about architecture. The switch
+`fairness.learned_baselines_get_spatial_block` reverses that on purpose for
+the fusion-mechanism ablation, where the point is to hold the feature vector
+fixed and vary only how the blocks are combined. `check_fusion_switch.py`
+verifies that the switch is a no-op for every other configuration, including
+the one that passes an adjacency in explicitly.
 
 ## A note on the auxiliary heads
 

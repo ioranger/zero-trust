@@ -1,0 +1,105 @@
+========================================================================================================
+MODALITY COMPLEMENTARITY -- real trained models, per-attack-class detection rate (%)
+========================================================================================================
+
+--- MFA ---------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  88.8              87.6              83.3              76.5              21.2
+23d marginal+shape+spatial                    88.8              87.6              83.3              76.5              21.2
+
+
+--- FUBA --------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  90.1              88.8              84.2              77.1              20.7
+23d marginal+shape+spatial                    90.1              88.8              84.2              77.1              20.7
+
+
+--- GALTrust ----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  85.0              81.6              75.0              67.9              30.3
+23d marginal+shape+spatial                    85.0              81.6              75.0              67.9              30.3
+
+
+--- GDM-DTM -----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  90.2              88.9              84.2              77.1              20.7
+23d marginal+shape+spatial                    90.2              88.9              84.2              77.1              20.7
+
+
+--- AHP-Entropy -------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  85.4              82.7              77.2              68.9              28.9
+23d marginal+shape+spatial                    85.4              82.7              77.2              68.9              28.9
+
+
+--- LR-Trust ----------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  55.7              87.1              21.5               7.1              92.6
+23d marginal+shape+spatial                    57.1              89.4              86.3               6.2              93.4
+
+
+--- MLP-Trust ---------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  89.0              95.8              78.5               4.3              95.5
+23d marginal+shape+spatial                    89.1              95.6              92.5               4.2              96.2
+
+
+--- S-TIM -------------------------------------------------------------------------------------
+arm                                       constant           dormant            on-offposition-inconsistent            benign
+--------------------------------------------------------------------------------------------------------
+13d marginal                                  90.8              95.6              79.1               5.1              95.1
+23d marginal+shape+spatial                    87.2              93.4              91.7              83.6              96.1
+
+========================================================================================================
+PAIRED COMPARISON: 23d marginal+shape+spatial   MINUS   13d marginal
+same seeds, same configuration except the block under test
+========================================================================================================
+method                 attack class    delta pp         t           p         d     n
+--------------------------------------------------------------------------------------------------------
+MFA                        constant         0.0      0.00      1.0000      0.00    20
+MFA                         dormant         0.0      0.00      1.0000      0.00    20
+MFA                          on-off         0.0      0.00      1.0000      0.00    20
+MFA           position-inconsistent         0.0      0.00      1.0000      0.00    20
+MFA                          benign         0.0      0.00      1.0000      0.00    20
+FUBA                       constant         0.0      0.00      1.0000      0.00    20
+FUBA                        dormant         0.0      0.00      1.0000      0.00    20
+FUBA                         on-off         0.0      0.00      1.0000      0.00    20
+FUBA          position-inconsistent         0.0      0.00      1.0000      0.00    20
+FUBA                         benign         0.0      0.00      1.0000      0.00    20
+GALTrust                   constant         0.0      0.00      1.0000      0.00    20
+GALTrust                    dormant         0.0      0.00      1.0000      0.00    20
+GALTrust                     on-off         0.0      0.00      1.0000      0.00    20
+GALTrust      position-inconsistent         0.0      0.00      1.0000      0.00    20
+GALTrust                     benign         0.0      0.00      1.0000      0.00    20
+GDM-DTM                    constant         0.0      0.00      1.0000      0.00    20
+GDM-DTM                     dormant         0.0      0.00      1.0000      0.00    20
+GDM-DTM                      on-off         0.0      0.00      1.0000      0.00    20
+GDM-DTM       position-inconsistent         0.0      0.00      1.0000      0.00    20
+GDM-DTM                      benign         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                constant         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                 dormant         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                  on-off         0.0      0.00      1.0000      0.00    20
+AHP-Entropy   position-inconsistent         0.0      0.00      1.0000      0.00    20
+AHP-Entropy                  benign         0.0      0.00      1.0000      0.00    20
+LR-Trust                   constant         1.4      0.95      0.3530      0.21    20
+LR-Trust                    dormant         2.4      2.76      0.0124      0.62    20
+LR-Trust                     on-off        64.8     46.82      0.0000     10.47    20
+LR-Trust      position-inconsistent        -0.9     -1.66      0.1137     -0.37    20
+LR-Trust                     benign         0.9      3.18      0.0050      0.71    20
+MLP-Trust                  constant         0.1      0.08      0.9388      0.02    20
+MLP-Trust                   dormant        -0.3     -0.51      0.6142     -0.11    20
+MLP-Trust                    on-off        14.0     12.52      0.0000      2.80    20
+MLP-Trust     position-inconsistent        -0.1     -0.20      0.8409     -0.05    20
+MLP-Trust                    benign         0.7      4.29      0.0004      0.96    20
+S-TIM                      constant        -3.6     -4.02      0.0007     -0.90    20
+S-TIM                       dormant        -2.2     -3.61      0.0019     -0.81    20
+S-TIM                        on-off        12.6      9.68      0.0000      2.16    20
+S-TIM         position-inconsistent        78.5     52.24      0.0000     11.68    20
+S-TIM                        benign         1.0      4.07      0.0007      0.91    20

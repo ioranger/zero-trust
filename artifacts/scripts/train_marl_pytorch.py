@@ -15,6 +15,7 @@ from marl_policy import (
     RiskOnlyNet,
     TrustPolicyNet,
     action_targets,
+    baseline_feature_view,
     extract_marl_policy_features,
     heuristic_weight_targets,
     modality_targets,
@@ -121,8 +122,16 @@ def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]
             # The baselines are per-node aggregators by construction. They must
             # never be handed the neighbourhood block, or the comparison stops
             # being about architecture and starts being about input width.
-            x_plain, names_plain = extract_marl_policy_features(
-                config, streams, default_agents)
+            #
+            # The fusion-mechanism ablation reverses that on purpose: it feeds
+            # the identical feature vector to the linear head, the MLP head and
+            # the multi-head policy, so any difference between them comes from
+            # how the blocks are combined and not from what was available. The
+            # switch is off unless the config asks for it.
+            x_plain, names_plain = baseline_feature_view(
+                config, streams, default_agents,
+                seed=int(seed), n_uavs=default_n, malicious_ratio=float(ratio),
+                spatial_adjacency=adj)
             rows.append(x)
             rows_plain.append(x_plain)
             labels.append(malicious.astype(np.float32))
