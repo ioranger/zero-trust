@@ -236,6 +236,30 @@ for fact in (
 
 print()
 print("=" * 74)
+print("6. on-off-aware trust management literature is cited")
+print("=" * 74)
+# The manuscript's contribution is the representation, not on-off awareness.
+# Leaving the on-off-aware trust literature uncited would misrepresent the
+# state of the art, so the coverage is enforced here.
+ONOFF_LIT = {
+    "chae2014onoff": "Chae et al. 2014, defending on-off attacks (TPDS)",
+    "mendoza2015onoff": "Mendoza & Kleinschmidt 2015, distributed mitigation",
+    "caminha2018onoff": "Caminha et al. 2018, smart middleware detector",
+    "salimitari2020prospect": "Salimitari et al. 2020, CWMA/EWMA fail under on-off",
+    "kannan2023onoff": "Kannan et al. 2023, intra-daily variability",
+    "ziauddin2026recfilter": "Ziauddin et al. 2026, sliding-window criticism",
+}
+for key, desc in ONOFF_LIT.items():
+    check(f"cited: {key}", f"\\cite{{{key}}}" in tex, desc)
+
+# Each of those entries must carry a Crossref-verified DOI.
+for doi in ("10.1109/TPDS.2014.2317719", "10.1155/2015/859731",
+            "10.1155/2018/6063456", "10.1145/3392058",
+            "10.11591/eei.v12i6.6110", "10.1007/s42979-026-05087-1"):
+    check(f"DOI present: {doi}", doi in tex)
+
+print()
+print("=" * 74)
 if failures:
     print(f"FAILED: {len(failures)} check(s)")
     for f in failures:

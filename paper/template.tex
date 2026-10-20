@@ -208,7 +208,7 @@ Overall, prior work has made strong progress in trust modeling, distributed audi
 
 (1) \textbf{Accurate trust assessment under high malicious-node ratios}: Fuzzy, profile-based, and group-decision mechanisms can lose discrimination when the malicious population substantially shifts local trust distributions, leading to poor mission continuity.
 
-(2) \textbf{Temporal and multi-factor evasion}: Dormant and on-off attackers can exploit historical trust accumulation, while multi-factor manipulation requires deciding which behavioral, communication, energy, task, and history evidence remains reliable at each update. The closest prior work on on-off behaviour flags the fragmentation of an already-computed trust trajectory, counting transitions between low and high trust periods \cite{kannan2023onoff}; such an index operates on the accumulated trust value and therefore inherits whatever the underlying aggregator has already smoothed away.
+(2) \textbf{Temporal and multi-factor evasion}: Dormant and on-off attackers can exploit historical trust accumulation, while multi-factor manipulation requires deciding which behavioral, communication, energy, task, and history evidence remains reliable at each update. This problem is not open. On-off-aware trust management is established, from the trust model that defends on-off attacks directly \cite{chae2014onoff} through its distributed variant \cite{mendoza2015onoff} and the smart-middleware detector \cite{caminha2018onoff}, to the demonstration that cumulative weighted and exponentially weighted moving averages do not work well under on-off attacks and the asymmetric weighting that repairs them \cite{salimitari2020prospect}, and to the recent trust model that criticises sliding-window aggregation for being unable to select an appropriate window length \cite{ziauddin2026recfilter}. What these mechanisms share is that they intervene on the aggregated trust value or on the aggregation that produces it: they re-weight it, re-window it, mitigate the damage it does, or index its fragmentation \cite{kannan2023onoff}, and an index applied after the fact inherits whatever the underlying aggregator has already smoothed away. The question asked here is upstream of all of them, and it is the one they leave open: whether the information an intermittent attacker destroys can be recovered at all from the summaries that a fixed-window aggregator is defined to produce. Our answer is that it cannot be recovered from those summaries, and that the recovery requires different statistics over each channel rather than a different weighting, a different window, or an index applied afterwards.
 
 (3) \textbf{Closing the trust-to-action loop}: A detector that outputs only a trust or risk score does not by itself decide how task allocation, incentives, or penalties should change; this is the specific gap exposed by the comparison with the strong risk-only MLP-Trust baseline.
 
@@ -1159,6 +1159,21 @@ Hu, Y.; Gan, Y.; Wu, H.; Wang, C.; Ma, M.; Xiong, C. GDM-DTM: A Group Decision-M
 Kumar, P.; Rayudu Tummala, V.M.; Roy, A. TOFU: Trust-Based Task Offloading in UAV-as-a-Service. {\em IEEE Trans. Veh. Technol.}, 2025, doi: \href{https://doi.org/10.1109/TVT.2025.3604589}{10.1109/TVT.2025.3604589}.
 \bibitem{kannan2023onoff}
 Kannan, S.; Venkataraman, R.; Ramachandran, G.S. On-Off Attack Detection in Trust Model Using Intra-Daily Variability for the IoT. {\em Bull. Electr. Eng. Inform.} {\bf 2023}, {\em 12}, doi: \href{https://doi.org/10.11591/eei.v12i6.6110}{10.11591/eei.v12i6.6110}.
+
+\bibitem{chae2014onoff}
+Chae, Y.; DiPippo, L.C.; Sun, Y.L. Trust Management for Defending On-Off Attacks. {\em IEEE Trans. Parallel Distrib. Syst.} {\bf 2014}, {\em 26}, 1178--1191, doi: \href{https://doi.org/10.1109/TPDS.2014.2317719}{10.1109/TPDS.2014.2317719}.
+
+\bibitem{mendoza2015onoff}
+Mendoza, C.V.L.; Kleinschmidt, J.H. Mitigating On-Off Attacks in the Internet of Things Using a Distributed Trust Management Scheme. {\em Int. J. Distrib. Sens. Netw.} {\bf 2015}, {\em 11}, 859731, doi: \href{https://doi.org/10.1155/2015/859731}{10.1155/2015/859731}.
+
+\bibitem{caminha2018onoff}
+Caminha, J.; Perkusich, A.; Perkusich, M. A Smart Trust Management Method to Detect On-Off Attacks in the Internet of Things. {\em Secur. Commun. Netw.} {\bf 2018}, {\em 2018}, 6063456, doi: \href{https://doi.org/10.1155/2018/6063456}{10.1155/2018/6063456}.
+
+\bibitem{salimitari2020prospect}
+Salimitari, M.; Bhattacharjee, S.; Chatterjee, M.; Fallah, Y.P. A Prospect Theoretic Approach for Trust Management in IoT Networks Under Manipulation Attacks. {\em ACM Trans. Sens. Netw.} {\bf 2020}, {\em 16}, 26, doi: \href{https://doi.org/10.1145/3392058}{10.1145/3392058}.
+
+\bibitem{ziauddin2026recfilter}
+Ziauddin, M.I.; Rabbi, R.R.; Mehrab, S.M.; Faiyaz, F.; Jahan, M. An Efficient Recommendation Filtering-Based Trust Model for Securing Internet of Things. {\em SN Comput. Sci.} {\bf 2026}, {\em 7}, 581, doi: \href{https://doi.org/10.1007/s42979-026-05087-1}{10.1007/s42979-026-05087-1}.
 
 \bibitem{wang2025continuous}
 Wang, X.; Yuan, Q.; Wang, Y.; Teng, J.; Tao, J.; Shen, M. Zero Trust-Driven Collaborative Intrusion Detection in Internet of Things: A Continuous Trust Assessment Approach. {\em IEEE Internet Comput.} {\bf 2025}, {\em 29}, 37--47.
