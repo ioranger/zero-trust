@@ -260,6 +260,195 @@ for doi in ("10.1109/TPDS.2014.2317719", "10.1155/2015/859731",
 
 print()
 print("=" * 74)
+print("7. the spatio-temporal tables")
+print("=" * 74)
+
+SPATIAL_ARMS = {
+    "spatial_position_13dim": "13 dims (marginal)",
+    "spatial_position_18dim": "18 dims (marginal $+$ shape)",
+    "spatial_position_23dim": "23 dims (marginal $+$ shape $+$ neighborhood)",
+    "spatial_position_fusion": "23 dims, same vector",
+}
+
+
+def strip_tex(s: str) -> str:
+    s = s.replace("\\textbf{", "").replace("\\emph{", "")
+    s = s.replace("$+$", "+").replace("$-$", "-")
+    s = s.replace("{", "").replace("}", "").replace("$", "")
+    s = s.replace("\\%", "%").replace("\\,", "").replace("~", " ")
+    return s.strip()
+
+
+def table_rows(label: str) -> list[list[str]]:
+    """Rows of the tabular inside the table whose label is `label`."""
+    m = re.search(r"\\label\{" + re.escape(label) + r"\}", tex)
+    if not m:
+        return []
+    start = tex.rfind("\\begin{table}", 0, m.start())
+    end = tex.find("\\end{table}", m.start())
+    block = tex[start:end]
+    body = block[block.find("\\begin{tabular}"):]
+    body = body[:body.find("\\end{tabular}")]
+    rows = []
+    for line in body.splitlines():
+        line = line.strip()
+        if "&" not in line or not line.endswith("\\\\"):
+            continue
+        cells = [strip_tex(c) for c in line[:-2].split("&")]
+        rows.append(cells)
+    return rows
+
+
+def mean_atk(run: str, method: str, atk: str):
+    d = load_atk(run)
+    if d is None:
+        return None
+    sub = d[(d["method"] == method) & (d["attack_type"] == atk)]
+    if not len(sub):
+        return None
+    return float(sub["detection_rate"].mean()) * 100
+
+
+def baseline_row(run: str, method: str):
+    f = RUNS / run / "tables" / "baseline_comparison.csv"
+    if not f.exists():
+        return None
+    d = pd.read_csv(f, encoding="utf-8-sig")
+    d = d.set_index("method")
+    if method not in d.index:
+        return None
+    out = {}
+    for col in ("accuracy", "f_score", "tsr"):
+        s = str(d.loc[method, col]).replace("\u00b1", "+-").replace("卤", "+-")
+        parts = s.split("+-")
+        out[col] = float(parts[0].strip())
+    return out
+
+
+# ---- tab:modality_ladder -------------------------------------------------
+LADDER_SPEC = [
+    ("S-TIM, 13 dims (marginal)", "spatial_position_13dim", "S-TIM"),
+    ("S-TIM, 18 dims (marginal + shape)", "spatial_position_18dim", "S-TIM"),
+    ("S-TIM, 23 dims (marginal + shape + neighborhood)",
+     "spatial_position_23dim", "S-TIM"),
+    ("LR-Trust, 18 dims (per-node)", "spatial_position_23dim", "LR-Trust"),
+    ("MLP-Trust, 18 dims (per-node)", "spatial_position_23dim", "MLP-Trust"),
+]
+LADDER_COLS = ["constant", "dormant", "on-off", "position-inconsistent", "benign"]
+
+rows = table_rows("tab:modality_ladder")
+check("tab:modality_ladder is present", bool(rows))
+if rows:
+    parsed = {r[0]: r[1:] for r in rows}
+    for label, run, method in LADDER_SPEC:
+        if label not in parsed:
+            check(f"modality ladder row present: {label}", False)
+            continue
+        cells = parsed[label]
+        for i, atk in enumerate(LADDER_COLS):
+            claimed = cells[i] if i < len(cells) else "--"
+            computed = mean_atk(run, method, atk)
+            if computed is None:
+                check(f"ladder {label} / {atk}", False, "no log")
+                continue
+            ok = abs(float(claimed) - computed) < 0.06
+            check(f"ladder {label} / {atk}", ok,
+                  f"tex={claimed} computed={computed:.1f}")
+
+# ---- tab:fusion_mechanism -------------------------------------------------
+FUSION_SPEC = [
+    ("LR-Trust (linear)", "18 dims, per-node",
+     "spatial_position_23dim", "LR-Trust"),
+    ("MLP-Trust (single MLP)", "18 dims, per-node",
+     "spatial_position_23dim", "MLP-Trust"),
+    ("LR-Trust (linear)", "23 dims, same vector",
+     "spatial_position_fusion", "LR-Trust"),
+    ("MLP-Trust (single MLP)", "23 dims, same vector",
+     "spatial_position_fusion", "MLP-Trust"),
+    ("S-TIM (multi-head)", "23 dims, same vector",
+     "spatial_position_fusion", "S-TIM"),
+]
+
+rows = table_rows("tab:fusion_mechanism")
+check("tab:fusion_mechanism is present", bool(rows))
+if rows:
+    parsed = {(r[0], r[1]): r[2:] for r in rows}
+    for learner, inp, run, method in FUSION_SPEC:
+        key = (learner, inp)
+        if key not in parsed:
+            check(f"fusion row present: {learner} / {inp}", False)
+            continue
+        cells = parsed[key]
+        pos = mean_atk(run, method, "position-inconsistent")
+        const = mean_atk(run, method, "constant")
+        base = baseline_row(run, method)
+        claimed_pos = cells[0] if len(cells) > 0 else "--"
+        claimed_const = cells[1] if len(cells) > 1 else "--"
+        if pos is not None:
+            check(f"fusion {learner} / {inp} / position-inconsistent",
+                  abs(float(claimed_pos) - pos) < 0.06,
+                  f"tex={claimed_pos} computed={pos:.1f}")
+        if const is not None:
+            check(f"fusion {learner} / {inp} / constant",
+                  abs(float(claimed_const) - const) < 0.06,
+                  f"tex={claimed_const} computed={const:.1f}")
+        if base is not None:
+            for i, col in enumerate(("accuracy", "f_score", "tsr")):
+                claimed = cells[2 + i] if len(cells) > 2 + i else "--"
+                check(f"fusion {learner} / {inp} / {col}",
+                      abs(float(claimed) - base[col]) < 0.06,
+                      f"tex={claimed} computed={base[col]:.1f}")
+
+print()
+print("=" * 74)
+print("8. position-aware trust and integrity literature is cited")
+print("=" * 74)
+# The spatial claim rests on the attacker class being real and studied, and on
+# the fact that the anchor-free alternative is what the present work extends.
+# Leaving this literature uncited would misrepresent the state of the art.
+POSITION_LIT = {
+    "vijay2025anchorfree": "Vijay et al. 2025, anchor-free range integrity monitoring",
+    "zhong2026byzantine": "Zhong et al. 2026, distributed GPS-spoofing detection in UAV networks",
+    "dang2022ensemble": "Dang et al. 2022, deep-ensemble GPS spoofing detection",
+    "fang2025trustworthy": "Fang, Han, Schotten 2025, cooperative-localization security",
+    "zhao2026gnssreview": "Zhao et al. 2026, multi-source-fusion spoofing detection review",
+    "tariq2026beidou": "Tariq & Ahamed Ahanger 2026, BeiDou spoofing in decentralized swarms",
+    "keshavarz2020trustmonitor": "Keshavarz et al. 2020, UAV trust monitoring framework",
+}
+for key, desc in POSITION_LIT.items():
+    check(f"cited: {key}", f"\\cite{{{key}}}" in tex, desc)
+for doi in ("10.1109/lra.2025.3534068", "10.1016/j.ress.2025.112101",
+            "10.1109/jiot.2022.3195320", "10.1109/tvt.2025.3555490",
+            "10.3390/electronics15153326", "10.7717/peerj-cs.3875",
+            "10.1109/infocomwkshps50562.2020.9162761"):
+    check(f"DOI present: {doi}", doi in tex)
+
+print()
+print("=" * 74)
+print("9. the spatio-temporal headline numbers appear in the prose")
+print("=" * 74)
+for fact, why in (
+    ("83.6", "the forger detection rate with the neighborhood block"),
+    ("2.1", "the forger detection rate without it"),
+    ("6.2", "LR-Trust on the forger"),
+    ("4.2", "MLP-Trust on the forger"),
+    ("$+81.5$~pp", "the paired spatial gain"),
+    ("81.5", "the paired spatial gain, plain form"),
+    ("1.99", "the largest neighborhood effect size"),
+    ("0.04", "the largest behavioural effect size"),
+    ("84.5", "MLP-Trust on the forger with the same vector"),
+    ("60.8", "LR-Trust on the forger with the same vector"),
+    ("$-6.3$~pp", "the linear head's interference cost"),
+    ("8.7~pp", "the shape block's cost on constant attackers"),
+    ("3.6~pp", "the net cost on constant attackers"),
+    ("2.2~pp", "the net cost on dormant attackers"),
+    ("46.7\\%", "the rule baselines' best F1 in the spatial scenario"),
+    ("46.2\\%", "the trivial classifier's F1"),
+):
+    check(f"prose states {fact}", fact in tex, why)
+
+print()
+print("=" * 74)
 if failures:
     print(f"FAILED: {len(failures)} check(s)")
     for f in failures:

@@ -39,9 +39,14 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `diagnose_forger_visibility.py` | Per-feature effect sizes of the telemetry-replay attacker against the benign population. |
 | `diagnose_clipping_artifact.py` | Isolates the clipping artefact that turned a zero-mean field into a non-zero mean shift. |
 | `verify_citations_crossref.py` | Checks every citation's metadata against the Crossref record. |
+| `crossref_lookup_titles.py` | Finds DOIs and metadata for candidate references by querying Crossref by title. |
 | `compile_check.py` | Byte-compiles the scripts so a syntax error cannot reach a background arm. |
 | `inspect_attack_type_log.py` | Shows the seed, method and attack-type structure of a per-seed attack log, including its duplicate rows. |
 | `diff_devtree_vs_gitwork.py` | Lists the files that differ between the development tree and the git worktree. |
+| `patch_text.py` | Applies exact-text replacements to a file and refuses to write if a match is missing or ambiguous. |
+| `latex_warnings.py` | Reports the LaTeX warnings that matter: undefined references, overfull and underfull boxes, errors. |
+| `extract_search_results.py` | Reassembles a chunked search artifact and prints its result list. |
+| `pdf_find_page.py` | Finds the page on which a phrase appears in the built PDF. |
 
 ## `runs/`
 

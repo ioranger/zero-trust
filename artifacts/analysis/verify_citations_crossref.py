@@ -19,6 +19,14 @@ DOIS = [
     "10.1145/3392058",                # Salimitari et al. 2020
     "10.11591/eei.v12i6.6110",        # Kannan et al. 2023
     "10.1007/s42979-026-05087-1",      # Ziauddin et al. 2026
+    # Position-aware trust and integrity monitoring in UAV swarms.
+    "10.1109/lra.2025.3534068",       # Vijay et al. 2025, anchor-free integrity monitoring
+    "10.1016/j.ress.2025.112101",     # Zhong et al. 2026, distributed GPS-spoofing detection
+    "10.1109/jiot.2022.3195320",      # Dang et al. 2022, deep ensemble GPS-spoofing detection
+    "10.1109/tvt.2025.3555490",       # Fang, Han, Schotten 2025, cooperative-localization security
+    "10.3390/electronics15153326",    # Zhao, Fu, Li 2026, GNSS spoofing detection review
+    "10.7717/peerj-cs.3875",          # Tariq & Ahamed Ahanger 2026, BeiDou spoofing in swarms
+    "10.1109/infocomwkshps50562.2020.9162761",  # Keshavarz et al. 2020, UAV trust monitoring
 ]
 
 print(f"{'DOI':<34}{'type':<9}{'year':<6}{'container':<44}title")
