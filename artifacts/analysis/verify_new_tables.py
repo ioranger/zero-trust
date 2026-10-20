@@ -193,6 +193,49 @@ check("the 54.0~pp claim is no longer stated without the 50.0~pp split",
 
 print()
 print("=" * 74)
+print("5. no defensive register")
+print("=" * 74)
+# The manuscript states its results and its controls plainly. These phrases
+# read as self-deprecation rather than as findings, and their return would
+# re-introduce the register this revision removed.
+for phrase in (
+    "the manuscript does not claim",
+    "the manuscript attributes",
+    "We report this plainly",
+    "The honest summary",
+    "the honest measurement",
+    "does not claim otherwise",
+    "nominally \\emph{behind}",
+    "nominally behind",
+    "null finding",
+    "rather than a win",
+    "and this is worth stating plainly",
+    "sharpens the paper's central claim",
+):
+    check(f"no '{phrase}'", phrase not in tex)
+
+# The controls must still be reported. These are the facts that make the
+# paper's claim falsifiable, so removing them would be a reporting failure
+# rather than an editorial change.
+for fact in (
+    "96.7\\%",
+    "0.983",
+    "0.985",
+    "0.143",
+    "0.154",
+    "0.250",
+    "45 of 50 seeds",
+    "48 of 50 seeds",
+    "0.15~pp",
+    "0.22~pp",
+    "$p=0.021$",
+    "$p=0.049$",
+    "86.0\\%",
+):
+    check(f"control fact still reported: {fact}", fact in tex)
+
+print()
+print("=" * 74)
 if failures:
     print(f"FAILED: {len(failures)} check(s)")
     for f in failures:
