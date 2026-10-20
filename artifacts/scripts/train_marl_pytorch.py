@@ -18,6 +18,7 @@ from marl_policy import (
     extract_marl_policy_features,
     heuristic_weight_targets,
     modality_targets,
+    resolve_spatial_adjacency,
 )
 from reference_simulator import load_config, simulate_trust_stream
 
@@ -92,6 +93,7 @@ def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]
     risk label.
     """
     rows = []
+    rows_plain = []
     labels = []
     modalities = []
     row_seeds = []
@@ -113,16 +115,26 @@ def build_dataset(config) -> Tuple[np.ndarray, np.ndarray, np.ndarray, list[str]
                 streams = domain_augment(
                     streams, malicious,
                     np.random.default_rng(int(seed) * 31 + int(ratio * 100)))
-            x, names = extract_marl_policy_features(config, streams, default_agents)
+            adj = resolve_spatial_adjacency(config, int(seed), default_n, float(ratio))
+            x, names = extract_marl_policy_features(
+                config, streams, default_agents, spatial_adjacency=adj)
+            # The baselines are per-node aggregators by construction. They must
+            # never be handed the neighbourhood block, or the comparison stops
+            # being about architecture and starts being about input width.
+            x_plain, names_plain = extract_marl_policy_features(
+                config, streams, default_agents)
             rows.append(x)
+            rows_plain.append(x_plain)
             labels.append(malicious.astype(np.float32))
             modalities.append(modality_targets(attack_types))
             row_seeds.append(np.full(default_n, int(seed), dtype=np.int64))
     return (np.vstack(rows).astype(np.float32),
+            np.vstack(rows_plain).astype(np.float32),
             np.concatenate(labels).astype(np.float32),
             np.concatenate(modalities),
             np.concatenate(row_seeds),
-            names)
+            names,
+            names_plain)
 
 
 def metric_row(epoch: int, loss: float, y_true: np.ndarray, risk: np.ndarray, threshold: float) -> dict:
@@ -165,15 +177,30 @@ def main() -> None:
     seed = int(config.raw.get("base_seed", 0))
     np.random.seed(seed)
     torch.manual_seed(seed)
-    x, y, modality_y, row_seeds, feature_names = build_dataset(config)
+    (x, x_plain, y, modality_y, row_seeds,
+     feature_names, baseline_feature_names) = build_dataset(config)
     mean = x.mean(axis=0)
     std = x.std(axis=0) + 1e-6
     xs = (x - mean) / std
+    # Separate normalisation for the per-node baselines.
+    mean_plain = x_plain.mean(axis=0)
+    std_plain = x_plain.std(axis=0) + 1e-6
     risk_hint = xs[:, [0, 2, 4, 5, 10]].mean(axis=1)
     risk_hint = 1.0 / (1.0 + np.exp(-risk_hint))
     weight_y = heuristic_weight_targets(x, feature_names).astype(np.float32)
     action_y = action_targets(y.astype(np.int64), risk_hint).astype(np.int64)
     modality_weight = float(config.raw["marl_training"].get("modality_loss_weight", 0.30))
+    # Auxiliary-head loss weights. Exposed as configuration so that a control
+    # arm can keep the identical TrustPolicyNet encoder and input while
+    # switching the auxiliary supervision off, isolating what the multi-head
+    # structure itself contributes. The defaults reproduce the previous
+    # hard-coded 0.25 / 0.20 / 0.10 exactly.
+    weight_loss_weight = float(
+        config.raw["marl_training"].get("weight_loss_weight", 0.25))
+    action_loss_weight = float(
+        config.raw["marl_training"].get("action_loss_weight", 0.20))
+    value_loss_weight = float(
+        config.raw["marl_training"].get("value_loss_weight", 0.10))
 
     epochs = int(args.epochs or config.raw["marl_training"]["epochs"])
     batch_size = int(args.batch_size or config.raw["marl_training"]["batch_size"])
@@ -252,9 +279,9 @@ def main() -> None:
             # represent shape rather than level.
             loss_modality = ce(out["modality_q"], batch_m)
             loss = (loss_risk
-                    + 0.25 * loss_weight
-                    + 0.20 * loss_action
-                    + 0.10 * loss_value
+                    + weight_loss_weight * loss_weight
+                    + action_loss_weight * loss_action
+                    + value_loss_weight * loss_value
                     + modality_weight * loss_modality)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -294,10 +321,25 @@ def main() -> None:
         final_risk = torch.sigmoid(final["risk_logit"]).cpu().numpy()
         final_weights = final["trust_weights"].cpu().numpy()
         final_actions = final["incentive_q"].argmax(dim=-1).cpu().numpy()
+        final_modality = final["modality_q"].argmax(dim=-1).cpu().numpy()
     fit_row = metric_row(best_epoch, float("nan"),
                          y[fit_idx], final_risk[fit_idx], threshold)
     val_row = metric_row(best_epoch, float("nan"),
                          y[val_idx], final_risk[val_idx], threshold)
+
+    # Did the auxiliary heads actually learn anything? A head whose loss weight
+    # is zero receives no gradient and stays at its initialisation, so its
+    # accuracy collapses to chance. Reporting the accuracy makes "the head
+    # participates" a checkable claim instead of an assumption.
+    def _head_accuracy(pred, target, idx):
+        if len(idx) == 0:
+            return float("nan")
+        return float((pred[idx] == target[idx]).mean())
+
+    modality_val_acc = _head_accuracy(final_modality, modality_y, val_idx)
+    modality_chance = 1.0 / len(MODALITY_CLASSES)
+    print(f"modality head validation accuracy: {modality_val_acc:.4f} "
+          f"(chance {modality_chance:.4f}, loss weight {modality_weight})")
 
     checkpoint_rel = Path("artifacts/outputs/checkpoints/stim_marl_policy.pt")
     checkpoint_abs = config.root / checkpoint_rel
@@ -344,9 +386,18 @@ def main() -> None:
         "incentive_action_distribution": {
             str(action - 2): int((final_actions == action).sum()) for action in range(5)
         },
+        "auxiliary_loss_weights": {
+            "risk": 1.0,
+            "trust_weights": weight_loss_weight,
+            "incentive_action": action_loss_weight,
+            "value": value_loss_weight,
+            "modality": modality_weight,
+        },
         "modality_supervision": {
-            "enabled": True,
+            "enabled": modality_weight > 0.0,
             "loss_weight": modality_weight,
+            "validation_accuracy": modality_val_acc,
+            "chance_accuracy": modality_chance,
             "classes": list(MODALITY_CLASSES),
             "train_distribution": {
                 str(MODALITY_CLASSES[i]): int((modality_y == i).sum())
@@ -356,9 +407,10 @@ def main() -> None:
     }
     (logs / "marl_policy.json").write_text(json.dumps(policy, indent=2))
     learned_baselines = train_learned_baselines(
-        xs=xs,
+        xs=(x_plain - mean_plain) / std_plain,
+        raw_mean=mean_plain,
+        raw_std=std_plain,
         y=y,
-        feature_names=feature_names,
         config=config,
         logs=logs,
         checkpoints=checkpoints,
@@ -368,6 +420,7 @@ def main() -> None:
         fit_idx=fit_idx,
         val_idx=val_idx,
         val_seeds=val_seeds,
+        feature_names=baseline_feature_names,
     )
     (logs / "learned_baselines.json").write_text(json.dumps(learned_baselines, indent=2))
     print(f"Wrote MARL policy checkpoint to {checkpoint_abs}")
@@ -377,6 +430,8 @@ def main() -> None:
 
 def train_learned_baselines(
     xs: np.ndarray,
+    raw_mean: np.ndarray,
+    raw_std: np.ndarray,
     y: np.ndarray,
     feature_names: list[str],
     config,
@@ -488,6 +543,18 @@ def train_learned_baselines(
             "model_type": model_type,
             "checkpoint_path": str(checkpoint_rel),
             "input_dim": int(xs.shape[1]),
+            # Stored per baseline on purpose. method_predictions standardises
+            # with learned[method]["mean"]; a document-level copy would be
+            # missed and the proposed model's own statistics would be applied
+            # to a comparator that never saw the neighbourhood block.
+            #
+            # These must be the statistics of the RAW features, not of `xs`.
+            # `xs` is already standardised by the caller, so `xs.mean()`/`xs.std()`
+            # are 0 and 1 by construction; storing those made inference feed
+            # unstandardised features to a model trained on standardised ones.
+            "mean": np.asarray(raw_mean, dtype=float).tolist(),
+            "std": np.asarray(raw_std, dtype=float).tolist(),
+            "feature_names": list(feature_names),
             "threshold": threshold,
             "selected_epoch": best_epoch,
             "validation_risk_loss": best_val,

@@ -43,11 +43,20 @@ _SHAPE_ACF_MIN_LAG = 3
 _SHAPE_ACF_MAX_LAG = 120
 
 
-def _shape_acf(z: np.ndarray, lag: int) -> float:
-    denom = float(np.dot(z, z))
-    if denom <= 0.0:
-        return 0.0
-    return float(np.dot(z[:-lag], z[lag:]) / denom)
+def _shape_acf_batch(x: np.ndarray, max_lag: int) -> np.ndarray:
+    """Autocorrelation of every row of x, computed together.
+
+    x is (n_series, n_steps). Returns (n_series, max_lag + 1) with lag 0 at
+    column 0. An FFT convolution replaces the direct per-lag dot products; the
+    two agree to ~1e-13, which is summation order rather than a difference in
+    what is measured.
+    """
+    n_steps = x.shape[1]
+    nfft = 1 << (2 * n_steps - 1).bit_length()
+    z = x - x.mean(axis=1, keepdims=True)
+    spec = np.fft.rfft(z, n=nfft, axis=1)
+    acov = np.fft.irfft(spec * np.conjugate(spec), n=nfft, axis=1)[:, :n_steps]
+    return acov / np.maximum(acov[:, :1], 1e-300)
 
 
 def shape_features(x: np.ndarray) -> np.ndarray:
@@ -57,10 +66,10 @@ def shape_features(x: np.ndarray) -> np.ndarray:
     if n < _SHAPE_ACF_MAX_LAG + 2:
         return np.zeros(len(SHAPE_FEATURE_NAMES))
 
-    z = x - x.mean()
-    a1 = _shape_acf(z, 1)
+    acf = _shape_acf_batch(x[None, :], _SHAPE_ACF_MAX_LAG)[0]
+    a1 = acf[1]
     lags = range(_SHAPE_ACF_MIN_LAG, min(_SHAPE_ACF_MAX_LAG, n - 1))
-    excess = np.array([_shape_acf(z, l) - a1 for l in lags])
+    excess = acf[list(lags)] - a1
 
     s = np.sign(np.diff(x))
     flips = s[1:] * s[:-1] < 0
@@ -107,11 +116,46 @@ def shape_features_enabled(config: Config) -> bool:
     return bool(config.raw.get("marl_training", {}).get("shape_features", False))
 
 
+SPATIAL_FEATURE_NAMES: list[str] = [
+    "spatial_dev_T1",
+    "spatial_dev_T4",
+    "spatial_gap_dev",
+    "spatial_rel_dev",
+    "spatial_std_dev",
+]
+
+
+def spatial_features_enabled(config: Config) -> bool:
+    return bool((config.raw.get("spatial") or {}).get("features", False))
+
+
+def resolve_spatial_adjacency(config: Config, seed: int, n_uavs: int,
+                              malicious_ratio: float):
+    """Neighbourhood matrix for this seed, or None when spatial is off.
+
+    Returns None when the generator is disabled *or* when the feature block is
+    switched off. Both gates are required: `spatial.features=false` is meant to
+    be a true ablation of the neighbourhood block, with the generator otherwise
+    unchanged. Gating only on `enabled` made the ablation a byte-for-byte copy
+    of the full configuration, because the training path always received an
+    adjacency and S-TIM stayed at 23 features either way.
+    """
+    from reference_simulator import spatial_cfg, spatial_geometry
+    if not spatial_cfg(config):
+        return None
+    if not spatial_features_enabled(config):
+        return None
+    _, A, _, _, _ = spatial_geometry(config, int(seed), int(n_uavs),
+                                      float(malicious_ratio))
+    return A
+
+
 def extract_marl_policy_features(
     config: Config,
     streams: np.ndarray,
     n_agents: int,
     use_shape: bool | None = None,
+    spatial_adjacency=None,
 ) -> Tuple[np.ndarray, list[str]]:
     """Return per-node S-TIM features.
 
@@ -126,8 +170,16 @@ def extract_marl_policy_features(
     if use_shape is None:
         use_shape = shape_features_enabled(config)
     base = extract_policy_features(config, streams)
-    features = np.hstack([base, extract_shape_features(config, streams)]) \
-        if use_shape else base
+    blocks = []
+    extras = []
+    if use_shape:
+        blocks.append(extract_shape_features(config, streams))
+        extras.extend(SHAPE_FEATURE_NAMES)
+    if spatial_adjacency is not None:
+        from reference_simulator import extract_spatial_features
+        blocks.append(extract_spatial_features(config, streams, spatial_adjacency))
+        extras.extend(SPATIAL_FEATURE_NAMES)
+    features = np.hstack([base] + blocks) if blocks else base
     names = [
         "1-T1_recent",
         "1-T2_recent",
@@ -142,7 +194,7 @@ def extract_marl_policy_features(
         "T1_T4_positive_slope",
         "directed_T2T3_minus_T1T4_gap",
         "directed_low_quantile_gap",
-        *(SHAPE_FEATURE_NAMES if use_shape else MARL_EXTRA_FEATURES),
+        *(extras if extras else MARL_EXTRA_FEATURES),
     ]
     return features, names
 

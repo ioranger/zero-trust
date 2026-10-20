@@ -1,0 +1,28 @@
+Three-way spatial comparison
+============================================================
+
+published 18-dim table reproduces cell-for-cell from git HEAD (ad6ef5d); verified by compare_paper_table.py (24/24).
+
+     method  published_18dim_acc  published_18dim_f1  published_18dim_tsr  spatial_on_23dim_acc  spatial_on_23dim_f1  spatial_on_23dim_tsr  spatial_off_18dim_acc  spatial_off_18dim_f1  spatial_off_18dim_tsr
+        MFA                 84.8                74.0                 80.5                  62.0                 46.3                  76.8                   62.0                  46.3                   76.8
+       FUBA                 87.2                79.7                 82.2                  60.2                 46.3                  76.8                   60.2                  46.3                   76.8
+   GALTrust                 75.5                39.3                 75.4                  62.8                 40.4                  74.6                   62.8                  40.4                   74.6
+    GDM-DTM                 87.6                80.4                 82.2                  60.1                 46.2                  77.4                   60.1                  46.2                   77.4
+AHP-Entropy                 77.6                46.7                 76.8                  64.5                 42.2                  76.4                   64.5                  42.2                   76.4
+   LR-Trust                 95.9                93.9                 89.8                  87.3                 78.1                  87.2                   87.3                  78.1                   87.3
+  MLP-Trust                 97.5                96.2                 90.4                  94.8                 91.4                  89.9                   94.7                  91.4                   90.2
+      S-TIM                 97.1                95.7                 90.4                  95.7                 92.8                  90.1                   94.7                  91.4                   89.9
+
+Attribution of the spatial block (same generator, same 50 seeds):
+  Accuracy  S-TIM ON=95.7  OFF=94.7  block effect=+1.00pp
+  F1        S-TIM ON=92.8  OFF=91.4  block effect=+1.40pp
+  TSR       S-TIM ON=90.1  OFF=89.9  block effect=+0.20pp
+
+Paired tests (S-TIM minus MLP-Trust, 50 seeds):
+  with spatial block: acc +0.80pp p<1e-5, f1 +1.17pp p<1e-5, tsr -0.11pp p=0.51
+  without spatial block: acc -0.04pp p=0.51, f1 -0.06pp p=0.57, tsr -0.05pp p=0.72
+
+Caveat: the rule-based baselines sit near 60% in both spatial arms
+because their fixed thresholds were calibrated on the i.i.d. generator
+and the spatial field shifts the stream. Those margins are not a valid
+comparison and must not be reported as a method advantage.

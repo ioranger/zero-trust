@@ -1,0 +1,100 @@
+================================================================================
+AUXILIARY-HEAD STUDY
+Does making every S-TIM head participate improve detection?
+
+Four arms, all on configs/default.json (18-dim input, N=15, 60 train seeds,
+180 epochs, 50 evaluation seeds). The only difference between arms is which
+auxiliary loss terms are active. Encoder, input width, optimiser and the
+early-stopping rule are identical in all four.
+
+  published  : value 0.10, trust-weight 0.25, action 0.20, modality 0.00
+  control    : all four auxiliary loss weights 0
+  mod_only   : modality 0.30, the other three 0
+  full       : the published three plus modality 0.30
+
+Note on the published configuration: it is NOT "all auxiliary heads off".
+value / trust-weight / incentive-action have always been on. Only the modality
+head was off, and it was off in every config in the repository.
+
+================================================================================
+
+====================================================================================================
+1. MAIN TABLE PER ARM   (mean over 50 evaluation seeds)
+====================================================================================================
+arm                          S-TIM acc   MLP acc   S-TIM F1   MLP F1   S-TIM TSR   MLP TSR
+----------------------------------------------------------------------------------------------------
+published (value/weight/action ON, modality OFF)        97.1      97.5       95.7     96.2        90.4      90.4
+control (ALL four aux OFF)        97.5      97.5       96.1     96.2        90.2      90.4
+modality head ON only             97.1      97.5       95.6     96.2        90.2      90.4
+all four aux ON                   97.1      97.5       95.6     96.2        90.2      90.4
+
+====================================================================================================
+2. ATTACK-TYPE DETECTION RATE (%) per arm
+====================================================================================================
+arm                         S-TIM const  S-TIM dorm  S-TIM on-off   MLP on-off
+----------------------------------------------------------------------------------------------------
+published (value/weight/action ON, modality OFF)         99.0        98.0          88.0         88.0
+control (ALL four aux OFF)         98.0        97.0          90.0         88.0
+modality head ON only              99.0        97.0          88.0         88.0
+all four aux ON                    98.0        99.0          86.0         88.0
+
+====================================================================================================
+3. DID THE AUXILIARY HEADS ACTUALLY LEARN?  (validation accuracy)
+====================================================================================================
+  published (value/weight/action ON, modality OFF) modality w=0.0    val_acc=0.1426  (chance 0.25)  aux weights={'trust_weights': 0.25, 'incentive_action': 0.2, 'value': 0.1, 'modality': 0.0}
+  control (ALL four aux OFF) modality w=0.0    val_acc=0.1537  (chance 0.25)  aux weights={'trust_weights': 0.0, 'incentive_action': 0.0, 'value': 0.0, 'modality': 0.0}
+  modality head ON only      modality w=0.3    val_acc=0.9833  (chance 0.25)  aux weights={'trust_weights': 0.0, 'incentive_action': 0.0, 'value': 0.0, 'modality': 0.3}
+  all four aux ON            modality w=0.3    val_acc=0.9852  (chance 0.25)  aux weights={'trust_weights': 0.25, 'incentive_action': 0.2, 'value': 0.1, 'modality': 0.3}
+
+====================================================================================================
+4. WITHIN-ARM PAIRED TEST  S-TIM minus MLP-Trust
+====================================================================================================
+  published (value/weight/action ON, modality OFF) acc -0.40pp (p=0.3173) | F1 -0.52pp (p=0.3634) | TSR -0.05pp (p=0.7156)
+  control (ALL four aux OFF) acc -0.00pp (p=1.0000) | F1 -0.04pp (p=0.9474) | TSR -0.19pp (p=0.1437)
+  modality head ON only      acc -0.40pp (p=0.3666) | F1 -0.59pp (p=0.3626) | TSR -0.22pp (p=0.0213)
+  all four aux ON            acc -0.40pp (p=0.4068) | F1 -0.59pp (p=0.4101) | TSR -0.19pp (p=0.0538)
+====================================================================================================
+5. CROSS-ARM PAIRED TESTS   S-TIM(arm) minus S-TIM(reference)
+   same 50 evaluation seeds, so this is a paired comparison
+====================================================================================================
+
+  published (value/weight/action on)  minus  control (all aux off)
+    acc   -0.40pp   p=0.2554   ties=43/50   sd=2.49
+    F1    -0.47pp   p=0.3648   ties=43/50   sd=3.67
+    TSR   +0.15pp   p=0.0708   ties=31/50   sd=0.57
+
+  modality only  minus  control (all aux off)
+    acc   -0.40pp   p=0.1761   ties=45/50   sd=2.09
+    F1    -0.54pp   p=0.2196   ties=45/50   sd=3.12
+    TSR   -0.03pp   p=0.7936   ties=32/50   sd=0.74
+
+  all four heads  minus  control (all aux off)
+    acc   -0.40pp   p=0.2554   ties=43/50   sd=2.49
+    F1    -0.55pp   p=0.3139   ties=43/50   sd=3.83
+    TSR   +0.00pp   p=1.0000   ties=35/50   sd=0.64
+
+  all four heads  minus  published (modality off)
+    acc   -0.00pp   p=1.0000   ties=42/50   sd=2.69
+    F1    -0.07pp   p=0.8928   ties=42/50   sd=3.92
+    TSR   -0.15pp   p=0.0492   ties=35/50   sd=0.52
+
+====================================================================================================
+6. EQUIVALENCE CHECK: published arm vs git HEAD table (24 cells)
+====================================================================================================
+  exact cell matches: 24/24
+train (720, 18)  test (180, 18)  classes ('benign', 'constant', 'dormant', 'on-off')
+test class balance: [120, 24, 24, 12]
+
+feature block                         modality acc   per-class recall
+--------------------------------------------------------------------------------------------
+13 marginal only                             96.7%   benign=0.98  constant=0.92  dormant=1.00  on-off=0.83
+5 shape only                                 78.9%   benign=0.94  constant=0.08  dormant=0.71  on-off=0.83
+18 marginal+shape (S-TIM input)              96.1%   benign=0.97  constant=0.96  dormant=0.96  on-off=0.83
+
+chance = 25.0%
+
+Interpretation
+--------------------------------------------------------------------------------------------
+  shape block alone reaches 78.9% modality accuracy.
+  -> The MODALITY label is recoverable from the MARGINAL features.
+  marginal block alone: 96.7%

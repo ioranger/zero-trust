@@ -103,7 +103,7 @@ def main() -> None:
                         )
 
                 for variant in ABLATIONS:
-                    metrics = evaluate_ablation(config, streams, malicious, variant, policy, seed, n_uavs, n_agents)
+                    metrics = evaluate_ablation(config, streams, malicious, variant, policy, seed, n_uavs, n_agents, malicious_ratio=ratio)
                     ablation_rows.append(
                         {
                             "seed": seed,

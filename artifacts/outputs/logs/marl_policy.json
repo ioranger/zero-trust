@@ -857,9 +857,18 @@
     "1": 1181,
     "2": 610
   },
+  "auxiliary_loss_weights": {
+    "risk": 1.0,
+    "trust_weights": 0.25,
+    "incentive_action": 0.2,
+    "value": 0.1,
+    "modality": 0.0
+  },
   "modality_supervision": {
-    "enabled": true,
+    "enabled": false,
     "loss_weight": 0.0,
+    "validation_accuracy": 0.1425925925925926,
+    "chance_accuracy": 0.25,
     "classes": [
       "benign",
       "constant",

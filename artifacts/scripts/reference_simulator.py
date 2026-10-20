@@ -120,7 +120,16 @@ def simulate_trust_stream(
     seed fixed therefore holds node assignment, camouflage, and observation
     noise fixed too, which makes a duty-cycle sweep a paired comparison in
     which only the phase length varies.
+
+    When the config enables the ``spatial`` block, generation is delegated to
+    :func:`simulate_trust_stream_spatial`, which adds a smooth channel-quality
+    field, attacker adaptation to local conditions, and clustered or uniform
+    attacker placement. The default path below is unchanged.
     """
+
+    if spatial_cfg(config):
+        return simulate_trust_stream_spatial(
+            config, seed, n_uavs, malicious_ratio, n_agents)
 
     rng = stable_rng(config, seed, n_uavs, malicious_ratio, n_agents)
     onoff_period = 90
@@ -153,41 +162,303 @@ def simulate_trust_stream(
         "on-off": np.array([0.56, 0.70, 0.70, 0.52]),
     }
 
-    for step in range(config.steps):
-        wave = 0.045 * np.sin(step / 23.0 + np.arange(n_uavs) * 0.9)[:, None] + 0.025 * math.cos(step / 47.0)
-        for node in range(n_uavs):
-            if not malicious[node]:
-                mean = benign_reference + node_bias[node] + wave[node]
-                if outage[step, node]:
-                    mean = mean - np.array([0.22, 0.26, 0.08, 0.17])
-            else:
-                attack_type = str(attack_types[node])
-                active = (
-                    attack_type == "constant"
-                    or (attack_type == "dormant" and step >= dormant_switch[node])
-                    or (
-                        attack_type == "on-off"
-                        and step >= config.warmup_steps
-                        and ((step - config.warmup_steps) % onoff_period) < onoff_active
-                    )
-                )
-                if not active:
-                    mean = np.array([0.79, 0.76, 0.72, 0.79]) + node_bias[node] * 0.45 + wave[node]
-                else:
-                    base = attack_profiles[attack_type]
-                    mean = (
-                        (1.0 - camouflage[node]) * base
-                        + camouflage[node] * evasive_reference
-                        + node_bias[node] * 0.25
-                        + wave[node]
-                    )
+    # Vectorised replacement for the former `for node in n_uavs` loop. The
+    # loop drew rng.normal(0, sigma, 4) once per (step, node); a single call of
+    # shape (steps, n_uavs, 4) consumes the identical sequence in C order, so
+    # this is bit-identical to the loop it replaces and invalidates no reported
+    # result. See artifacts/analysis/vectorisation_check.py.
+    noise = rng.normal(0.0, 0.10, (config.steps, n_uavs, 4))
 
-            values = np.clip(mean + rng.normal(0.0, 0.10, 4), 0.02, 0.98)
-            history[node] = 0.84 * history[node] + 0.16 * float(values.mean())
-            streams[step, node, :4] = values
-            streams[step, node, 4] = history[node]
+    is_constant = attack_types == "constant"
+    is_dormant = attack_types == "dormant"
+    is_onoff = attack_types == "on-off"
+    switch = np.array([dormant_switch.get(node, config.steps) for node in range(n_uavs)])
+    camo = camouflage[:, None]
+    # Per-node inactivity profile, shared by every step at which a node is not
+    # attacking: benign reference plus a damped node bias.
+    idle_mean = (np.array([0.79, 0.76, 0.72, 0.79])[None, :]
+                 + node_bias * 0.45)
+    benign_mean = benign_reference[None, :] + node_bias
+    outage_drop = np.array([0.22, 0.26, 0.08, 0.17])
+
+    for step in range(config.steps):
+        wave = (0.045 * np.sin(step / 23.0 + np.arange(n_uavs) * 0.9)[:, None]
+                + 0.025 * math.cos(step / 47.0))
+
+        base = np.where(malicious[:, None], idle_mean, benign_mean)
+        base = base + wave
+
+        # A constant attacker is active from step 0; the warm-up gate applies
+        # only to the on-off phase, and the dormant switch is already placed
+        # after warm-up. Gating the whole mask on warm-up would silently treat
+        # constant attackers as inactive during the first 100 steps.
+        active = is_constant.copy()
+        if step >= config.warmup_steps:
+            active |= is_dormant & (step >= switch)
+            active |= is_onoff & (((step - config.warmup_steps) // 45) % 2 == 0)
+        if active.any():
+            profile = np.zeros((n_uavs, 4))
+            for name, mask in (("constant", is_constant),
+                               ("dormant", is_dormant),
+                               ("on-off", is_onoff)):
+                if mask.any():
+                    profile[mask] = attack_profiles[name]
+            # `wave` must be added here rather than only to `base`: the
+            # np.where below replaces base wholesale for active attackers, so
+            # an attack_mean without it silently drops the wave term.
+            attack_mean = ((1.0 - camo) * profile
+                           + camo * evasive_reference[None, :]
+                           + node_bias * 0.25
+                           + wave)
+            base = np.where(active[:, None], attack_mean, base)
+
+        # Observation gaps apply to benign nodes only, matching the reference
+        # generator; an attacker's stream is not interrupted by a comms
+        # outage because its manipulation is not routed over the link it is
+        # attacking.
+        benign_only = ~malicious
+        base = base - (outage[step][:, None] * outage_drop) * benign_only[:, None]
+
+        values = np.clip(base + noise[step], 0.02, 0.98)
+        history = 0.84 * history + 0.16 * values.mean(axis=1)
+        streams[step, :, :4] = values
+        streams[step, :, 4] = history
 
     return streams, malicious, attack_types
+
+
+def spatial_topology(n_uavs: int, side_m: float, range_m: float, rng) -> tuple[np.ndarray, np.ndarray]:
+    """Sample node positions and build a row-normalised neighbour matrix.
+
+    Returns (positions, A) where A[i, j] is 1/|N(i)| when j is within range of i
+    and 0 otherwise. Isolated nodes get an all-zero row, which is the honest
+    representation: they have no neighbourhood and no spatial feature can be
+    computed for them.
+    """
+    pos = rng.uniform(0.0, side_m, size=(n_uavs, 2))
+    d = np.linalg.norm(pos[:, None, :] - pos[None, :, :], axis=-1)
+    adj = (d <= range_m).astype(float)
+    np.fill_diagonal(adj, 0.0)
+    deg = adj.sum(axis=1)
+    return pos, adj / np.maximum(deg, 1.0)[:, None]
+
+
+def spatial_field(n_uavs: int, side_m: float, range_m: float, grid: int,
+                  rng) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """A smooth channel-quality field plus each node's local value.
+
+    Real link quality varies smoothly across an airspace, so two UAVs within
+    communication range observe correlated conditions. Modelling that is what
+    gives a neighbourhood any information to offer. The field is a coarse
+    random grid bilinearly interpolated at node positions, which yields
+    spatially smooth values with no dependence on the node count.
+    """
+    grid_values = rng.normal(0.0, 1.0, size=(grid, grid))
+    pos, A = spatial_topology(n_uavs, side_m, range_m, rng)
+    cell = side_m / max(1, grid - 1)
+    fx = np.clip(pos[:, 0] / cell, 0, grid - 1 - 1e-9)
+    fy = np.clip(pos[:, 1] / cell, 0, grid - 1 - 1e-9)
+    x0, y0 = np.floor(fx).astype(int), np.floor(fy).astype(int)
+    x1, y1 = np.minimum(x0 + 1, grid - 1), np.minimum(y0 + 1, grid - 1)
+    tx, ty = fx - x0, fy - y0
+    v00 = grid_values[x0, y0]
+    v01 = grid_values[x0, y1]
+    v10 = grid_values[x1, y0]
+    v11 = grid_values[x1, y1]
+    value = ((1 - tx) * (1 - ty) * v00 + (1 - tx) * ty * v01
+             + tx * (1 - ty) * v10 + tx * ty * v11)
+    return value, A, pos
+
+
+def spatial_cfg(config: Config) -> dict | None:
+    """Return the spatial block when enabled, else None."""
+    block = (config.raw.get("spatial") or {})
+    return block if block.get("enabled") else None
+
+
+def spatial_geometry(config: Config, seed: int, n_uavs: int,
+                      malicious_ratio: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Deterministically replay spatial geometry for a given seed.
+
+    Returns (field, A, positions, malicious_idx, camouflage). Both the stream
+    generator and the feature extractor call this, so the neighbourhood a
+    feature is computed against is exactly the neighbourhood the stream was
+    generated with, with no side channel between them.
+    """
+    spatial = spatial_cfg(config) or {}
+    rng = stable_rng(config, seed, n_uavs, malicious_ratio, 0)
+    side = float(spatial.get("airspace_side_m", 10000.0))
+    rng_m = float(spatial.get("comm_range_m", 300.0))
+    grid = int(spatial.get("field_grid", 16))
+    placement = str(spatial.get("attacker_placement", "random"))
+
+    n_mal = malicious_count(n_uavs, malicious_ratio)
+    field, A, pos = spatial_field(n_uavs, side, rng_m, grid, rng)
+
+    if placement == "clustered" and n_mal > 1:
+        seed_node = int(rng.integers(n_uavs))
+        chosen = [seed_node]
+        dist = np.linalg.norm(pos[:, None, :] - pos[None, :, :], axis=-1)
+        dist[:, seed_node] = np.inf
+        while len(chosen) < n_mal:
+            frontier = np.min(dist[chosen], axis=0)
+            frontier[chosen] = np.inf
+            nxt = int(np.argmin(frontier))
+            if not np.isfinite(frontier[nxt]):
+                chosen.append(int(rng.integers(n_uavs)))
+                continue
+            chosen.append(nxt)
+        malicious_idx = np.array(chosen[:n_mal])
+    else:
+        malicious_idx = rng.choice(n_uavs, n_mal, replace=False)
+
+    camo = np.zeros(n_uavs)
+    if n_mal:
+        camo[malicious_idx] = rng.beta(2.7, 1.8, n_mal)
+    return field, A, pos, malicious_idx, camo
+
+
+def simulate_trust_stream_spatial(
+    config: Config,
+    seed: int,
+    n_uavs: int,
+    malicious_ratio: float,
+    n_agents: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Trust-stream generator with genuine spatial structure.
+
+    Three additions over the i.i.d. generator, each of which changes what a
+    per-node detector can and cannot see:
+
+    1. A smooth channel-quality field modulates T1 and T4, so nearby nodes
+       observe correlated conditions.
+    2. An attacker partially adopts its neighbours' field value, mimicking the
+       conditions legitimate neighbours already have. A lone attacker embedded
+       in a benign cluster therefore looks locally anomalous, while an
+       attacker whose neighbours share its conditions does not. That
+       distinction is invisible to any method that only sees one node.
+    3. Attacker placement is either uniform or clustered. Under clustering the
+       attackers are mutually reachable, which is the regime where a
+       neighbourhood signal exists at all.
+
+    The per-node arithmetic is otherwise identical to the i.i.d. path, so the
+    temporal findings carry over unchanged.
+    """
+    spatial = spatial_cfg(config) or {}
+    amp = float(spatial.get("field_amplitude", 0.06))
+    coupling = float(spatial.get("attacker_field_coupling", 0.7))
+
+    rng = stable_rng(config, seed, n_uavs, malicious_ratio, n_agents)
+    field, A, _pos, malicious_idx, camouflage = spatial_geometry(
+        config, seed, n_uavs, malicious_ratio)
+
+    n_mal = len(malicious_idx)
+    malicious = np.zeros(n_uavs, dtype=bool)
+    malicious[malicious_idx] = True
+    attack_types = np.array(["benign"] * n_uavs, dtype=object)
+    cycle = ["constant", "dormant", "on-off"]
+    for pos_i, node in enumerate(malicious_idx):
+        attack_types[node] = cycle[pos_i % len(cycle)]
+
+    dormant_switch = {int(node): config.warmup_steps + int(rng.integers(20, 70))
+                      for node in malicious_idx}
+
+    own_field = field.copy()
+    for node in malicious_idx:
+        row = A[int(node)]
+        if row.sum() > 0:
+            own_field[node] = ((1.0 - coupling) * field[node]
+                               + coupling * float(row @ field))
+
+    node_bias = rng.normal(0.0, 0.08, size=(n_uavs, 4))
+    outage = rng.random((config.steps, n_uavs)) < 0.03
+    history = np.full(n_uavs, 0.77) + rng.normal(0.0, 0.045, n_uavs)
+    noise = rng.normal(0.0, 0.10, (config.steps, n_uavs, 4))
+
+    benign_reference = np.array([0.80, 0.76, 0.72, 0.80])
+    evasive_reference = np.array([0.74, 0.73, 0.72, 0.75])
+    attack_profiles = {
+        "constant": np.array([0.36, 0.47, 0.69, 0.32]),
+        "dormant": np.array([0.53, 0.72, 0.70, 0.42]),
+        "on-off": np.array([0.56, 0.70, 0.70, 0.52]),
+    }
+
+    field_offset = np.zeros((n_uavs, 4))
+    field_offset[:, 0] = amp * own_field
+    field_offset[:, 3] = amp * own_field
+
+    is_constant = attack_types == "constant"
+    is_dormant = attack_types == "dormant"
+    is_onoff = attack_types == "on-off"
+    switch = np.array([dormant_switch.get(n, config.steps) for n in range(n_uavs)])
+    camo = camouflage[:, None]
+    idle_mean = np.array([0.79, 0.76, 0.72, 0.79])[None, :] + node_bias * 0.45
+    benign_mean = benign_reference[None, :] + node_bias
+    outage_drop = np.array([0.22, 0.26, 0.08, 0.17])
+    streams = np.zeros((config.steps, n_uavs, 5), dtype=float)
+
+    for step in range(config.steps):
+        wave = (0.045 * np.sin(step / 23.0 + np.arange(n_uavs) * 0.9)[:, None]
+                + 0.025 * math.cos(step / 47.0))
+        base = np.where(malicious[:, None], idle_mean, benign_mean) + wave
+        base = base + field_offset
+
+        active = is_constant.copy()
+        if step >= config.warmup_steps:
+            active |= is_dormant & (step >= switch)
+            active |= is_onoff & (((step - config.warmup_steps) // 45) % 2 == 0)
+        if active.any():
+            profile = np.zeros((n_uavs, 4))
+            for name, mask in (("constant", is_constant),
+                               ("dormant", is_dormant),
+                               ("on-off", is_onoff)):
+                if mask.any():
+                    profile[mask] = attack_profiles[name]
+            attack_mean = ((1.0 - camo) * profile
+                           + camo * evasive_reference[None, :]
+                           + node_bias * 0.25
+                           + wave
+                           + field_offset)
+            base = np.where(active[:, None], attack_mean, base)
+
+        base = base - (outage[step][:, None] * outage_drop) * (~malicious)[:, None]
+        values = np.clip(base + noise[step], 0.02, 0.98)
+        history = 0.84 * history + 0.16 * values.mean(axis=1)
+        streams[step, :, :4] = values
+        streams[step, :, 4] = history
+
+    return streams, malicious, attack_types
+
+
+def extract_spatial_features(config: Config, streams: np.ndarray, A: np.ndarray) -> np.ndarray:
+    """Neighbourhood-relative statistics: how a node compares to its neighbours.
+
+    These are the features no per-node baseline can form. They are deviations
+    from the neighbourhood mean rather than absolute levels, so a node whose
+    absolute trust is unremarkable but locally inconsistent still registers.
+    """
+    post = streams[config.warmup_steps:]
+    recent = streams[-120:].mean(axis=0)
+    nb_mean = A @ recent
+    nb_T1 = A @ recent[:, 0]
+    nb_T4 = A @ recent[:, 3]
+    isolated = A.sum(axis=1) <= 0
+
+    dev_T1 = recent[:, 0] - nb_T1
+    dev_T4 = recent[:, 3] - nb_T4
+    gap_T1T4 = (recent[:, 0] - recent[:, 3])
+    nb_gap = A @ gap_T1T4
+    std = post.std(axis=0)
+    nb_std_T1 = A @ std[:, 0]
+    # Is the node's own deviation larger than what its neighbours show?
+    nb_dev_mag = np.abs(A @ dev_T1)
+    rel_dev = np.abs(dev_T1) - nb_dev_mag
+
+    feats = np.column_stack([
+        dev_T1, dev_T4, gap_T1T4 - nb_gap, rel_dev, std[:, 0] - nb_std_T1,
+    ])
+    feats[isolated] = 0.0     # no neighbourhood means no spatial evidence
+    return feats
 
 
 def extract_policy_features(config: Config, streams: np.ndarray) -> np.ndarray:
@@ -232,6 +503,8 @@ def stim_scores(
     policy: Dict[str, object],
     n_agents: int | None = None,
     disabled_feature_names: Iterable[str] | None = None,
+    seed: int | None = None,
+    malicious_ratio: float | None = None,
 ) -> np.ndarray:
     if policy.get("policy_type") in {"pytorch_parameterized_action", "pytorch_supervised_multihead"}:
         from marl_policy import SHAPE_FEATURE_NAMES, extract_marl_policy_features, load_torch_policy
@@ -239,13 +512,21 @@ def stim_scores(
         # Infer the feature width from the checkpoint itself. A model trained
         # with the temporal-shape block must be scored with the same block,
         # even when the caller passes a config whose flag is off.
+        from marl_policy import (SHAPE_FEATURE_NAMES, SPATIAL_FEATURE_NAMES,
+                                  resolve_spatial_adjacency)
         names = list(policy.get("feature_names") or [])
         use_shape = any(n in SHAPE_FEATURE_NAMES for n in names) if names else None
+        adj = None
+        if any(n in SPATIAL_FEATURE_NAMES for n in names):
+            adj = resolve_spatial_adjacency(
+                config, seed=int(seed or 0), n_uavs=streams.shape[1],
+                malicious_ratio=float(malicious_ratio or 0.30))
         x, _ = extract_marl_policy_features(
             config,
             streams,
             int(n_agents or config.raw["network"]["default_thinker_agents"]),
             use_shape=use_shape,
+            spatial_adjacency=adj,
         )
         mean = np.array(policy["mean"], dtype=float)
         std = np.array(policy["std"], dtype=float)
@@ -337,8 +618,15 @@ def method_predictions(
         if method not in learned:
             raise ValueError(f"Learned baseline metadata for {method} is missing. Run train_marl_pytorch.py.")
         x, _ = extract_marl_policy_features(config, streams, n_agents)
-        mean = np.array(policy["mean"], dtype=float)
-        std = np.array(policy["std"], dtype=float)
+        # Each learned baseline carries its own feature width and
+        # normalisation. Using S-TIM's statistics here would silently impose
+        # the proposed model's input on a comparator that never saw it.
+        mean = np.array(learned[method].get("mean", policy["mean"]), dtype=float)
+        std = np.array(learned[method].get("std", policy["std"]), dtype=float)
+        if mean.shape[0] != x.shape[1]:
+            raise ValueError(
+                f"{method} expects {mean.shape[0]} features but the extractor "
+                f"produced {x.shape[1]}")
         xs = (x - mean) / std
         import torch
 
@@ -348,7 +636,9 @@ def method_predictions(
         prediction = risk > float(learned[method]["threshold"])
         score_for_tasks = 1.0 - risk
     elif method == "S-TIM":
-        risk = stim_scores(config, streams, policy, n_agents=n_agents)
+        risk = stim_scores(config, streams, policy, n_agents=n_agents,
+                           seed=int(seed),
+                           malicious_ratio=float(malicious_ratio))
         prediction = risk > float(policy["threshold"])
         score_for_tasks = 1.0 - risk
     else:
@@ -539,6 +829,7 @@ def ablation_prediction(
     policy: Dict[str, object],
     seed: int,
     n_uavs: int,
+    malicious_ratio: float | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     post = streams[config.warmup_steps :]
     recent = streams[-120:].mean(axis=0)
@@ -546,15 +837,26 @@ def ablation_prediction(
     consistency = np.max(np.abs(recent[:, :, None] - recent[:, None, :]), axis=(1, 2))
     rng = np.random.default_rng(int(config.raw["base_seed"]) + seed * 3221 + n_uavs * 23)
 
-    if variant == "S-TIM (full)":
-        risk = stim_scores(config, streams, policy)
-        prediction = risk > float(policy["threshold"])
-        score = 1.0 - risk
-    elif variant == "w/o Cross-factor Checking":
-        risk = stim_scores(
+    # A model carrying neighbourhood features needs the adjacency of the very
+    # seed it is scored on, otherwise it is handed a graph that was never used
+    # to generate the stream. For a model without those features this stays
+    # None and the call is bit-identical to before.
+    def _score(**kw):
+        return stim_scores(
             config,
             streams,
             policy,
+            seed=int(seed),
+            malicious_ratio=float(malicious_ratio if malicious_ratio is not None else 0.30),
+            **kw,
+        )
+
+    if variant == "S-TIM (full)":
+        risk = _score()
+        prediction = risk > float(policy["threshold"])
+        score = 1.0 - risk
+    elif variant == "w/o Cross-factor Checking":
+        risk = _score(
             n_agents=None,
             disabled_feature_names=["directed_T2T3_minus_T1T4_gap", "directed_low_quantile_gap"],
         )
@@ -574,7 +876,7 @@ def ablation_prediction(
         prediction = trust < 0.66
         score = trust
     elif variant == "w/o Incentive Mechanism":
-        risk = stim_scores(config, streams, policy) + rng.normal(0.0, 0.02, n_uavs)
+        risk = _score() + rng.normal(0.0, 0.02, n_uavs)
         prediction = risk > float(policy["threshold"])
         score = 1.0 - risk
     elif variant.startswith("T") and variant.endswith("Only"):
@@ -598,8 +900,11 @@ def evaluate_ablation(
     seed: int,
     n_uavs: int,
     n_agents: int,
+    malicious_ratio: float | None = None,
 ) -> Dict[str, float]:
-    prediction, score = ablation_prediction(config, streams, variant, policy, seed, n_uavs)
+    prediction, score = ablation_prediction(
+        config, streams, variant, policy, seed, n_uavs, malicious_ratio=malicious_ratio
+    )
     metrics = confusion_metrics(prediction, malicious)
     method = "S-TIM" if not variant.startswith("T") else "MFA"
     # Every variant's TSR is computed by the same task_success_rate rule, with
