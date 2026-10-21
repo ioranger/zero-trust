@@ -110,11 +110,26 @@ docker run --rm -v <repo>/artifacts/ns3:/scenario:ro -v <outdir>:/out \
 ```
 
 Docker Desktop's Linux engine needs WSL2, so this route needs the virtual
-machine platform to be loaded. On the machine this study was prepared on,
-`VirtualMachinePlatform` was enabled and the firmware had virtualisation on,
-but the platform driver was not loaded in the running boot, so the Docker
-engine could not start and WSL2 could not create a virtual machine. One
-Windows restart is what that needs.
+machine platform to be loaded. On the machine this study was prepared on, the
+blocker was more specific than a missing feature. `VirtualMachinePlatform` was
+enabled and the firmware had virtualisation on, and all four Hyper-V
+requirements were satisfied, but `bcdedit /enum {current}` reported
+`hypervisorlaunchtype Off`, so the hypervisor was never launched and every
+WSL2 request failed with `HCS/HCS_E_NOT_INSTALLED`. The hypervisor is loaded
+by the boot configuration rather than by a service, so no amount of starting
+or restarting `vmcompute` or `WslService` helps, and `wsl --set-version
+Ubuntu-20.04 1` fails for the same reason: the conversion itself is driven by
+the WSL service, which cannot start.
+
+The fix is one command and one restart:
+
+```
+bcdedit /set hypervisorlaunchtype auto
+```
+
+After that restart, `HypervisorPresent` becomes true, WSL2 starts, and both
+this route and route 2 work. `realdata/run_ns3_traces.ps1` checks for this
+and prints the command rather than failing obscurely.
 
 ### Route 2: ns-3 under WSL2
 
@@ -130,11 +145,11 @@ Same virtualisation requirement as route 1.
 ### Route 3: WSL1
 
 `wsl --set-version Ubuntu-20.04 1` converts the distribution to WSL1, which
-does not need the virtual machine platform and therefore does not need the
-restart. The build is slower because the file system goes through the
-syscall translation layer, and the distribution has to be converted back with
-`wsl --set-version Ubuntu-20.04 2` afterwards if the WSL2 backend is wanted
-for anything else.
+does not need the virtual machine platform. It fails on the machine this
+study was prepared on, for the reason above: the conversion is driven by the
+WSL service, which cannot start without the hypervisor. Once the hypervisor
+is loaded, route 2 is preferable anyway, because a full ns-3 build under
+WSL1's syscall translation layer is slow.
 
 ## What does not work, and why it is worth recording
 
