@@ -617,6 +617,19 @@ def stim_scores(
             adj = resolve_spatial_adjacency(
                 config, seed=int(seed or 0), n_uavs=streams.shape[1],
                 malicious_ratio=float(malicious_ratio or 0.30))
+            if adj is None:
+                # The checkpoint expects the neighbourhood block and the
+                # configuration in use cannot supply it, so the extractor
+                # would return fewer columns than the checkpoint's
+                # normalisation has. Say so, instead of letting the
+                # subtraction fail with a shape error that reads like a
+                # numerical problem.
+                raise ValueError(
+                    "the checkpoint was trained with the neighbourhood block "
+                    "but the configuration in use cannot supply it "
+                    "(spatial.enabled or spatial.features is off), so the "
+                    "feature width does not match the checkpoint's "
+                    "normalisation")
         x, _ = extract_marl_policy_features(
             config,
             streams,

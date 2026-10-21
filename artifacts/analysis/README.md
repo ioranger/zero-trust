@@ -33,6 +33,9 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `dataeff_table.py` | The data-efficiency control: the proposed model against its control at 12, 24 and 60 training seeds and three supervision variants. |
 | `dataeff_probe.py` | A fast probe of the same question, without the full training loop. |
 | `robustness_table.py` | Whether the spatial separation survives moving one parameter of the headline configuration. |
+| `trace_regime.py` | Whether a trace is a measurement the feature extractor can make at all, with the reasons it is not. |
+| `multitrace_validation.py` | Runs several traces through conversion, the regime gate and the evaluation harness, and aggregates only the ones that are valid measurements. |
+| `selftest_multitrace_harness.py` | Proves the multi-trace harness end to end without ns-3, and checks that the gate still rejects the short bundled trace. |
 | `saturation_sweep.py` | How camouflage strength affects separability and modality recoverability. |
 | `spatial_study_report.py` | Runs the whole spatio-temporal study in one pass and writes the two table files. |
 | `SPATIAL_STUDY.md` | The written study: what the spatial block buys, what it costs, and which generator artefacts had to be removed first. |
@@ -81,6 +84,23 @@ python -u artifacts/scripts/train_marl_pytorch.py     --config artifacts/configs
 python -u artifacts/scripts/run_reference_experiment.py --config artifacts/configs/heads_mod_only.json
 python -u artifacts/scripts/summarize_results.py       --config artifacts/configs/heads_mod_only.json
 ```
+
+## The packet-level trace path
+
+The bundled ns-3 trace holds 49 update steps, which is shorter than the
+feature extractor's minimum window, so the table it produced measured a harness
+mismatch rather than the detector. The path for a real multi-seed validation
+is in place and gated:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File '..\realdata\run_ns3_traces.ps1'
+```
+
+generates the traces with ns-3 (the official Docker image, or an ns-3
+checkout under WSL), converts them, checks each one against the feature
+extractor's operating regime, evaluates the survivors and aggregates them.
+`selftest_multitrace_harness.py` exercises that chain without ns-3, and
+`trace_regime.py` can be pointed at any converted trace to see the verdict.
 
 ## The comparison protocol for the neighbourhood block
 

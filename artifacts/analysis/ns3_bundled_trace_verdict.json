@@ -1,0 +1,17 @@
+{
+  "traces": [
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_packet_trace.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\ns3_packet_trace_streams.csv",
+      "n_steps": 49,
+      "post_warmup_steps": 40,
+      "valid": false,
+      "reasons": [
+        "only 40 post-warm-up steps; the shape block needs at least 122 and returns zeros below that",
+        "the early and late 100-step windows overlap by 160 steps, so the positive-slope column is identically zero",
+        "6 of 18 input columns are constant across every node, so the model receives one fixed input for them"
+      ]
+    }
+  ],
+  "evaluated": 0
+}
