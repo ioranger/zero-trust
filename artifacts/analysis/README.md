@@ -32,6 +32,7 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `spatial_main_table.py` | The published comparison over all eight methods, repeated in the scenario that can discriminate. |
 | `dataeff_table.py` | The data-efficiency control: the proposed model against its control at 12, 24 and 60 training seeds and three supervision variants. |
 | `dataeff_probe.py` | A fast probe of the same question, without the full training loop. |
+| `robustness_table.py` | Whether the spatial separation survives moving one parameter of the headline configuration. |
 | `saturation_sweep.py` | How camouflage strength affects separability and modality recoverability. |
 | `spatial_study_report.py` | Runs the whole spatio-temporal study in one pass and writes the two table files. |
 | `SPATIAL_STUDY.md` | The written study: what the spatial block buys, what it costs, and which generator artefacts had to be removed first. |

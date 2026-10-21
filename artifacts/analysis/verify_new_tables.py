@@ -487,6 +487,49 @@ if rows:
 
 print()
 print("=" * 74)
+print("7d. tab:spatial_robust")
+print("=" * 74)
+
+ROBUST_SPEC = [
+    ("headline", "spatial_position_23dim"),
+    ("field amplitude 0.30", "spatial_position_field030"),
+    ("field amplitude 0.60", "spatial_position_field060"),
+    ("position ratio 0.20", "spatial_position_ratio020"),
+    ("position ratio 0.50", "spatial_position_ratio050"),
+]
+RULE_METHODS = ["MFA", "FUBA", "GALTrust", "GDM-DTM", "AHP-Entropy"]
+
+rows = table_rows("tab:spatial_robust")
+check("tab:spatial_robust is present", bool(rows))
+if rows:
+    parsed = {r[0]: r[1:] for r in rows}
+    for label, arm in ROBUST_SPEC:
+        if label not in parsed:
+            check(f"robustness row present: {label}", False)
+            continue
+        cells = parsed[label]
+        base = baseline_row(arm, "S-TIM")
+        ctrl = baseline_row(arm, "MLP-Trust")
+        if base is None or ctrl is None:
+            check(f"robustness {label} / logs", False)
+            continue
+        want = [base["accuracy"], base["f_score"], ctrl["accuracy"],
+                ctrl["f_score"]]
+        for i, (col, value) in enumerate(zip(
+                ("S-TIM accuracy", "S-TIM f_score", "MLP accuracy",
+                 "MLP f_score"), want)):
+            claimed = cells[2 + i] if len(cells) > 2 + i else "--"
+            check(f"robustness {label} / {col}",
+                  abs(float(claimed) - value) < 0.06,
+                  f"tex={claimed} computed={value:.1f}")
+        rule_best = max(baseline_row(arm, m)["accuracy"] for m in RULE_METHODS)
+        claimed = cells[6] if len(cells) > 6 else "--"
+        check(f"robustness {label} / best rule accuracy",
+              abs(float(claimed) - rule_best) < 0.06,
+              f"tex={claimed} computed={rule_best:.1f}")
+
+print()
+print("=" * 74)
 print("8. position-aware trust and integrity literature is cited")
 print("=" * 74)
 # The spatial claim rests on the attacker class being real and studied, and on
@@ -543,6 +586,12 @@ for fact, why in (
     ("0.964", "the modality head accuracy at 24 training seeds"),
     ("$+0.1$~pp", "the largest data-efficiency difference"),
     ("90 node-level training rows", "the size of the smallest training set"),
+    ("$+4.5$~pp", "the smallest accuracy advantage in the robustness sweep"),
+    ("$+11.9$~pp", "the largest accuracy advantage in the robustness sweep"),
+    ("$+8.8$~pp", "the smallest F-score advantage in the robustness sweep"),
+    ("$+28.6$~pp", "the largest F-score advantage in the robustness sweep"),
+    ("72.9\\%", "the lowest forger detection rate in the robustness sweep"),
+    ("88.0\\%", "the highest forger detection rate in the robustness sweep"),
 ):
     check(f"prose states {fact}", fact in tex, why)
 

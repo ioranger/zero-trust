@@ -252,7 +252,30 @@ behind the +81.5 pp, and it is why the paper can say the spatial block is a
 distinct source of information rather than a re-description of the behavioural
 one.
 
-### 4.7 Where the proposed model does *not* have an advantage
+### 4.4 The separation is not one parameter point
+
+A headline result invites the question a reviewer asks first: does it hold
+outside the point it was measured at? Each arm of the sweep changes exactly
+one parameter of the headline configuration and leaves the generator, the
+attack mix, the seeds and the thresholds alone.
+
+| Configuration | field | ratio | S-TIM acc | S-TIM F1 | MLP acc | MLP F1 | best rule acc | S-TIM pos. | MLP pos. |
+|---|---|---|---|---|---|---|---|---|---|
+| headline | 0.45 | 0.34 | 93.8 | 89.4 | 86.0 | 72.8 | 44.0 | 83.6 | 4.2 |
+| field 0.30 | 0.30 | 0.34 | 92.9 | 88.0 | 86.9 | 74.2 | 40.6 | 72.9 | 2.6 |
+| field 0.60 | 0.60 | 0.34 | 92.4 | 87.4 | 84.9 | 69.3 | 45.8 | 87.2 | 3.2 |
+| ratio 0.20 | 0.45 | 0.20 | 94.5 | 90.8 | 90.0 | 82.0 | 44.6 | 80.4 | 4.0 |
+| ratio 0.50 | 0.45 | 0.50 | 93.7 | 89.3 | 81.8 | 60.7 | 43.4 | 88.0 | 3.0 |
+
+The advantage over the per-node learned control runs from +4.5 pp accuracy
+and +8.8 pp F-score at a position ratio of 0.20 to +11.9 pp and +28.6 pp at a
+ratio of 0.50, with the field amplitude varied over a factor of two on either
+side of the headline value. The forger detection rate stays between 72.9% and
+88.0% for the proposed model and between 2.6% and 4.0% for the per-node
+controls throughout. The separation is therefore a property of the
+representation, not of a parameter choice.
+
+### 4.5 Where the proposed model does *not* have an advantage
 
 The advantage above is a separation of representations. Against the
 feature-matched control, which consumes the identical 23-dimensional vector,

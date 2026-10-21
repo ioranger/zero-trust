@@ -994,6 +994,32 @@ Reproducible from \texttt{configs/spatial\_position.json}; the paired per-seed t
 
 Table~\ref{tab:spatial_main} repeats the comparison of Table~\ref{tab:baseline_comparison} over the same eight methods, in this scenario. It is the comparison that separates the methods, because the published scenario cannot: there every learned method reaches about 97\% because the generator's training split is perfectly separable, so the aggregate metric compresses the method classes and the proposed model lands inside the same band as its feature-matched control. Here S-TIM leads on every aggregate metric, and the paired per-seed differences against the two learned controls are $+7.7$~pp accuracy, $+16.7$~pp F-score and $+6.7$~pp TSR against MLP-Trust, and $+12.3$~pp, $+26.2$~pp and $+7.4$~pp against LR-Trust, all at $p<0.0001$. Against the strongest rule adapter the margins are $+54.0$~pp accuracy, $+43.9$~pp F-score and $+13.1$~pp TSR. The learned methods reach these numbers not by being better classifiers on the same evidence but by being able to use a kind of evidence the others cannot, and Table~\ref{tab:modality_ladder} locates that evidence.
 
+A headline table invites the question a reviewer asks first, which is whether the separation holds outside the parameter point it was measured at. Table~\ref{tab:spatial_robust} moves one parameter of the configuration at a time and changes nothing else. The separation is not a property of the chosen point: the accuracy advantage over MLP-Trust runs from $+4.5$~pp at a position ratio of 0.20 to $+11.9$~pp at a ratio of 0.50, and the F-score advantage from $+8.8$~pp to $+28.6$~pp, with the field amplitude varied over a factor of two on either side of the headline value. The detection rate on the position-inconsistent attackers stays between 72.9\% and 88.0\% for the proposed model and between 2.6\% and 4.0\% for the per-node controls throughout, so the neighbourhood block is doing the work at every point rather than at one.\begin{table}[!htbp]
+  \centering
+  \caption{Robustness of the spatial separation. Each row changes exactly one parameter of the headline spatial configuration and leaves the generator, the attack mix, the seeds and the thresholds alone, so a difference is attributable to that parameter. The per-node baselines never receive the neighbourhood block, in accordance with the main protocol.}
+  \label{tab:spatial_robust}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.15}
+  \resizebox{0.99\textwidth}{!}{%
+  \begin{tabular}{l c c c c c c c}
+    \toprule
+    Configuration & field amp. & position ratio & S-TIM accuracy & S-TIM F-score & MLP-Trust accuracy & MLP-Trust F-score & best rule accuracy \\
+    \midrule
+    headline & 0.45 & 0.34 & \textbf{93.8} & \textbf{89.4} & 86.0 & 72.8 & 44.0 \\
+    field amplitude 0.30 & 0.30 & 0.34 & 92.9 & 88.0 & 86.9 & 74.2 & 40.6 \\
+    field amplitude 0.60 & 0.60 & 0.34 & 92.4 & 87.4 & 84.9 & 69.3 & 45.8 \\
+    position ratio 0.20 & 0.45 & 0.20 & 94.5 & 90.8 & 90.0 & 82.0 & 44.6 \\
+    position ratio 0.50 & 0.45 & 0.50 & 93.7 & 89.3 & 81.8 & 60.7 & 43.4 \\
+    \bottomrule
+  \end{tabular}}
+\vspace{2pt}
+\raggedright\scriptsize
+Reproducible from \texttt{configs/spatial\_position\_field030.json}, \texttt{configs/spatial\_position\_field060.json}, \texttt{configs/spatial\_position\_ratio020.json} and \texttt{configs/spatial\_position\_ratio050.json}. The last column is the best of the five rule adapters, which is the strongest traditional comparator. All columns are means over the same 19 evaluation seeds.
+\end{table}
+
+
+
 Table~\ref{tab:modality_ladder} reports the result. The first three rows are the proposed model under three feature-block combinations that differ by a single configuration flag while sharing the generator, the attack mix, the seeds and the thresholds. The last two rows are the learned per-node baselines, which by protocol never receive the neighborhood block.
 
 \begin{table}[!htbp]
