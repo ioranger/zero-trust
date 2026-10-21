@@ -252,6 +252,47 @@ behind the +81.5 pp, and it is why the paper can say the spatial block is a
 distinct source of information rather than a re-description of the behavioural
 one.
 
+### 4.7 Where the proposed model does *not* have an advantage
+
+The advantage above is a separation of representations. Against the
+feature-matched control, which consumes the identical 23-dimensional vector,
+the two sit together: 93.8 against 93.7 accuracy, 89.4 against 89.5 F-score,
+88.9 against 88.9 TSR, with every paired difference inside the seed-level
+standard deviation.
+
+That equality was tested for a way out rather than assumed. The regime in
+which the encoder could matter is one in which the training set is too small
+for the risk head to learn which attack class it is looking at, since
+constant, dormant and on-off attackers all carry the same binary label, and
+the modality head is the only auxiliary target that is not a function of that
+label. The model was therefore trained with 12 and 24 training seeds instead
+of 60, at each size with three supervision variants:
+
+| Training seeds | Supervision | S-TIM | MLP-Trust | delta | modality head |
+|---|---|---|---|---|---|
+| 12 | modality head supervised | 96.0 | 96.0 | 0.0 | 0.967 |
+| 12 | all auxiliary losses off | 96.1 | 96.0 | +0.1 | 0.167 |
+| 12 | published configuration | 96.0 | 96.0 | 0.0 | 0.167 |
+| 24 | modality head supervised | 96.8 | 97.6 | -0.8 | 0.964 |
+| 24 | all auxiliary losses off | 96.9 | 97.6 | -0.7 | 0.124 |
+| 24 | published configuration | 97.1 | 97.6 | -0.5 | 0.067 |
+| 60 | modality head supervised | 97.1 | 97.5 | -0.4 | 0.983 |
+| 60 | all auxiliary losses off | 97.5 | 97.5 | 0.0 | 0.154 |
+| 60 | published configuration | 97.1 | 97.5 | -0.4 | 0.143 |
+
+The largest difference in the table is +0.1 pp, which is inside the noise, and
+the auxiliary supervision costs between 0.4 and 0.8 pp accuracy where it is
+active. The modality head is not the problem: it learns the four attack
+classes at 0.964-0.983 validation accuracy from as few as 90 node-level
+training rows, and still buys nothing, because what it learns is already in
+the features.
+
+The conclusion is therefore stated in the narrow form the evidence supports.
+The proposed model does not overtake a feature-matched control on identical
+features in any regime constructed here. What it does have is a representation
+that reaches classes the per-node aggregators cannot, and that is where every
+separation in this study comes from.
+
 ## 5. Reproducing
 
 ```powershell

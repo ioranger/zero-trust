@@ -101,6 +101,27 @@ def agents_for_n(n_uavs: int) -> int:
     return max(2, int(math.ceil(n_uavs / 3)))
 
 
+def camouflage_params(config: Config) -> tuple[float, float]:
+    """Beta parameters of the camouflage mixture.
+
+    A malicious node's attack profile is mixed with the benign reference by a
+    per-node camouflage factor drawn from a beta distribution. The default
+    reproduces the published generator exactly, so every existing
+    configuration is bit-identical.
+
+    Moving the two parameters towards each other pushes the mixture towards a
+    uniform camouflage factor, which flattens the attack profile towards the
+    benign reference. That is the difficulty knob used by the saturation
+    study: it removes the level separation the marginal summaries depend on
+    while leaving the shape of the attack intact, because the shape
+    statistics are scale-free.
+    """
+    block = config.raw.get("generator") or {}
+    a = float(block.get("camouflage_beta_a", 2.7))
+    b = float(block.get("camouflage_beta_b", 1.8))
+    return a, b
+
+
 def simulate_trust_stream(
     config: Config,
     seed: int,
@@ -147,7 +168,7 @@ def simulate_trust_stream(
     dormant_switch = {int(node): config.warmup_steps + int(rng.integers(20, 70)) for node in malicious_idx}
     camouflage = np.zeros(n_uavs)
     if n_mal:
-        camouflage[malicious] = rng.beta(2.7, 1.8, n_mal)
+        camouflage[malicious] = rng.beta(*camouflage_params(config), n_mal)
 
     node_bias = rng.normal(0.0, 0.08, size=(n_uavs, 4))
     outage = rng.random((config.steps, n_uavs)) < 0.03
@@ -330,7 +351,7 @@ def spatial_geometry(config: Config, seed: int, n_uavs: int,
 
     camo = np.zeros(n_uavs)
     if n_mal:
-        camo[malicious_idx] = rng.beta(2.7, 1.8, n_mal)
+        camo[malicious_idx] = rng.beta(*camouflage_params(config), n_mal)
 
     # A telemetry-forging attacker reports channels indistinguishable from the
     # benign population, but is placed where the RF field differs from what it

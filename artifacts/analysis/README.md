@@ -28,6 +28,11 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `trace_regime_check.py` | Why does the 49-step ns-3 trace degenerate six of the eighteen input columns? |
 | `position_attack_probe.py` | Is the spatial block complementary to the behaviour channels, or an addition to them? Per-attack-class probe detection for the marginal, shape and spatial blocks. |
 | `modality_complementarity.py` | The same question for the real trained models: per-attack-class detection per feature-block combination, with a paired test across seeds. |
+| `paired_method_comparison.py` | The proposed model against its feature-matched control inside each arm, paired over seeds. |
+| `spatial_main_table.py` | The published comparison over all eight methods, repeated in the scenario that can discriminate. |
+| `dataeff_table.py` | The data-efficiency control: the proposed model against its control at 12, 24 and 60 training seeds and three supervision variants. |
+| `dataeff_probe.py` | A fast probe of the same question, without the full training loop. |
+| `saturation_sweep.py` | How camouflage strength affects separability and modality recoverability. |
 | `spatial_study_report.py` | Runs the whole spatio-temporal study in one pass and writes the two table files. |
 | `SPATIAL_STUDY.md` | The written study: what the spatial block buys, what it costs, and which generator artefacts had to be removed first. |
 | `finalise_modality_study.py` | Builds the modality ladder and the fusion-mechanism ablation from the committed arm logs. |

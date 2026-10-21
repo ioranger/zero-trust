@@ -42,7 +42,7 @@ def load_atk(run):
         return None
     d = pd.read_csv(f)
     d = d.drop_duplicates(subset=["seed", "method", "attack_type"])
-    return d[d["malicious_ratio"].abs() - 0.30 < 1e-9]
+    return d[d["malicious_ratio"].round(6) == 0.30]
 
 
 def rng(d, methods, atk):
@@ -401,6 +401,92 @@ if rows:
 
 print()
 print("=" * 74)
+print("7b. tab:spatial_main")
+print("=" * 74)
+
+SPATIAL_MAIN_SPEC = [
+    ("MFA", "MFA"), ("FUBA", "FUBA"), ("GALTrust", "GALTrust"),
+    ("GDM-DTM", "GDM-DTM"), ("AHP-Entropy", "AHP-Entropy"),
+    ("LR-Trust", "LR-Trust"), ("MLP-Trust", "MLP-Trust"),
+    ("S-TIM (ours)", "S-TIM"),
+]
+SPATIAL_MAIN_ATK = ["constant", "dormant", "on-off", "position-inconsistent"]
+
+rows = table_rows("tab:spatial_main")
+check("tab:spatial_main is present", bool(rows))
+if rows:
+    parsed = {r[0]: r[1:] for r in rows}
+    for label, method in SPATIAL_MAIN_SPEC:
+        if label not in parsed:
+            check(f"spatial main row present: {label}", False)
+            continue
+        cells = parsed[label]
+        base = baseline_row("spatial_position_23dim", method)
+        if base is None:
+            check(f"spatial main {label} / baseline log", False)
+            continue
+        for i, col in enumerate(("accuracy", "f_score", "tsr")):
+            claimed = cells[i] if len(cells) > i else "--"
+            check(f"spatial main {label} / {col}",
+                  abs(float(claimed) - base[col]) < 0.06,
+                  f"tex={claimed} computed={base[col]:.1f}")
+        for j, atk in enumerate(SPATIAL_MAIN_ATK):
+            computed = mean_atk("spatial_position_23dim", method, atk)
+            if computed is None:
+                continue
+            claimed = cells[3 + j] if len(cells) > 3 + j else "--"
+            check(f"spatial main {label} / {atk}",
+                  abs(float(claimed) - computed) < 0.06,
+                  f"tex={claimed} computed={computed:.1f}")
+
+print()
+print("=" * 74)
+print("7c. tab:dataeff")
+print("=" * 74)
+
+DATAEFF_SPEC = [
+    (12, "modality head supervised (w=0.30)", "dataeff_k12_mod"),
+    (12, "all auxiliary losses off", "dataeff_k12_risk"),
+    (12, "published configuration", "dataeff_k12_pub"),
+    (24, "modality head supervised (w=0.30)", "dataeff_k24_mod"),
+    (24, "all auxiliary losses off", "dataeff_k24_risk"),
+    (24, "published configuration", "dataeff_k24_pub"),
+    (60, "modality head supervised (w=0.30)", "heads_mod_only"),
+    (60, "all auxiliary losses off", "heads_risk_only"),
+    (60, "published configuration", "paper_18dim_check"),
+]
+
+rows = table_rows("tab:dataeff")
+check("tab:dataeff is present", bool(rows))
+if rows:
+    parsed = {(r[0], r[1]): r[2:] for r in rows}
+    for k, label, arm in DATAEFF_SPEC:
+        key = (str(k), label)
+        if key not in parsed:
+            check(f"dataeff row present: {k} seeds / {label}", False)
+            continue
+        cells = parsed[key]
+        base = baseline_row(arm, "S-TIM")
+        ctrl = baseline_row(arm, "MLP-Trust")
+        if base is None or ctrl is None:
+            check(f"dataeff {k} / {label} / logs", False)
+            continue
+        for i, (col, src) in enumerate((("accuracy", base), ("f_score", base),
+                                        ("accuracy", ctrl))):
+            claimed = cells[i] if len(cells) > i else "--"
+            check(f"dataeff {k} seeds / {label} / {'S-TIM' if i < 2 else 'MLP'} {col}",
+                  abs(float(claimed) - src[col]) < 0.06,
+                  f"tex={claimed} computed={src[col]:.1f}")
+        pol = RUNS / arm / "logs" / "marl_policy.json"
+        if pol.exists() and len(cells) > 5:
+            p = json.loads(pol.read_text(encoding="utf-8"))
+            computed = p["modality_supervision"]["validation_accuracy"]
+            check(f"dataeff {k} seeds / {label} / modality head",
+                  abs(float(cells[5]) - computed) < 0.001,
+                  f"tex={cells[5]} computed={computed:.3f}")
+
+print()
+print("=" * 74)
 print("8. position-aware trust and integrity literature is cited")
 print("=" * 74)
 # The spatial claim rests on the attacker class being real and studied, and on
@@ -444,6 +530,19 @@ for fact, why in (
     ("2.2~pp", "the net cost on dormant attackers"),
     ("46.7\\%", "the rule baselines' best F1 in the spatial scenario"),
     ("46.2\\%", "the trivial classifier's F1"),
+    ("93.8", "S-TIM accuracy in the spatial scenario"),
+    ("89.4", "S-TIM F-score in the spatial scenario"),
+    ("88.9", "S-TIM TSR in the spatial scenario"),
+    ("$+7.7$~pp", "the paired accuracy gain over the learned control"),
+    ("$+16.7$~pp", "the paired F-score gain over the learned control"),
+    ("$+6.7$~pp", "the paired TSR gain over the learned control"),
+    ("$+12.3$~pp", "the paired accuracy gain over LR-Trust"),
+    ("$+26.2$~pp", "the paired F-score gain over LR-Trust"),
+    ("$+54.0$~pp", "the accuracy gain over the strongest rule adapter"),
+    ("0.967", "the modality head accuracy at 12 training seeds"),
+    ("0.964", "the modality head accuracy at 24 training seeds"),
+    ("$+0.1$~pp", "the largest data-efficiency difference"),
+    ("90 node-level training rows", "the size of the smallest training set"),
 ):
     check(f"prose states {fact}", fact in tex, why)
 
