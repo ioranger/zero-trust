@@ -101,6 +101,8 @@ checkout under WSL), converts them, checks each one against the feature
 extractor's operating regime, evaluates the survivors and aggregates them.
 `selftest_multitrace_harness.py` exercises that chain without ns-3, and
 `trace_regime.py` can be pointed at any converted trace to see the verdict.
+`artifacts/ns3/ENVIRONMENT.md` records what an ns-3 environment needs, what
+was tried, and the exact commands for each route.
 
 ## The comparison protocol for the neighbourhood block
 
