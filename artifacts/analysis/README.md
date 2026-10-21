@@ -34,6 +34,7 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `dataeff_probe.py` | A fast probe of the same question, without the full training loop. |
 | `robustness_table.py` | Whether the spatial separation survives moving one parameter of the headline configuration. |
 | `trace_regime.py` | Whether a trace is a measurement the feature extractor can make at all, with the reasons it is not. |
+| `syntax_check_scenario.py` | Compiles the ns-3 scenario for syntax and type checking against stand-in headers, so a rewrite is checked before ns-3 is built. |
 | `multitrace_validation.py` | Runs several traces through conversion, the regime gate and the evaluation harness, and aggregates only the ones that are valid measurements. |
 | `selftest_multitrace_harness.py` | Proves the multi-trace harness end to end without ns-3, and checks that the gate still rejects the short bundled trace. |
 | `saturation_sweep.py` | How camouflage strength affects separability and modality recoverability. |

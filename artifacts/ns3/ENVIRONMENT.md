@@ -45,6 +45,53 @@ validation meaningless rather than merely inaccurate.
    attributes were renamed to `Length`/`Width` at the same time. The scenario
    therefore compiles against both the old and the current API.
 
+   The packet counters are read from the MAC layer, through the paths ns-3's
+   own examples use, for instance `examples/wireless/wifi-ap.cc`:
+
+   ```
+   /NodeList/<node>/DeviceList/<device>/Mac/MacTx
+   /NodeList/<node>/DeviceList/<device>/Mac/MacRx
+   /NodeList/<node>/DeviceList/<device>/Mac/MacTxDrop
+   /NodeList/<node>/DeviceList/<device>/Mac/MacRxDrop
+   ```
+
+   `WifiMac` registers `MacTx` and `MacRx` as
+   `TracedCallback<Ptr<const Packet>>`, so the callback takes a single packet
+   argument and the node index is bound to it with
+   `MakeCallback(&MacTxCallback, i)`. These are MAC-layer counters: they
+   count every frame the node handed to the MAC and every frame the MAC
+   accepted, not only the frames of the node's own echo partner, and the
+   trace's header comment says so.
+
+   Two paths were tried and rejected before this one. `PacketCounter` was
+   removed from ns-3 master, only `PacketCounterCalculator` remains, and the
+   `TxList/$ns3::PacketCounter/MacTx` form the earlier revision used is not a
+   path any current ns-3 provides. `FlowMonitor` would give exact per-flow
+   loss, but its `FlowStats` carries no addresses, so the flow-to-node mapping
+   needs an `Ipv4FlowClassifier` in parallel with the statistics container,
+   which is more moving parts than the MAC counters need.
+
+## Checking the scenario without building ns-3
+
+`artifacts/analysis/syntax_check_scenario.py` compiles the scenario for
+syntax and type checking only, against the minimal stand-in headers in
+`artifacts/ns3/stubs/`. It cannot check the real ns-3 API, but it catches the
+mistakes a rewrite introduces: syntax errors, undeclared names, wrong argument
+counts, wrong types. It found three of them in the first version of the
+rewrite: a missing `<iostream>`, a use of `M_PI` that is not portable to a
+strict `-std=c++17` compiler, and a `Ptr<Node>` passed to a parameter declared
+as `Node`.
+
+```powershell
+python -u artifacts/analysis/syntax_check_scenario.py
+```
+
+The compiler it uses is the MinGW-w64 toolchain that ships with Vagrant
+(`C:\Program Files\Vagrant\embedded\mingw64\bin\g++.exe`), which needs its own
+`bin` directory on `PATH`; the script sets that itself. Visual Studio 2019
+would do as well, but the Windows SDK it needs is not installed on this
+machine.
+
 `artifacts/analysis/trace_regime.py` checks the result before any number is
 reported, and `artifacts/analysis/multitrace_validation.py` excludes the
 traces that fail the check and states how many of the traces were valid

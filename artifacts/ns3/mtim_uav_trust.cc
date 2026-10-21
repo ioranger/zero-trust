@@ -11,11 +11,12 @@
 // assumed:
 //
 //   * the packet counters are read from the MAC layer, so the T2 evidence is
-//     derived from packets that were really sent and really received. An
-//     earlier revision of this scenario left the counters at zero, which made
-//     the T2 channel constant and therefore made several input columns
+//     derived from packets that were really transmitted and really received.
+//     An earlier revision of this scenario left the counters at zero, which
+//     made the T2 channel constant and therefore made several input columns
 //     degenerate; the trace was then a measurement of nothing. The run aborts
 //     if no packet was counted.
+//
 //   * the mobility is driven by the scenario itself through
 //     MobilityModel::SetPosition, which every ns-3 release provides, rather
 //     than through RandomWaypointMobilityModel, whose attributes were renamed
@@ -23,7 +24,16 @@
 //     against both the old and the current API.
 //
 // The packet exchange itself is genuine ns-3: UDP echo over an ad-hoc
-// 802.11b network with the IPv4 stack installed.
+// 802.11b network with the IPv4 stack installed. The counters are MAC-layer
+// counters, so they count every frame the node handed to the MAC and every
+// frame the MAC accepted, not only the frames of the node's own echo
+// partner; they are the transport-level evidence the trust stream is built
+// on, and the trace says so.
+//
+// The trace source paths are the ones ns-3's own examples use, for instance
+// examples/wireless/wifi-ap.cc:
+//   /NodeList/<node>/DeviceList/<device>/Mac/MacTx
+//   /NodeList/<node>/DeviceList/<device>/Mac/MacRx
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -36,6 +46,7 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <numeric>
 #include <random>
 #include <set>
@@ -50,6 +61,7 @@ namespace
 {
 
 constexpr double SIDE = 10000.0;   // airspace side, metres
+constexpr double TWO_PI = 6.28318530717958647692;   // M_PI is not portable
 constexpr double STRIDE_BENIGN_MIN = 12.0;
 constexpr double STRIDE_BENIGN_MAX = 25.0;
 constexpr double STRIDE_ACTIVE_MIN = 40.0;
@@ -57,9 +69,9 @@ constexpr double STRIDE_ACTIVE_MAX = 90.0;
 
 struct NodeStats
 {
-    uint32_t tx{0};
-    uint32_t rx{0};
-    uint32_t dropped{0};
+    uint64_t tx{0};       // frames handed to the MAC for transmission
+    uint64_t rx{0};       // frames the MAC accepted and passed up
+    uint64_t dropped{0};  // frames the MAC dropped
     double pathDeviation{0.0};
     double energyRatio{1.0};
     uint32_t taskAssigned{0};
@@ -118,12 +130,12 @@ AttackActive(uint32_t nodeId, double now)
 /// than the benign population's. The positions written to the trace are the
 /// positions the node actually occupies.
 void
-Advance(Node node, uint32_t index, bool active)
+Advance(Ptr<Node> node, uint32_t index, bool active)
 {
     Ptr<MobilityModel> mobility = node->GetObject<MobilityModel>();
     Vector pos = mobility->GetPosition();
 
-    std::uniform_real_distribution<double> heading(0.0, 2.0 * M_PI);
+    std::uniform_real_distribution<double> heading(0.0, TWO_PI);
     std::uniform_real_distribution<double> stride(active ? STRIDE_ACTIVE_MIN
                                                         : STRIDE_BENIGN_MIN,
                                                    active ? STRIDE_ACTIVE_MAX
@@ -142,23 +154,33 @@ Advance(Node node, uint32_t index, bool active)
     g_stats[index].pathDeviation += step;
 }
 
-/// MAC-layer transmit counter.
 void
-MacTxCallback(uint32_t nodeId, uint32_t /*packetId*/, uint32_t txCount)
+MacTxCallback(Ptr<const Packet> packet, uint32_t nodeId)
 {
+    (void)packet;
     if (nodeId < g_stats.size())
     {
-        g_stats[nodeId].tx = txCount;
+        g_stats[nodeId].tx += 1;
     }
 }
 
-/// MAC-layer receive counter.
 void
-MacRxCallback(uint32_t nodeId, uint32_t /*packetId*/, uint32_t rxCount)
+MacRxCallback(Ptr<const Packet> packet, uint32_t nodeId)
 {
+    (void)packet;
     if (nodeId < g_stats.size())
     {
-        g_stats[nodeId].rx = rxCount;
+        g_stats[nodeId].rx += 1;
+    }
+}
+
+void
+MacDropCallback(Ptr<const Packet> packet, uint32_t nodeId)
+{
+    (void)packet;
+    if (nodeId < g_stats.size())
+    {
+        g_stats[nodeId].dropped += 1;
     }
 }
 
@@ -172,10 +194,6 @@ EmitTrace(NodeContainer nodes)
         Advance(nodes.Get(i), i, active);
 
         NodeStats &s = g_stats[i];
-        if (s.tx > s.rx)
-        {
-            s.dropped = s.tx - s.rx;
-        }
         if (active)
         {
             s.energyRatio = std::max(0.05, s.energyRatio - 0.0018 * g_interval);
@@ -299,12 +317,17 @@ main(int argc, char *argv[])
         apps.Stop(Seconds(g_endTime));
     }
 
-    // Real packet counters. The path is the standard net-device trace source
-    // for the MAC layer; the check after the run makes sure it fired.
-    Config::Connect("/NodeList/*/DeviceList/*/TxList/$ns3::PacketCounter/MacTx",
-                    MakeCallback(&MacTxCallback));
-    Config::Connect("/NodeList/*/DeviceList/*/RxList/$ns3::PacketCounter/MacRx",
-                    MakeCallback(&MacRxCallback));
+    // Real MAC-layer counters. The paths are the ones ns-3's own examples
+    // use, and the node index is bound to the callback so that each node's
+    // counters are attributed to it.
+    for (uint32_t i = 0; i < nUavs; ++i)
+    {
+        std::string base = "/NodeList/" + std::to_string(i) + "/DeviceList/0/Mac/";
+        Config::Connect(base + "MacTx", MakeCallback(&MacTxCallback, i));
+        Config::Connect(base + "MacRx", MakeCallback(&MacRxCallback, i));
+        Config::Connect(base + "MacTxDrop", MakeCallback(&MacDropCallback, i));
+        Config::Connect(base + "MacRxDrop", MakeCallback(&MacDropCallback, i));
+    }
 
     g_csv.open(csv);
     g_csv << "time_s,node_id,x_m,y_m,is_malicious,attack_type,attack_active,"
@@ -318,16 +341,19 @@ main(int argc, char *argv[])
 
     uint64_t totalTx = 0;
     uint64_t totalRx = 0;
+    uint64_t totalDropped = 0;
     for (const NodeStats &s : g_stats)
     {
         totalTx += s.tx;
         totalRx += s.rx;
+        totalDropped += s.dropped;
     }
-    std::cout << "packets counted: tx=" << totalTx << " rx=" << totalRx << std::endl;
-    if (totalTx == 0)
+    std::cout << "MAC frames counted: tx=" << totalTx << " rx=" << totalRx
+              << " dropped=" << totalDropped << std::endl;
+    if (totalTx == 0 || totalRx == 0)
     {
-        std::cerr << "no packet was counted at the MAC layer, so the T2 evidence "
-                     "would be constant and the trace would not be a measurement"
+        std::cerr << "no MAC frame was counted, so the T2 evidence would be "
+                     "constant and the trace would not be a measurement"
                   << std::endl;
         return 1;
     }
