@@ -55,6 +55,7 @@ class RegimeVerdict:
     shape_all_zero: bool = False
     valid: bool = False
     reasons: list = field(default_factory=list)
+    hard_reasons: list = field(default_factory=list)
 
     def summary(self) -> str:
         state = "VALID" if self.valid else "NOT A MEASUREMENT"
@@ -70,8 +71,10 @@ class RegimeVerdict:
         if self.degenerate_columns:
             lines.append(f"    {self.degenerate_columns}")
         lines.append(f"  shape block all-zero on every node: {self.shape_all_zero}")
-        for r in self.reasons:
+        for r in self.hard_reasons:
             lines.append(f"  - {r}")
+        for r in self.reasons:
+            lines.append(f"  . {r}")
         return "\n".join(lines)
 
 
@@ -86,13 +89,13 @@ def assess_trace(config, streams: np.ndarray, trace_name: str) -> RegimeVerdict:
 
     v.shape_available = v.post_warmup_steps >= _MIN_SHAPE_STEPS
     if not v.shape_available:
-        v.reasons.append(
+        v.hard_reasons.append(
             f"only {v.post_warmup_steps} post-warm-up steps; the shape block "
             f"needs at least {_MIN_SHAPE_STEPS} and returns zeros below that")
 
     v.window_overlap_steps = max(0, 2 * _WINDOW - v.post_warmup_steps)
     if v.window_overlap_steps > 0:
-        v.reasons.append(
+        v.hard_reasons.append(
             f"the early and late {_WINDOW}-step windows overlap by "
             f"{v.window_overlap_steps} steps, so the positive-slope column is "
             f"identically zero")
@@ -102,16 +105,21 @@ def assess_trace(config, streams: np.ndarray, trace_name: str) -> RegimeVerdict:
     v.degenerate_columns = [names[i] for i in range(xs.shape[1])
                             if per_col_range[i] < 1e-12]
     if v.degenerate_columns:
+        # A column that is constant across nodes carries no information in that
+        # column, but it does not invalidate the others. It is disclosed rather
+        # than used to drop the whole trace, because the geometry checks above
+        # are what make a trace meaningless, and those are hard failures.
         v.reasons.append(
             f"{len(v.degenerate_columns)} of {xs.shape[1]} input columns are "
             f"constant across every node, so the model receives one fixed "
-            f"input for them")
+            f"input for them: {v.degenerate_columns}")
 
     v.shape_all_zero = bool(np.all(extract_shape_features(tcfg, streams) == 0.0))
-    if v.shape_all_zero and v.shape_available:
-        v.reasons.append("the shape block is all-zero despite enough steps")
+    if v.shape_all_zero:
+        v.hard_reasons.append("the shape block is all-zero, so the temporal "
+                              "evidence is absent")
 
-    v.valid = not v.reasons
+    v.valid = not v.hard_reasons
     return v
 
 

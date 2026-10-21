@@ -1,0 +1,82 @@
+{
+  "traces": [
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_traces\\trace_seed2000.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2000_streams.csv",
+      "n_steps": 499,
+      "n_nodes": 40,
+      "post_warmup_steps": 400,
+      "degenerate_columns": [
+        "shape_switch_cv"
+      ],
+      "valid": true,
+      "hard_reasons": [],
+      "reasons": [
+        "1 of 18 input columns are constant across every node, so the model receives one fixed input for them: ['shape_switch_cv']"
+      ]
+    },
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_traces\\trace_seed2001.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2001_streams.csv",
+      "n_steps": 499,
+      "n_nodes": 40,
+      "post_warmup_steps": 400,
+      "degenerate_columns": [
+        "shape_switch_cv"
+      ],
+      "valid": true,
+      "hard_reasons": [],
+      "reasons": [
+        "1 of 18 input columns are constant across every node, so the model receives one fixed input for them: ['shape_switch_cv']"
+      ]
+    },
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_traces\\trace_seed2002.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2002_streams.csv",
+      "n_steps": 499,
+      "n_nodes": 40,
+      "post_warmup_steps": 400,
+      "degenerate_columns": [
+        "shape_switch_cv"
+      ],
+      "valid": true,
+      "hard_reasons": [],
+      "reasons": [
+        "1 of 18 input columns are constant across every node, so the model receives one fixed input for them: ['shape_switch_cv']"
+      ]
+    },
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_traces\\trace_seed2003.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2003_streams.csv",
+      "n_steps": 499,
+      "n_nodes": 40,
+      "post_warmup_steps": 400,
+      "degenerate_columns": [
+        "shape_switch_cv"
+      ],
+      "valid": true,
+      "hard_reasons": [],
+      "reasons": [
+        "1 of 18 input columns are constant across every node, so the model receives one fixed input for them: ['shape_switch_cv']"
+      ]
+    },
+    {
+      "trace": "artifacts\\outputs\\logs\\ns3_traces\\trace_seed2004.csv",
+      "converted": "F:\\zero trust\\zero-trust\\artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2004_streams.csv",
+      "n_steps": 499,
+      "n_nodes": 40,
+      "post_warmup_steps": 400,
+      "degenerate_columns": [
+        "shape_switch_cv"
+      ],
+      "valid": true,
+      "hard_reasons": [],
+      "reasons": [
+        "1 of 18 input columns are constant across every node, so the model receives one fixed input for them: ['shape_switch_cv']"
+      ]
+    }
+  ],
+  "evaluated": 5,
+  "valid_measurements": 5,
+  "note": "a trace excluded here was too short for the feature extractor's window, or its shape block was all-zero, so its numbers would measure a harness mismatch; a column that is constant across nodes is disclosed rather than used to drop the trace"
+}

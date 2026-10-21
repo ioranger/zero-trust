@@ -1,0 +1,9 @@
+trace,method,n_uavs,trace_steps,warmup_steps_used,malicious_ratio,mean_score_benign,mean_score_malicious,accuracy,precision,recall,f_score,tp,tn,fp,fn,auc,n_benign,detection_benign,n_constant,detection_constant,n_dormant,detection_dormant,n_on_off,detection_on_off
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,MFA,40,499,99,0.3,0.7502260723765025,0.45209035192021957,1.0,1.0,1.0,1.0,12,28,0,0,1.0,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,FUBA,40,499,99,0.3,0.7983793484580896,0.474226326071767,1.0,1.0,1.0,1.0,12,28,0,0,1.0,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,GALTrust,40,499,99,0.3,0.6794163797770872,0.3842813573293302,0.575,0.41379310344827586,1.0,0.5853658536585366,12,11,17,0,1.0,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,GDM-DTM,40,499,99,0.3,0.7945990584582564,0.4740960867362587,1.0,1.0,1.0,1.0,12,28,0,0,1.0,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,AHP-Entropy,40,499,99,0.3,0.7613699308736032,0.46011226973222,1.0,1.0,1.0,1.0,12,28,0,0,1.0,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,LR-Trust,40,499,99,0.3,8.514949456639442e-08,1.3212363228376489e-05,0.3,0.3,1.0,0.4615384615384615,12,0,28,0,0.7693452380952381,28,,3,1.0,6,1.0,3,1.0
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,MLP-Trust,40,499,99,0.3,0.9977487325668335,0.4544285237789154,0.875,1.0,0.5833333333333334,0.7368421052631579,7,28,0,5,1.0,28,,3,0.6666666666666666,6,0.6666666666666666,3,0.3333333333333333
+artifacts\outputs\logs\ns3_multitrace\trace_seed2001_streams.csv,S-TIM,40,499,99,0.3,0.964932918548584,0.3148902356624603,0.9,1.0,0.6666666666666666,0.8,8,28,0,4,1.0,28,,3,0.6666666666666666,6,0.6666666666666666,3,0.6666666666666666

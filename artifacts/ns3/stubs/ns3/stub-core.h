@@ -420,7 +420,17 @@ class Packet
 
 template <typename F, typename... Args>
 F
-MakeCallback(F f, Args...)
+MakeCallback(F f)
+{
+    return f;
+}
+
+// The bound-argument form, which ns-3 provides for free functions. ns-3
+// passes the bound arguments before the trace source's own arguments, so the
+// callback's first parameter is the bound one.
+template <typename F, typename... Args>
+F
+MakeBoundCallback(F f, Args...)
 {
     return f;
 }

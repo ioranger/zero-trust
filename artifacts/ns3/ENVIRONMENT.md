@@ -5,13 +5,53 @@ records what that environment requires, what was tried on the machine this
 study was prepared on, and the exact commands for each route, so the next
 attempt does not have to re-derive any of it.
 
+## The configuration the reported traces came from
+
+The five traces reported in the manuscript were produced by one specific
+build, and it is recorded here because the differences between it and the
+obvious defaults are the difference between a working build and a failing
+one.
+
+| | |
+|---|---|
+| simulator | ns-3 master, commit `bd2e108` |
+| compiler | `g++-12` (GCC 12.5.0), from the Ubuntu toolchain PPA |
+| cmake | 4.4.4, installed from PyPI into `/usr/local/bin` |
+| modules | `core,network,internet,mobility,applications,wifi,flow-monitor` |
+| profile | release |
+| scenario | `artifacts/ns3/mtim_uav_trust.cc`, 40 nodes, 30% malicious, 5000 s |
+
+Two of those rows are load-bearing.
+
+*The compiler.* The distribution ships GCC 9.4, which ns-3 master does not
+support, so the toolchain PPA is added and `g++-12` is installed. The PPA
+also carries `g++-13` and `g++-14`, and both compile the tree; the reported
+traces come from the `g++-12` build, and the `.comment` section of
+`build/lib/libns3-dev-wifi.so` in the build tree records
+`GCC: (Ubuntu 12.5.0-8ubuntu2~20~ppa3) 12.5.0`, which is how that claim can
+be checked rather than taken on trust.
+
+*The module set.* Configuring with the full module list and `--enable-examples`
+builds several thousand targets. The scenario needs the wifi, mobility,
+applications, internet and flow-monitor modules and nothing else, and
+restricting the set to those takes the build to a few hundred targets.
+The CMake cache in the build tree records the set that was used:
+
+```
+NS3_ENABLED_MODULES:STRING=core,network,internet,mobility,applications,wifi,flow-monitor
+```
+
+The `flow-monitor` module is listed although the scenario does not read it;
+it is part of the set that was configured, and it is left as it is rather
+than narrowed after the fact.
+
 ## What the validation needs
 
 The scenario already exposes everything the run needs, so no code change is
 required on the ns-3 side:
 
 ```
-./ns3 run "scratch/mtim_uav_trust --nUavs=15 --maliciousRatio=0.30 \
+./ns3 run "scratch/mtim_uav_trust --nUavs=40 --maliciousRatio=0.30 \
           --seed=2000 --duration=5000 --csv=/out/trace_seed2000.csv"
 ```
 
@@ -128,19 +168,31 @@ bcdedit /set hypervisorlaunchtype auto
 ```
 
 After that restart, `HypervisorPresent` becomes true, WSL2 starts, and both
-this route and route 2 work. `realdata/run_ns3_traces.ps1` checks for this
-and prints the command rather than failing obscurely.
+this route and route 2 work. `artifacts/ns3/run_ns3_traces.ps1` checks for
+this and prints the command rather than failing obscurely.
 
 ### Route 2: ns-3 under WSL2
 
 ```bash
-wsl -d Ubuntu-20.04 -- bash -c "sudo apt update && sudo apt install -y \
-    cmake ninja-build gcc g++ python3 pip git && pip3 install cffi"
-wsl -d Ubuntu-20.04 -- bash -c "git clone https://github.com/nsnam/ns-3-dev-git.git ~/ns-3 \
-    && cd ~/ns-3 && ./ns3 configure --enable-examples && ./ns3 build"
+# a compiler new enough for ns-3 master, and a current cmake
+add-apt-repository -y ppa:ubuntu-toolchain-r/test
+apt-get update -qq && apt-get install -y -qq gcc-12 g++-12 ninja-build \
+    python3 python3-pip git unzip curl zip
+pip3 install cffi cmake
+
+# the simulator itself
+git clone https://github.com/nsnam/ns-3-dev-git.git ~/ns3
+bash prepare_ns3.sh master
+cd ~/ns3 && rm -rf cmake-cache build
+export PATH=$PATH:/usr/local/bin CXX=g++-12 CC=gcc-12
+./ns3 configure --enable-modules=core,network,internet,mobility,applications,wifi,flow-monitor \
+                --build-profile=release
+./ns3 build -j 16
 ```
 
-Same virtualisation requirement as route 1.
+Same virtualisation requirement as route 1. The whole sequence is wrapped in
+`artifacts/ns3/run_ns3_traces.ps1`, which also generates the traces and runs
+the evaluation.
 
 ### Route 3: WSL1
 
@@ -162,19 +214,21 @@ WSL1's syscall translation layer is slow.
   (3.40) would build with the installed toolchain, but it is an old
   simulator and the trace it produces would be from an older network stack.
 * **CMake from cmake.org.** The standalone archive could not be fetched from
-  this machine, so the bundled 3.20 was the only CMake available.
+  this machine, so the bundled 3.20 was the only CMake available. The route
+  that works instead is the PyPI package, which puts a current CMake
+  (4.4.4) into `/usr/local/bin` ahead of the distribution's copy.
 * **ns-3 sources.** The shallow clone of `ns-3-dev-git` succeeded, but
   fetching a release tag over the same connection failed repeatedly.
 
 ## The driver
 
-`realdata/run_ns3_traces.ps1` tries route 1, then route 2, then route 3, and
-reports which one it found. When none is available it prints the commands
-above and stops, rather than failing obscurely. Once an environment exists,
-the whole validation is that one command:
+`artifacts/ns3/run_ns3_traces.ps1` prepares the WSL2 environment, builds
+ns-3 with the configuration above, generates the traces, and then hands them
+to the analysis chain. Once an environment exists, the whole validation is
+that one command:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File '.\realdata\run_ns3_traces.ps1'
+powershell -NoProfile -ExecutionPolicy Bypass -File '.\artifacts\ns3\run_ns3_traces.ps1'
 ```
 
 It generates the traces, converts them, checks each one's regime, evaluates
@@ -187,4 +241,11 @@ no ns-3:
 
 ```powershell
 python -u artifacts/analysis/selftest_multitrace_harness.py
+```
+
+And after the run, the manuscript's table can be checked against the
+committed numbers, which needs no ns-3 either:
+
+```powershell
+python -u artifacts/analysis/verify_ns3_multitrace_table.py
 ```

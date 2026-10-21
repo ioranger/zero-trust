@@ -11,6 +11,45 @@ import pandas as pd
 
 from reference_simulator import METHODS, Config, confusion_metrics, load_config, method_predictions
 
+# The repository root, so that a path recorded in an output file is the one a
+# reader can open rather than an absolute path from the machine that ran it.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def repo_relative(path: Path) -> str:
+    """Return the path relative to the repository root when it is inside it."""
+    try:
+        return str(Path(path).resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
+    """Area under the ROC curve, computed by rank.
+
+    Ties get the average rank, so a score that does not separate the two
+    populations at all returns 0.5 rather than an arbitrary value.
+    """
+    pos = labels.astype(bool)
+    n_pos = int(pos.sum())
+    n_neg = int((~pos).sum())
+    if n_pos == 0 or n_neg == 0:
+        return float("nan")
+    order = np.argsort(scores, kind="mergesort")
+    ranks = np.empty(len(scores), dtype=float)
+    ranks[order] = np.arange(1, len(scores) + 1)
+    values = scores[order]
+    i = 0
+    while i < len(scores):
+        j = i
+        while j + 1 < len(scores) and values[j + 1] == values[i]:
+            j += 1
+        if j > i:
+            ranks[order[i:j + 1]] = (i + 1 + j + 1) / 2.0
+        i = j + 1
+    u_pos = ranks[pos].sum() - n_pos * (n_pos + 1) / 2.0
+    return float(u_pos / (n_pos * n_neg))
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate S-TIM and baselines on converted ns-3 T1--T5 traces.")
@@ -79,19 +118,39 @@ def main() -> None:
             n_agents=n_agents,
         )
         metrics = confusion_metrics(prediction, labels)
-        rows.append(
-            {
-                "trace": str(trace_path),
-                "method": method,
-                "n_uavs": n_uavs,
-                "trace_steps": streams.shape[0],
-                "warmup_steps_used": trace_config.warmup_steps,
-                "malicious_ratio": malicious_ratio,
-                "mean_score_benign": float(score[~labels].mean()) if np.any(~labels) else 0.0,
-                "mean_score_malicious": float(score[labels].mean()) if np.any(labels) else 0.0,
-                **metrics,
-            }
-        )
+        # The score is a task score, so higher means more benign. The area
+        # under the curve separates the two questions a trace can answer:
+        # whether the score carries the information at all, and whether the
+        # operating point that was calibrated on the training generator is
+        # still the right one in the packet domain.
+        score_malicious = -np.asarray(score, dtype=float)
+        metrics["auc"] = roc_auc(labels.astype(bool), score_malicious)
+        row = {
+            "trace": repo_relative(trace_path),
+            "method": method,
+            "n_uavs": n_uavs,
+            "trace_steps": streams.shape[0],
+            "warmup_steps_used": trace_config.warmup_steps,
+            "malicious_ratio": malicious_ratio,
+            "mean_score_benign": float(score[~labels].mean()) if np.any(~labels) else 0.0,
+            "mean_score_malicious": float(score[labels].mean()) if np.any(labels) else 0.0,
+            **metrics,
+        }
+        # Per-attack-class detection. The manuscript's claim is that a window
+        # aggregator cannot separate an intermittent attacker, so the trace has
+        # to be reported by attack class and not only in aggregate.
+        for attack_type in sorted(set(str(t) for t in attack_types)):
+            mask = np.array([str(t) == attack_type for t in attack_types])
+            if not mask.any():
+                continue
+            key = attack_type.replace("-", "_")
+            row[f"n_{key}"] = int(mask.sum())
+            if mask.any() and labels[mask].any():
+                row[f"detection_{key}"] = float(
+                    np.mean(prediction[mask] == labels[mask]))
+            else:
+                row[f"detection_{key}"] = float("nan")
+        rows.append(row)
 
     table = pd.DataFrame(rows)
     output = Path(args.output)
@@ -104,9 +163,13 @@ def main() -> None:
         .agg(nodes=("attack_type", "size"), malicious_nodes=("is_malicious", "sum"))
         .reset_index()
     )
-    summary_path = outputs / "logs" / "ns3_trace_summary.json"
+    # The summary is written beside the table it describes, and named after
+    # it. A single fixed name made every run overwrite the previous one's
+    # summary, so a multi-trace run left behind a file that described one of
+    # its traces while sitting next to a different trace's table.
+    summary_path = output.with_name(output.stem + "_summary.json")
     summary = {
-        "trace": str(trace_path),
+        "trace": repo_relative(trace_path),
         "n_uavs": n_uavs,
         "trace_steps": int(streams.shape[0]),
         "warmup_steps_used": int(trace_config.warmup_steps),

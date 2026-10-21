@@ -18,7 +18,7 @@
 #   OUTDIR         where the CSV traces are written (default /out)
 #   SEEDS          space-separated list of seeds
 #   DURATION       mission duration in seconds (default 5000 -> 500 steps)
-#   NUAVS          number of UAV nodes (default 15)
+#   NUAVS          number of UAV nodes (default 40)
 #   MALICIOUS_RATIO fraction of malicious nodes (default 0.30)
 
 set -euo pipefail
@@ -28,7 +28,7 @@ SCENARIO_SRC="${SCENARIO_SRC:-$SCRIPT_DIR/mtim_uav_trust.cc}"
 OUTDIR="${OUTDIR:-/out}"
 SEEDS="${SEEDS:-2000 2001 2002 2003 2004}"
 DURATION="${DURATION:-5000}"
-NUAVS="${NUAVS:-15}"
+NUAVS="${NUAVS:-40}"
 MALICIOUS_RATIO="${MALICIOUS_RATIO:-0.30}"
 
 if [ ! -f "$SCENARIO_SRC" ]; then
@@ -36,13 +36,15 @@ if [ ! -f "$SCENARIO_SRC" ]; then
     exit 1
 fi
 
-# Locate the ns-3 root: the directory that contains the ./ns3 runner.
+# Locate the ns-3 root: the directory that contains the ./ns3 runner. The
+# test has to be for a regular file, because a directory is also reported as
+# executable and the repository itself has a directory called ns3.
 NS3_ROOT="${NS3_ROOT:-$(cd "$SCRIPT_DIR" && pwd)}"
-while [ "$NS3_ROOT" != "/" ] && [ ! -x "$NS3_ROOT/ns3" ]; do
+while [ "$NS3_ROOT" != "/" ] && [ ! -f "$NS3_ROOT/ns3" ]; do
     NS3_ROOT="$(dirname "$NS3_ROOT")"
 done
-if [ ! -x "$NS3_ROOT/ns3" ]; then
-    echo "could not find the ns-3 runner; set NS3_ROOT" >&2
+if [ ! -f "$NS3_ROOT/ns3" ]; then
+    echo "could not find the ns-3 runner; set NS3_ROOT to the ns-3 source tree" >&2
     exit 1
 fi
 

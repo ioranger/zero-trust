@@ -1,0 +1,30 @@
+{
+  "trace": "artifacts\\outputs\\logs\\ns3_multitrace\\trace_seed2003_streams.csv",
+  "n_uavs": 40,
+  "trace_steps": 499,
+  "warmup_steps_used": 99,
+  "time_min_s": 10.0,
+  "time_max_s": 4990.0,
+  "attack_coverage": [
+    {
+      "attack_type": "benign",
+      "nodes": 28,
+      "malicious_nodes": 0
+    },
+    {
+      "attack_type": "constant",
+      "nodes": 3,
+      "malicious_nodes": 3
+    },
+    {
+      "attack_type": "dormant",
+      "nodes": 4,
+      "malicious_nodes": 4
+    },
+    {
+      "attack_type": "on-off",
+      "nodes": 5,
+      "malicious_nodes": 5
+    }
+  ]
+}

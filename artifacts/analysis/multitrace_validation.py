@@ -28,11 +28,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
 
 import pandas as pd
+from scipy import stats
 
 ROOT = Path(r"F:\zero trust\zero-trust")
 SCRIPTS = ROOT / "artifacts" / "scripts"
@@ -95,11 +97,14 @@ def main() -> int:
         verdicts.append({"trace": str(trace),
                          "converted": str(converted),
                          "n_steps": verdict.n_steps,
+                         "n_nodes": verdict.n_nodes,
                          "post_warmup_steps": verdict.post_warmup_steps,
+                         "degenerate_columns": verdict.degenerate_columns,
                          "valid": verdict.valid,
+                         "hard_reasons": verdict.hard_reasons,
                          "reasons": verdict.reasons})
         if not verdict.valid and not args.keep_invalid:
-            print("  -> excluded: not a valid measurement")
+            print("  -> excluded: the trace cannot be measured at all")
             continue
 
         table = work / (trace.stem + "_metrics.csv")
@@ -128,11 +133,19 @@ def main() -> int:
     all_rows = pd.concat(rows, ignore_index=True)
     # A packet trace carries no task-allocation simulation, so there is no
     # task-success proxy to report here. The column is named for what it is.
+    # AUC is threshold-free and answers a different question from the
+    # published operating point: whether the score carries the information at
+    # all, as opposed to whether a fixed cut survives the change of domain.
+    # The per-class detection rates say which attack class the score reaches.
     agg = (all_rows.groupby("method")
            .agg(traces=("accuracy", "size"),
                 accuracy=("accuracy", "mean"), accuracy_sd=("accuracy", "std"),
                 f_score=("f_score", "mean"), f_score_sd=("f_score", "std"),
                 precision=("precision", "mean"), recall=("recall", "mean"),
+                auc=("auc", "mean"),
+                detection_constant=("detection_constant", "mean"),
+                detection_dormant=("detection_dormant", "mean"),
+                detection_on_off=("detection_on_off", "mean"),
                 tp=("tp", "sum"), fp=("fp", "sum"), fn=("fn", "sum"))
            .reset_index())
     agg = agg.fillna(0.0)
@@ -155,12 +168,46 @@ def main() -> int:
     out_verdict.write_text(json.dumps(
         {"traces": verdicts, "evaluated": len(rows),
          "valid_measurements": valid_traces,
-         "note": "a trace excluded here was shorter than the feature "
-                 "extractor's minimum window or had degenerate input columns, "
-                 "so its numbers would measure a harness mismatch"},
+         "note": "a trace excluded here was too short for the feature "
+                 "extractor's window, or its shape block was all-zero, so its "
+                 "numbers would measure a harness mismatch; a column that is "
+                 "constant across nodes is disclosed rather than used to drop "
+                 "the trace"},
         indent=2), encoding="utf-8")
     print(f"\nwrote {out_table}")
     print(f"wrote {out_verdict}")
+
+    # Paired comparison of the proposed model against the feature-matched
+    # control, over the traces rather than over the nodes.
+    print("\n" + "=" * 100)
+    print("PAIRED OVER TRACES -- S-TIM against the learned controls")
+    print("=" * 100)
+    print(f"{'control':<14}{'metric':<10}{'delta pp':>10}{'t':>9}{'p':>11}{'n':>5}")
+    print("-" * 100)
+    for control in ("MLP-Trust", "LR-Trust"):
+        for metric in ("accuracy", "f_score"):
+            piv = all_rows.pivot_table(index="trace_name", columns="method",
+                                       values=metric)
+            if "S-TIM" not in piv.columns or control not in piv.columns:
+                continue
+            diff = ((piv["S-TIM"] - piv[control]) * 100).dropna()
+            if len(diff) < 2:
+                continue
+            sd = diff.std(ddof=1)
+            t = diff.mean() / (sd / math.sqrt(len(diff))) if sd else float("inf")
+            p = (2.0 * stats.t.sf(abs(t), df=len(diff) - 1)
+                 if sd else (0.0 if diff.mean() else 1.0))
+            print(f"{control:<14}{metric:<10}{diff.mean():>10.2f}{t:>9.2f}"
+                  f"{p:>11.4f}{len(diff):>5}")
+    print("-" * 100)
+    degenerate = sorted({c for v in verdicts
+                         for c in v.get("degenerate_columns", [])})
+    if degenerate:
+        print("columns constant across every node in at least one trace: "
+              + ", ".join(degenerate))
+        print("They are disclosed rather than used to drop the trace, because "
+              "the geometry checks are what")
+        print("make a trace meaningless, and those are the hard failures.")
     return 0
 
 

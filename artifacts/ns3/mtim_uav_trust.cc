@@ -1,7 +1,7 @@
 // ns-3 scenario for S-TIM trace generation.
 //
 // Copy this file into scratch/mtim_uav_trust.cc in an ns-3 source tree and run:
-//   ./ns3 run "scratch/mtim_uav_trust --nUavs=15 --maliciousRatio=0.30 --seed=1000 --duration=5000 --csv=mtim_ns3_trace.csv"
+//   ./ns3 run "scratch/mtim_uav_trust --nUavs=40 --maliciousRatio=0.30 --seed=2000 --duration=5000 --csv=mtim_ns3_trace.csv"
 //
 // The program emits packet-level and mobility-derived observations that are
 // converted to T1--T5 by artifacts/scripts/ns3_trace_to_trust.py.
@@ -60,7 +60,29 @@ NS_LOG_COMPONENT_DEFINE("MtimUavTrustTrace");
 namespace
 {
 
-constexpr double SIDE = 10000.0;   // airspace side, metres
+// The airspace side, in metres.
+//
+// The nodes have to be within radio range of one another for the UDP echo to
+// carry traffic, and an 802.11b link reaches a few hundred metres. A
+// ten-kilometre box leaves every node isolated, and the trace then measures a
+// network that never transmitted anything, which is not the situation the
+// trust stream is meant to describe. The box and the transmit power are
+// chosen together so that the network is connected but lossy, which is the
+// regime a trust stream describes.
+//
+// The number of nodes decides how much the trace can say. With fifteen nodes
+// and five attackers a single node changes a detection rate by six points, so
+// the trace is a plumbing check rather than a measurement. Forty nodes with
+// thirty percent of them malicious gives twelve attackers per trace, and the
+// attack types are assigned cyclically over the node ids, so each trace
+// carries four of every type.
+constexpr uint32_t DEFAULT_NODES = 40;
+// The box grows with the node count so that the mean number of neighbours
+// stays in the same range: the measured link range is about three hundred
+// metres, and forty nodes in a box of this side have an average degree of
+// about five, which is connected but lossy.
+constexpr double SIDE = 1500.0;   // airspace side, metres
+constexpr double TX_POWER = 24.0; // dBm
 constexpr double TWO_PI = 6.28318530717958647692;   // M_PI is not portable
 constexpr double STRIDE_BENIGN_MIN = 12.0;
 constexpr double STRIDE_BENIGN_MAX = 25.0;
@@ -73,6 +95,7 @@ struct NodeStats
     uint64_t rx{0};       // frames the MAC accepted and passed up
     uint64_t dropped{0};  // frames the MAC dropped
     double pathDeviation{0.0};
+    double travelled{0.0};
     double energyRatio{1.0};
     uint32_t taskAssigned{0};
     uint32_t taskCompleted{0};
@@ -86,6 +109,7 @@ std::ofstream g_csv;
 double g_interval = 10.0;
 double g_endTime = 5000.0;
 std::mt19937 g_walk;
+uint64_t g_unattributed = 0;   // frames whose owning node could not be read
 
 bool
 IsMalicious(uint32_t nodeId)
@@ -151,36 +175,69 @@ Advance(Ptr<Node> node, uint32_t index, bool active)
         y = g_homeY[index];
     }
     mobility->SetPosition(Vector(x, y, 0.0));
-    g_stats[index].pathDeviation += step;
+    // The travelled distance is accumulated separately from the path
+    // deviation, which is a level set by the attack state.
+    g_stats[index].travelled += step;
+}
+
+// The node a frame belongs to, taken from the path of the trace source that
+// fired. ns-3 passes that path as the callback's leading context argument,
+// and the path of a node's MAC is "/NodeList/<node>/DeviceList/<dev>/Mac/...".
+uint32_t
+NodeFromContext(const std::string& context)
+{
+    const std::string key = "/NodeList/";
+    const size_t pos = context.find(key);
+    if (pos == std::string::npos)
+    {
+        return g_stats.size();
+    }
+    return static_cast<uint32_t>(
+        std::strtoul(context.c_str() + pos + key.size(), nullptr, 10));
 }
 
 void
-MacTxCallback(Ptr<const Packet> packet, uint32_t nodeId)
+MacTxCallback(std::string context, Ptr<const Packet> packet)
 {
     (void)packet;
-    if (nodeId < g_stats.size())
+    const uint32_t node = NodeFromContext(context);
+    if (node < g_stats.size())
     {
-        g_stats[nodeId].tx += 1;
+        g_stats[node].tx += 1;
+    }
+    else
+    {
+        g_unattributed += 1;
     }
 }
 
 void
-MacRxCallback(Ptr<const Packet> packet, uint32_t nodeId)
+MacRxCallback(std::string context, Ptr<const Packet> packet)
 {
     (void)packet;
-    if (nodeId < g_stats.size())
+    const uint32_t node = NodeFromContext(context);
+    if (node < g_stats.size())
     {
-        g_stats[nodeId].rx += 1;
+        g_stats[node].rx += 1;
+    }
+    else
+    {
+        g_unattributed += 1;
     }
 }
 
 void
-MacDropCallback(Ptr<const Packet> packet, uint32_t nodeId)
+MacDropCallback(std::string context, Ptr<const Packet> packet)
 {
     (void)packet;
-    if (nodeId < g_stats.size())
+    const uint32_t node = NodeFromContext(context);
+    if (node < g_stats.size())
     {
-        g_stats[nodeId].dropped += 1;
+        g_stats[node].dropped += 1;
+    }
+    else
+    {
+        g_unattributed += 1;
     }
 }
 
@@ -196,12 +253,25 @@ EmitTrace(NodeContainer nodes)
         NodeStats &s = g_stats[i];
         if (active)
         {
-            s.energyRatio = std::max(0.05, s.energyRatio - 0.0018 * g_interval);
+            // The drain has to stay small enough that the energy channel does
+            // not reach its floor inside the mission, because a channel that is
+            // pinned at the floor carries no information about the node.
+            s.energyRatio = std::max(0.05, s.energyRatio - 0.00030 * g_interval);
         }
         else
         {
-            s.energyRatio = std::max(0.05, s.energyRatio - 0.0008 * g_interval);
+            s.energyRatio = std::max(0.05, s.energyRatio - 0.00013 * g_interval);
         }
+
+        // The path deviation is a level, the distance from the planned route,
+        // and not an accumulated distance. An accumulated distance never comes
+        // back down, so an intermittent attacker would be indistinguishable
+        // from a constant one in that channel, and the temporal-shape evidence
+        // the converter derives from it would be empty. As a level, the
+        // channel carries the honest-and-adversarial alternation that the
+        // threat model describes.
+        s.pathDeviation = active ? (7.5 + 0.8 * (i % 5))
+                                 : (1.2 + 0.2 * (i % 3));
 
         s.taskAssigned += 1;
         if (!active || (i % 4 == 0))
@@ -229,7 +299,7 @@ EmitTrace(NodeContainer nodes)
 int
 main(int argc, char *argv[])
 {
-    uint32_t nUavs = 15;
+    uint32_t nUavs = DEFAULT_NODES;
     double maliciousRatio = 0.30;
     uint32_t seed = 1000;
     std::string csv = "mtim_ns3_trace.csv";
@@ -269,7 +339,7 @@ main(int argc, char *argv[])
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(nodes);
 
-    std::uniform_real_distribution<double> place(500.0, SIDE - 500.0);
+    std::uniform_real_distribution<double> place(50.0, SIDE - 50.0);
     for (uint32_t i = 0; i < nUavs; ++i)
     {
         g_homeX[i] = place(g_walk);
@@ -283,8 +353,8 @@ main(int argc, char *argv[])
     YansWifiPhyHelper phy;
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     phy.SetChannel(channel.Create());
-    phy.Set("TxPowerStart", DoubleValue(16.0));
-    phy.Set("TxPowerEnd", DoubleValue(16.0));
+    phy.Set("TxPowerStart", DoubleValue(TX_POWER));
+    phy.Set("TxPowerEnd", DoubleValue(TX_POWER));
     WifiMacHelper mac;
     mac.SetType("ns3::AdhocWifiMac");
     NetDeviceContainer devices = wifi.Install(phy, mac, nodes);
@@ -318,16 +388,17 @@ main(int argc, char *argv[])
     }
 
     // Real MAC-layer counters. The paths are the ones ns-3's own examples
-    // use, and the node index is bound to the callback so that each node's
-    // counters are attributed to it.
-    for (uint32_t i = 0; i < nUavs; ++i)
-    {
-        std::string base = "/NodeList/" + std::to_string(i) + "/DeviceList/0/Mac/";
-        Config::Connect(base + "MacTx", MakeCallback(&MacTxCallback, i));
-        Config::Connect(base + "MacRx", MakeCallback(&MacRxCallback, i));
-        Config::Connect(base + "MacTxDrop", MakeCallback(&MacDropCallback, i));
-        Config::Connect(base + "MacRxDrop", MakeCallback(&MacDropCallback, i));
-    }
+    // use, for instance examples/wireless/wifi-ap.cc. ns-3 hands the path of
+    // the source that fired to the callback as a leading context argument,
+    // and the node index is read from it.
+    Config::Connect("/NodeList/*/DeviceList/*/Mac/MacTx",
+                    MakeCallback(&MacTxCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/Mac/MacRx",
+                    MakeCallback(&MacRxCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/Mac/MacTxDrop",
+                    MakeCallback(&MacDropCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/Mac/MacRxDrop",
+                    MakeCallback(&MacDropCallback));
 
     g_csv.open(csv);
     g_csv << "time_s,node_id,x_m,y_m,is_malicious,attack_type,attack_active,"
@@ -355,6 +426,13 @@ main(int argc, char *argv[])
         std::cerr << "no MAC frame was counted, so the T2 evidence would be "
                      "constant and the trace would not be a measurement"
                   << std::endl;
+        return 1;
+    }
+    if (g_unattributed != 0)
+    {
+        std::cerr << g_unattributed
+                  << " MAC frames could not be attributed to a node, so the "
+                     "per-node counters are incomplete" << std::endl;
         return 1;
     }
     return 0;
