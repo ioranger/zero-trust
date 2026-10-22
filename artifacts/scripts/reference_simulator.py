@@ -122,6 +122,25 @@ def camouflage_params(config: Config) -> tuple[float, float]:
     return a, b
 
 
+def node_bias_scale(config: Config) -> float:
+    """Standard deviation of the per-node, per-channel offset.
+
+    The offset is drawn once per node and per channel and persists for the
+    whole mission. It is what keeps two nodes apart once a window summary
+    has averaged the observation noise away, and it is the one part of the
+    level evidence that the camouflage factor does not touch: the camouflage
+    mixes the attack profile with the evasive reference, while the offset is
+    scaled by 0.25 for an active attacker and applied in full to a benign
+    one. That is why a flattened attack profile still leaves the marginal
+    block separable, and making the scale configurable is what allows that
+    to be measured rather than argued.
+
+    The default reproduces the published generator exactly.
+    """
+    block = config.raw.get("generator") or {}
+    return float(block.get("node_bias_sd", 0.08))
+
+
 def simulate_trust_stream(
     config: Config,
     seed: int,
@@ -170,7 +189,7 @@ def simulate_trust_stream(
     if n_mal:
         camouflage[malicious] = rng.beta(*camouflage_params(config), n_mal)
 
-    node_bias = rng.normal(0.0, 0.08, size=(n_uavs, 4))
+    node_bias = rng.normal(0.0, node_bias_scale(config), size=(n_uavs, 4))
     outage = rng.random((config.steps, n_uavs)) < 0.03
     history = np.full(n_uavs, 0.77) + rng.normal(0.0, 0.045, n_uavs)
     streams = np.zeros((config.steps, n_uavs, 5), dtype=float)
@@ -435,7 +454,7 @@ def simulate_trust_stream_spatial(
             own_field[node] = ((1.0 - coupling) * field[node]
                                + coupling * float(row @ field))
 
-    node_bias = rng.normal(0.0, 0.08, size=(n_uavs, 4))
+    node_bias = rng.normal(0.0, node_bias_scale(config), size=(n_uavs, 4))
     outage = rng.random((config.steps, n_uavs)) < 0.03
     history = np.full(n_uavs, 0.77) + rng.normal(0.0, 0.045, n_uavs)
     noise = rng.normal(0.0, 0.10, (config.steps, n_uavs, 4))
