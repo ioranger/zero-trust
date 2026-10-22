@@ -57,6 +57,8 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `latex_warnings.py` | Reports the LaTeX warnings that matter: undefined references, overfull and underfull boxes, errors. |
 | `extract_search_results.py` | Reassembles a chunked search artifact and prints its result list. |
 | `pdf_find_page.py` | Finds the page on which a phrase appears in the built PDF. |
+| `spatial_arms_final_compare.py` | Puts the five spatial-scenario arms side by side: per-class detection rate, the class-macro-average, the population-weighted accuracy and the paired tests, so the two summaries can be read together. |
+| `run_spatial_arms.ps1` | Builds the two diagnostic arms in sequence and snapshots each one into `artifacts/runs/<arm>`. |
 
 ## `runs/`
 
@@ -77,6 +79,8 @@ regenerable and are not committed.
 | `spatial_position_18dim` | telemetry-forging scenario, marginal + shape (18 dims) |
 | `spatial_position_23dim` | telemetry-forging scenario, marginal + shape + spatial (23 dims) |
 | `spatial_position_fusion` | the same 23 dims fed to every learner, so the linear, MLP and multi-head fusion can be compared on one input |
+| `spatial_position_riskonly` | diagnostic arm: telemetry-forging scenario, marginal + shape (18 dims), all four auxiliary loss weights 0 |
+| `spatial_position_gated` | diagnostic arm: telemetry-forging scenario, all 23 dims, block-routed fusion with the auxiliary heads detached from the branch encoders |
 
 To regenerate an arm from scratch:
 
@@ -137,3 +141,39 @@ against the published configuration.
 
 The conclusion is that the binding constraint is the representation, not the
 network, which is the paper's central claim rather than a limitation of it.
+
+### The telemetry-forging scenario is where this stops being a clean result
+
+The four-arm control above runs on the i.i.d. scenario, where the generator
+leaves so much level margin that no auxiliary objective can erode it. The
+spatial scenario is the case where it can, and the two diagnostic arms measure
+it. All numbers are from `spatial_arms_final_compare.py`, paired over the same
+20 evaluation seeds.
+
+`spatial_position_riskonly` re-runs the 18-dimensional spatial arm with the
+three auxiliary loss weights at zero, so the pair
+`spatial_position_18dim` / `spatial_position_riskonly` isolates exactly those
+three losses: same features, same generator, same thresholds. The constant
+attack class rises from 82.1 to 87.8 (`p < 0.0001`), so the three auxiliary
+losses cost 5.7 pp of the 8.7 pp gap against the 13-dimensional arm at that
+setting. They are the main cause, but not the whole cause: 3.0 pp remains, and
+that residual comparison is confounded, because the 13-dimensional arm runs
+with the three auxiliary losses still active. Removing the losses also costs
+the classes they were helping: on-off drops 2.5 pp (`p = 0.0008`) and
+position-inconsistent drops 1.3 pp (`p = 0.0043`).
+
+`spatial_position_gated` separates the blocks into one encoder each and reads
+the auxiliary heads off the branch embeddings detached, so their losses cannot
+reach the branches. Against the published 23-dimensional arm it is
+statistically indistinguishable on every attack class (constant `p = 0.66`,
+dormant `p = 0.58`, on-off `p = 0.49`, position-inconsistent `p = 0.72`) and
+only benign improves (`+0.4 pp`, `p = 0.0081`). The block routing therefore
+does not repair the level classes either: constant stays at 87.6, which is
+3.2 pp below the 13-dimensional arm (`p = 0.0009`). Note that this arm still
+runs the three auxiliary losses at their default weights, so the 5.7 pp the
+risk-only arm removed is still inside it.
+
+The next decisive arm follows from the two together: 23 dimensions, block
+routed, all four auxiliary weights at zero. If the auxiliary objectives are
+what hold the level classes down and the block routing preserves the on-off
+and position-inconsistent gains, constant should land near 93 instead of 87.6.

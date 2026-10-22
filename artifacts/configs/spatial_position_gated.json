@@ -140,7 +140,7 @@
     "positive_class_weight": 2.0,
     "decision_threshold": 0.6,
     "shape_features": true,
-    "modality_loss_weight": 0.0,
+    "modality_loss_weight": 0.3,
     "fusion": "gated"
   },
   "ns3": {

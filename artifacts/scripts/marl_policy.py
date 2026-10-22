@@ -508,6 +508,10 @@ def GatedTrustPolicyNet(input_dim: int, blocks, hidden: int = 96,
             self.incentive_head = nn.Linear(hidden, 5)
             self.value_head = nn.Linear(hidden, 1)
             self.modality_head = nn.Linear(hidden, len(MODALITY_CLASSES))
+            # The auxiliary heads read one summary of the branch embeddings
+            # rather than the concatenation itself, so that they keep the
+            # width of a single branch.
+            self.aux_projection = nn.Linear(hidden * len(self.blocks), hidden)
 
         def forward(self, x):
             embs = [enc(x[:, idx]) for enc, (_n, idx) in
@@ -520,7 +524,7 @@ def GatedTrustPolicyNet(input_dim: int, blocks, hidden: int = 96,
             risk = (weights * logits).sum(dim=-1)
             # Detached on purpose: the auxiliary losses may train the
             # auxiliary heads, and may not touch the branch encoders.
-            h = cat.detach()
+            h = self.aux_projection(cat).detach()
             return {
                 "risk_logit": risk,
                 "trust_weights": torch.softmax(self.weight_head(h), dim=-1),

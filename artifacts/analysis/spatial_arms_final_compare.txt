@@ -1,0 +1,232 @@
+============================================================================================================
+FIVE-ARM SPATIAL COMPARISON -- per-class detection rate (%) and the two summaries
+============================================================================================================
+
+1. class populations in the spatial scenario (read from the log)
+------------------------------------------------------------------------------------------------------------
+   constant                    52 nodes      6.5% of population
+   dormant                     53 nodes      6.6% of population
+   on-off                      53 nodes      6.6% of population
+   position-inconsistent       82 nodes     10.2% of population
+   benign                     560 nodes     70.0% of population
+   TOTAL                      800 nodes
+
+   the headline table weights by population share; the macro-average weights
+   the four attack classes equally. The two disagree because benign is 70%
+   of the population and the attack classes are only 30%.
+
+============================================================================================================
+2. per-class detection rate (%) for every method, per arm
+============================================================================================================
+
+--- S-TIM -------------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            90.8           95.6           79.1            5.1           95.1
+pub18                            82.1           92.2           89.3            2.1           97.4
+riskonly18                       87.8           95.0           91.8            3.4           96.4
+pub23                            87.2           93.4           91.7           83.6           96.1
+gated23                          87.6           93.7           92.1           83.8           95.7
+
+--- MLP-Trust ---------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            89.0           95.8           78.5            4.3           95.5
+pub18                            88.9           95.7           91.9            3.5           96.1
+riskonly18                       88.9           95.7           91.9            3.5           96.1
+pub23                            89.1           95.6           92.5            4.2           96.2
+gated23                          89.0           95.7           92.7            4.1           96.0
+
+--- LR-Trust ----------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            55.7           87.1           21.5            7.1           92.6
+pub18                            57.1           89.4           86.3            6.2           93.5
+riskonly18                       57.1           89.4           86.3            6.2           93.5
+pub23                            57.1           89.4           86.3            6.2           93.4
+gated23                          57.0           89.4           86.4            6.2           93.4
+
+--- MFA ---------------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            88.8           87.6           83.3           76.5           21.2
+pub18                            88.8           87.6           83.3           76.5           21.2
+riskonly18                       88.8           87.6           83.3           76.5           21.2
+pub23                            88.8           87.6           83.3           76.5           21.2
+gated23                          88.8           87.6           83.3           76.5           21.2
+
+--- FUBA --------------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            90.1           88.8           84.2           77.1           20.7
+pub18                            90.1           88.8           84.2           77.1           20.7
+riskonly18                       90.1           88.8           84.2           77.1           20.7
+pub23                            90.1           88.8           84.2           77.1           20.7
+gated23                          90.1           88.8           84.2           77.1           20.7
+
+--- GALTrust ----------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            85.0           81.6           75.0           67.9           30.3
+pub18                            85.0           81.6           75.0           67.9           30.3
+riskonly18                       85.0           81.6           75.0           67.9           30.3
+pub23                            85.0           81.6           75.0           67.9           30.3
+gated23                          85.0           81.6           75.0           67.9           30.3
+
+--- GDM-DTM -----------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            90.2           88.9           84.2           77.1           20.7
+pub18                            90.2           88.9           84.2           77.1           20.7
+riskonly18                       90.2           88.9           84.2           77.1           20.7
+pub23                            90.2           88.9           84.2           77.1           20.7
+gated23                          90.2           88.9           84.2           77.1           20.7
+
+--- AHP-Entropy -------------------------------------------------------------------------------------
+arm                          constant        dormant         on-offposition-inconsistent         benign
+------------------------------------------------------------------------------------------------------------
+13dim                            85.4           82.7           77.2           68.9           28.9
+pub18                            85.4           82.7           77.2           68.9           28.9
+riskonly18                       85.4           82.7           77.2           68.9           28.9
+pub23                            85.4           82.7           77.2           68.9           28.9
+gated23                          85.4           82.7           77.2           68.9           28.9
+
+============================================================================================================
+3. the two summaries: class-macro-average (4 attack classes) vs population-weighted accuracy
+============================================================================================================
+arm                   method         macro-4   macro-5   pop-weighted   table acc
+------------------------------------------------------------------------------------------------------------
+13dim                 S-TIM             67.6      73.1           84.6        84.6
+13dim                 MLP-Trust         66.9      72.6           84.7        84.7
+13dim                 LR-Trust          42.8      52.8           76.3        76.3
+pub18                 S-TIM             66.4      72.6           85.8        85.8
+pub18                 MLP-Trust         70.0      75.2           85.8        85.8
+pub18                 LR-Trust          59.8      66.5           81.4        81.4
+riskonly18            S-TIM             69.5      74.9           85.9        85.9
+riskonly18            MLP-Trust         70.0      75.2           85.8        85.8
+riskonly18            LR-Trust          59.8      66.5           81.4        81.4
+pub23                 S-TIM             89.0      90.4           93.7        93.8
+pub23                 MLP-Trust         70.3      75.5           86.0        86.0
+pub23                 LR-Trust          59.8      66.5           81.4        81.4
+gated23               S-TIM             89.3      90.6           93.6        93.5
+gated23               MLP-Trust         70.4      75.5           85.9        85.9
+gated23               LR-Trust          59.8      66.5           81.4        81.4
+
+   macro-4 = equal weight over constant / dormant / on-off / position-inconsistent
+   macro-5 = equal weight over all five classes including benign
+   pop-weighted = sum(pop_c * rate_c) / 800, reconstructed from the per-class rates
+   table acc = accuracy column of the arm's own tables/baseline_comparison.csv
+
+============================================================================================================
+4. paired S-TIM minus MLP-Trust, within each arm (same seeds)
+============================================================================================================
+arm                             attack class    delta pp        t         p     n
+------------------------------------------------------------------------------------------------------------
+13dim                               constant         1.7     1.92    0.0705    20
+13dim                                dormant        -0.3    -0.90    0.3793    20
+13dim                                 on-off         0.6     0.68    0.5054    20
+13dim                  position-inconsistent         0.8     2.16    0.0441    20
+13dim                                 benign        -0.4    -4.53    0.0002    20
+pub18                               constant        -6.8    -6.96   <0.0001    20
+pub18                                dormant        -3.5    -4.71    0.0002    20
+pub18                                 on-off        -2.5    -3.86    0.0011    20
+pub18                  position-inconsistent        -1.5    -5.34   <0.0001    20
+pub18                                 benign         1.3     7.86   <0.0001    20
+riskonly18                          constant        -1.2    -2.26    0.0358    20
+riskonly18                           dormant        -0.7    -1.58    0.1297    20
+riskonly18                            on-off        -0.1    -0.15    0.8805    20
+riskonly18             position-inconsistent        -0.1    -0.35    0.7334    20
+riskonly18                            benign         0.3     2.45    0.0242    20
+pub23                               constant        -1.9    -1.91    0.0711    20
+pub23                                dormant        -2.2    -4.06    0.0007    20
+pub23                                 on-off        -0.8    -1.80    0.0880    20
+pub23                  position-inconsistent        79.4    67.28   <0.0001    20
+pub23                                 benign        -0.1    -0.76    0.4592    20
+gated23                             constant        -1.4    -1.99    0.0607    20
+gated23                              dormant        -2.0    -3.80    0.0012    20
+gated23                               on-off        -0.7    -1.44    0.1670    20
+gated23                position-inconsistent        79.7    64.30   <0.0001    20
+gated23                               benign        -0.3    -2.00    0.0599    20
+
+============================================================================================================
+5. paired S-TIM, arm minus arm (same seeds)
+============================================================================================================
+   13dim  MINUS  pub18
+             attack class    delta pp        t         p     n
+                 constant         8.7     6.75   <0.0001    20
+                  dormant         3.4     5.11   <0.0001    20
+                   on-off       -10.3    -6.90   <0.0001    20
+    position-inconsistent         3.0     4.51    0.0002    20
+                   benign        -2.3   -10.83   <0.0001    20
+
+   13dim  MINUS  riskonly18
+             attack class    delta pp        t         p     n
+                 constant         3.0     3.07    0.0063    20
+                  dormant         0.6     1.45    0.1625    20
+                   on-off       -12.7    -9.45   <0.0001    20
+    position-inconsistent         1.7     2.93    0.0086    20
+                   benign        -1.3    -6.98   <0.0001    20
+
+   13dim  MINUS  pub23
+             attack class    delta pp        t         p     n
+                 constant         3.6     4.02    0.0007    20
+                  dormant         2.2     3.61    0.0019    20
+                   on-off       -12.6    -9.68   <0.0001    20
+    position-inconsistent       -78.5   -52.24   <0.0001    20
+                   benign        -1.0    -4.07    0.0007    20
+
+   13dim  MINUS  gated23
+             attack class    delta pp        t         p     n
+                 constant         3.2     3.94    0.0009    20
+                  dormant         1.9     3.68    0.0016    20
+                   on-off       -13.0   -10.14   <0.0001    20
+    position-inconsistent       -78.7   -56.51   <0.0001    20
+                   benign        -0.6    -2.72    0.0137    20
+
+   pub18  MINUS  riskonly18
+             attack class    delta pp        t         p     n
+                 constant        -5.7    -6.24   <0.0001    20
+                  dormant        -2.8    -3.68    0.0016    20
+                   on-off        -2.5    -4.00    0.0008    20
+    position-inconsistent        -1.3    -3.24    0.0043    20
+                   benign         1.0     4.77    0.0001    20
+
+   pub18  MINUS  pub23
+             attack class    delta pp        t         p     n
+                 constant        -5.1    -4.42    0.0003    20
+                  dormant        -1.2    -2.04    0.0554    20
+                   on-off        -2.4    -4.63    0.0002    20
+    position-inconsistent       -81.5   -63.70   <0.0001    20
+                   benign         1.3     9.15   <0.0001    20
+
+   pub18  MINUS  gated23
+             attack class    delta pp        t         p     n
+                 constant        -5.5    -5.43   <0.0001    20
+                  dormant        -1.5    -2.63    0.0165    20
+                   on-off        -2.7    -3.96    0.0008    20
+    position-inconsistent       -81.7   -65.14   <0.0001    20
+                   benign         1.7    10.08   <0.0001    20
+
+   riskonly18  MINUS  pub23
+             attack class    delta pp        t         p     n
+                 constant         0.6     0.56    0.5805    20
+                  dormant         1.6     2.43    0.0253    20
+                   on-off         0.1     0.16    0.8775    20
+    position-inconsistent       -80.2   -61.68   <0.0001    20
+                   benign         0.3     1.29    0.2120    20
+
+   riskonly18  MINUS  gated23
+             attack class    delta pp        t         p     n
+                 constant         0.2     0.22    0.8296    20
+                  dormant         1.3     2.10    0.0493    20
+                   on-off        -0.3    -0.38    0.7112    20
+    position-inconsistent       -80.4   -63.93   <0.0001    20
+                   benign         0.7     3.55    0.0021    20
+
+   pub23  MINUS  gated23
+             attack class    delta pp        t         p     n
+                 constant        -0.4    -0.45    0.6581    20
+                  dormant        -0.3    -0.57    0.5770    20
+                   on-off        -0.4    -0.70    0.4936    20
+    position-inconsistent        -0.2    -0.36    0.7240    20
+                   benign         0.4     2.96    0.0081    20

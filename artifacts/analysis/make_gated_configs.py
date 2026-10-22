@@ -56,6 +56,11 @@ def main() -> int:
     # --- the 23-dimensional block-routed configuration --------------------
     gated = copy.deepcopy(load("spatial_position.json"))
     gated.setdefault("marl_training", {})["fusion"] = "gated"
+    # The modality head is a measurement instrument in the block-routed form:
+    # it reads the branch embeddings detached, so its loss trains the head
+    # and nothing else. With a zero weight it would stay at its
+    # initialisation and report nothing.
+    gated["marl_training"]["modality_loss_weight"] = 0.30
     gated["description"] = (
         "Spatial scenario, all three evidence blocks (23 dims), with the "
         "block-routed fusion. Each block has its own encoder and its own risk "
