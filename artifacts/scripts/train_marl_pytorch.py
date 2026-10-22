@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from marl_policy import (
+    GatedTrustPolicyNet,
     LinearRiskNet,
     MODALITY_CLASSES,
     RiskOnlyNet,
@@ -17,6 +18,7 @@ from marl_policy import (
     action_targets,
     baseline_feature_view,
     extract_marl_policy_features,
+    feature_blocks,
     heuristic_weight_targets,
     modality_targets,
     resolve_spatial_adjacency,
@@ -247,7 +249,22 @@ def main() -> None:
     val_x = torch.tensor(xs[val_idx], dtype=torch.float32, device=device)
     val_y = torch.tensor(y[val_idx], dtype=torch.float32, device=device)
 
-    model = TrustPolicyNet(input_dim=xs.shape[1]).to(device)
+    # The fusion form is a configuration choice, and the default is the
+    # published single-encoder model. The block-routed form exists because
+    # the measurement in artifacts/analysis/modality_head_cost.py showed the
+    # shared encoder's auxiliary supervision costs 8.7 points of
+    # constant-attacker detection in the spatial scenario, while costing the
+    # feature-matched control nothing.
+    fusion = str(config.raw["marl_training"].get("fusion", "single"))
+    blocks = None
+    if fusion == "gated":
+        blocks = feature_blocks(feature_names)
+        model = GatedTrustPolicyNet(xs.shape[1], blocks).to(device)
+        print(f"block-routed fusion: {[(n, len(i)) for n, i in blocks]}")
+    elif fusion == "single":
+        model = TrustPolicyNet(input_dim=xs.shape[1]).to(device)
+    else:
+        raise SystemExit(f"unknown marl_training.fusion: {fusion!r}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=float(config.raw["marl_training"]["weight_decay"]))
     bce = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([float(config.raw["marl_training"]["positive_class_weight"])], device=device))
     ce = nn.CrossEntropyLoss()
@@ -369,6 +386,9 @@ def main() -> None:
         "checkpoint_path": str(checkpoint_rel),
         "input_dim": int(xs.shape[1]),
         "feature_names": feature_names,
+        "fusion": fusion,
+        "feature_blocks": ([[name, [int(i) for i in idx]]
+                            for name, idx in blocks] if blocks else []),
         "mean": mean.tolist(),
         "std": std.tolist(),
         "threshold": threshold,
