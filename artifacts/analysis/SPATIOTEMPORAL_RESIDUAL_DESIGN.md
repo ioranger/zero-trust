@@ -1,8 +1,15 @@
 # Spatio-Temporal Residual Shape (STS) block — executable design
 
-Status: **proposal, not implemented.** Nothing in this document has been written
-into the generator, the feature extractor, or the manuscript. This file exists
-so the design can be reviewed before any of it is built.
+Status: **proposal, not implemented, and not scheduled.** Nothing in this document
+has been written into the generator, the feature extractor, or the manuscript.
+This file exists so the design can be reviewed before any of it is built.
+
+**Not on the manuscript's critical path.** The work that would test it has been
+deferred: the two diagnostic arms that were run in the meantime
+(`spatial_position_riskonly` and `spatial_position_gated`) both came back
+negative, and the manuscript now carries that result instead of a proposal. The
+measurements that settle the question are in `operating_point_probe.py` and
+`fusion_protocol_check.py`.
 
 Owner: the S-TIM artifact, `F:\zero trust\zero-trust`
 Related: `artifacts/analysis/SPATIAL_STUDY.md`, `artifacts/analysis/modality_complementarity.py`
