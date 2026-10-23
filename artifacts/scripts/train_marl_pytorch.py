@@ -172,6 +172,58 @@ def metric_row(epoch: int, loss: float, y_true: np.ndarray, risk: np.ndarray, th
     }
 
 
+def _focal_bce(logits, target, pos_weight, gamma):
+    """Binary focal loss: the same binary cross-entropy, with a per-example
+    factor (1 - p_t)^gamma that down-weights the examples the model already
+    gets right and up-weights the ones it gets wrong.
+
+    The motivation here is measured, not assumed. In the spatially
+    inconsistent scenario the forgers that the published arm misses still carry
+    a larger neighbourhood-relative residual than the benign population does
+    (1.10 against 0.59 on the standardised features), so their evidence is
+    present and the decision boundary, not the representation, is what leaves
+    them on the wrong side. The modulating factor moves that boundary towards
+    the hard examples without changing the input, the thresholds or the
+    generator.
+
+    The published configurations do not set `marl_training.risk_loss`, so they
+    keep the plain binary cross-entropy and are bit-for-bit unaffected.
+    """
+    import torch
+
+    ce = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits, target, reduction="none", pos_weight=pos_weight)
+    p = torch.sigmoid(logits)
+    p_t = p * target + (1.0 - p) * (1.0 - target)
+    return (((1.0 - p_t) ** gamma) * ce).mean()
+
+
+def _risk_loss_factory(mt, device, bce):
+    """The risk loss, selected by configuration.
+
+    Returns (callable, kind, gamma). The `bce` branch hands back the very same
+    `nn.BCEWithLogitsLoss` object the published path uses, so enabling
+    anything else cannot perturb the published runs.
+    """
+    import torch
+
+    kind = str(mt.get("risk_loss", "bce")).strip().lower()
+    if kind == "bce":
+        return bce, "bce", None
+    if kind == "focal":
+        gamma = float(mt.get("focal_gamma", 2.0))
+        pos_weight = getattr(bce, "pos_weight", None)
+        if pos_weight is None:
+            pos_weight = torch.tensor(
+                [float(mt["positive_class_weight"])], device=device)
+
+        def focal(logits, target):
+            return _focal_bce(logits, target, pos_weight, gamma)
+
+        return focal, "focal", gamma
+    raise SystemExit(f"unknown marl_training.risk_loss: {kind!r}")
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
@@ -267,6 +319,8 @@ def main() -> None:
         raise SystemExit(f"unknown marl_training.fusion: {fusion!r}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=float(config.raw["marl_training"]["weight_decay"]))
     bce = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([float(config.raw["marl_training"]["positive_class_weight"])], device=device))
+    risk_loss, risk_loss_kind, focal_gamma = _risk_loss_factory(
+        config.raw["marl_training"], device, bce)
     ce = nn.CrossEntropyLoss()
     mse = nn.MSELoss()
 
@@ -293,7 +347,7 @@ def main() -> None:
             batch_a = batch_a.to(device)
             batch_m = batch_m.to(device)
             out = model(batch_x)
-            loss_risk = bce(out["risk_logit"], batch_y)
+            loss_risk = risk_loss(out["risk_logit"], batch_y)
             loss_weight = mse(out["trust_weights"], batch_w)
             loss_action = ce(out["incentive_q"], batch_a)
             # Supervised auxiliary target derived directly from the class label.
@@ -322,7 +376,7 @@ def main() -> None:
         model.eval()
         with torch.no_grad():
             val_logits = model(val_x)["risk_logit"]
-            val_loss = float(bce(val_logits, val_y).detach().cpu())
+            val_loss = float(risk_loss(val_logits, val_y).detach().cpu())
         val_curve.append((epoch, val_loss))
         if val_loss < best_val - 1e-6:
             best_val = val_loss
@@ -422,6 +476,12 @@ def main() -> None:
             "value": value_loss_weight,
             "modality": modality_weight,
         },
+        "risk_loss": {
+            "kind": risk_loss_kind,
+            "focal_gamma": focal_gamma,
+            "positive_class_weight": float(
+                config.raw["marl_training"]["positive_class_weight"]),
+        },
         "modality_supervision": {
             "enabled": modality_weight > 0.0,
             "loss_weight": modality_weight,
@@ -495,6 +555,8 @@ def train_learned_baselines(
     generator = torch.Generator().manual_seed(seed + 7919)
     pos_weight = torch.tensor([float(config.raw["marl_training"]["positive_class_weight"])], device=device)
     bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    risk_loss, risk_loss_kind, focal_gamma = _risk_loss_factory(
+        config.raw["marl_training"], device, bce)
     batch_size = int(config.raw["marl_training"]["batch_size"])
 
     def split_of(rows):
@@ -539,7 +601,7 @@ def train_learned_baselines(
                 batch_x = batch_x.to(device)
                 batch_y = batch_y.to(device)
                 logits = baseline_model(batch_x)
-                loss = bce(logits, batch_y)
+                loss = risk_loss(logits, batch_y)
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 nn.utils.clip_grad_norm_(baseline_model.parameters(), 2.0)
@@ -548,7 +610,7 @@ def train_learned_baselines(
                 count += len(batch_x)
             baseline_model.eval()
             with torch.no_grad():
-                val_loss = float(bce(baseline_model(vx_dev), vy_dev).detach().cpu())
+                val_loss = float(risk_loss(baseline_model(vx_dev), vy_dev).detach().cpu())
             if val_loss < best_val - 1e-6:
                 best_val = val_loss
                 best_epoch = epoch
@@ -587,6 +649,14 @@ def train_learned_baselines(
             "threshold": threshold,
             "selected_epoch": best_epoch,
             "validation_risk_loss": best_val,
+            # The comparator is trained with the same objective as the proposed
+            # model, so that a difference between them is not a difference in
+            # the training signal. The published configurations use the plain
+            # binary cross-entropy for both.
+            "risk_loss": {
+                "kind": risk_loss_kind,
+                "focal_gamma": focal_gamma,
+            },
             "training_metrics": metric_row(best_epoch, float("nan"), y, risk, threshold),
             "train_fit_metrics": metric_row(best_epoch, float("nan"), y[fit_idx], risk[fit_idx], threshold),
             "validation_metrics": metric_row(best_epoch, float("nan"), y[val_idx], risk[val_idx], threshold),
