@@ -58,6 +58,9 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `extract_search_results.py` | Reassembles a chunked search artifact and prints its result list. |
 | `pdf_find_page.py` | Finds the page on which a phrase appears in the built PDF. |
 | `spatial_arms_final_compare.py` | Puts the five spatial-scenario arms side by side: per-class detection rate, the class-macro-average, the population-weighted accuracy and the paired tests, so the two summaries can be read together. |
+| `fusion_protocol_check.py` | The main protocol against the same-input fusion protocol, per class and per method: it shows that the spatial advantage is a property of the neighbourhood block, not of the encoder. |
+| `gate_routing_probe.py` | Where the block-routed gate sends each attack class, and what the per-class rates would be if the routing were forced: it separates a routing failure from a branch failure. |
+| `operating_point_probe.py` | The same arms at a matched benign false-positive rate: each method's cut is chosen on the held-out validation seeds, and the AUCs are reported next to the rates. |
 | `run_spatial_arms.ps1` | Builds the two diagnostic arms in sequence and snapshots each one into `artifacts/runs/<arm>`. |
 
 ## `runs/`

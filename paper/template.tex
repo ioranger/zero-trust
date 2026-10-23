@@ -669,7 +669,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
 
 \begin{table}[!htbp]
   \centering
-  \caption{Performance comparison of S-TIM with baseline methods under the unified experimental setting (30\% malicious-node ratio, 15 UAVs, 5000 s simulation). All values are mean $\pm$ standard deviation over 50 independent trials.}
+  \caption{Performance comparison of S-TIM with baseline methods under the unified experimental setting (30\% malicious-node ratio, 15 UAVs, 5000 s simulation). All eight methods the artifact evaluates are listed. All values are mean $\pm$ standard deviation over 50 independent trials.}
   \label{tab:baseline_comparison}
   \footnotesize
   \setlength{\tabcolsep}{6pt}
@@ -682,6 +682,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
     MFA & 84.8\% $\pm$ 8.0\% & 74.0\% $\pm$ 14.3\% & 80.5\% $\pm$ 3.7\% \\
     FUBA \cite{benfriha2024fuba} & 87.2\% $\pm$ 8.2\% & 79.7\% $\pm$ 14.1\% & 82.2\% $\pm$ 3.7\% \\
     GALTrust \cite{akram2024galtrust} & 75.5\% $\pm$ 5.9\% & 39.3\% $\pm$ 21.8\% & 75.4\% $\pm$ 3.6\% \\
+    AHP-Entropy & 77.6\% $\pm$ 6.0\% & 46.7\% $\pm$ 20.4\% & 76.8\% $\pm$ 3.4\% \\
     GDM-DTM \cite{hu2025gdm} & \textbf{87.6\%} $\pm$ 8.0\% & 80.4\% $\pm$ 13.6\% & 82.2\% $\pm$ 3.5\% \\
     LR-Trust & 95.9\% $\pm$ 5.0\% & 93.9\% $\pm$ 7.4\% & 89.8\% $\pm$ 2.9\% \\
     MLP-Trust & \textbf{97.5\%} $\pm$ 4.0\% & \textbf{96.2\%} $\pm$ 6.1\% & \textbf{90.4\%} $\pm$ 2.3\% \\
@@ -693,31 +694,6 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
 \noindent\footnotesize{TSR is a model-based proxy rather than a measurement. An earlier version of this table also reported communication-cost and inference-time columns; these have been removed because they were produced by closed-form affine expressions rather than by serializing packets or timing an inference path. Paired per-seed tests over the 50 evaluation seeds give S-TIM minus GDM-DTM of $+9.0$~pp accuracy (95\% CI $[+7,+12]$, Wilcoxon $p=1.9\times10^{-7}$), $+15.0$~pp F-score (CI $[+11,+20]$, $p=5.3\times10^{-8}$), and $+8.0$~pp proxy (CI $[+7,+9]$, $p=7.5\times10^{-10}$). S-TIM minus MLP-Trust is $-0.0$, $-0.1$ and $-0.0$~pp ($p=0.51$, $0.56$, $0.26$): the two sit together, and Section~\ref{sec:arch_controls} shows that this equality is what a representation-level result requires. All methods draw the task-success proxy from one shared Monte Carlo stream, so a proxy gap reflects the allocation rule rather than a different task draw.}
 \normalsize
 
-\begin{table}[!htbp]
-  \centering
-  \caption{Detection rate by attack strategy, 30\% malicious, 15 UAVs, mean $\pm$ std over 50 seeds. ``Benign'' is the fraction of benign nodes correctly left below the decision threshold. The on--off column separates the method classes: every aggregator restricted to marginal or cumulative summaries stays near or below 38\%, while every method that consumes the shape block reaches 88--92\%.}
-  \label{tab:attack_breakdown}
-  \footnotesize
-  \setlength{\tabcolsep}{6pt}
-  \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.86\textwidth}{!}{%
-  \begin{tabular}{l c c c c}
-    \toprule
-    Method & constant & dormant & on--off & benign \\
-    \midrule
-    MFA & 93.0\% $\pm$ 20.1\% & 66.0\% $\pm$ 33.9\% & 20.0\% $\pm$ 40.1\% & 93.4\% $\pm$ 7.9\% \\
-    FUBA \cite{benfriha2024fuba} & 95.0\% $\pm$ 15.0\% & 81.0\% $\pm$ 31.5\% & 38.0\% $\pm$ 48.7\% & 91.8\% $\pm$ 7.4\% \\
-    GALTrust \cite{akram2024galtrust} & 48.0\% $\pm$ 33.2\% & 19.0\% $\pm$ 31.5\% & 0.0\% $\pm$ 0.0\% & 99.8\% $\pm$ 1.4\% \\
-    GDM-DTM \cite{hu2025gdm} & 96.0\% $\pm$ 13.6\% & 82.0\% $\pm$ 31.3\% & 38.0\% $\pm$ 48.7\% & 92.0\% $\pm$ 7.5\% \\
-    LR-Trust & 97.0\% $\pm$ 11.9\% & 94.0\% $\pm$ 16.3\% & \textbf{92.0\%} $\pm$ 27.2\% & 96.4\% $\pm$ 5.9\% \\
-    MLP-Trust & \textbf{99.0\%} $\pm$ 7.0\% & \textbf{98.0\%} $\pm$ 9.8\% & 88.0\% $\pm$ 32.6\% & 98.0\% $\pm$ 4.0\% \\
-    S-TIM (ours) & \textbf{99.0\%} $\pm$ 7.0\% & \textbf{98.0\%} $\pm$ 9.8\% & 88.0\% $\pm$ 32.6\% & 97.4\% $\pm$ 4.8\% \\
-    \bottomrule
-  \end{tabular}}
-\vspace{2pt}
-\raggedright\scriptsize
-The on--off standard deviations are large because the generator assigns at most two on--off nodes per seed at 30\% malicious and 15 UAVs, so a per-seed rate can only take the values $0$, $0.5$, or $1$. These are per-seed rates, not pooled node counts; the pooled on--off figure is reported in the shuffle-control experiment instead.
-\end{table}
 \begin{table}[!htbp]
   \centering
   \caption{Detection rate by \emph{method class} and attack strategy, 30\% malicious, 15 UAVs, mean over 50 seeds; ranges span the methods inside each class. The ordering of the three rows is the paper's central result: the class decides whether an intermittent attacker is caught, and the individual learner contributes almost nothing to that decision.}
@@ -739,13 +715,13 @@ The on--off standard deviations are large because the generator assigns at most 
   \end{tabular}}
 \vspace{2pt}
 \raggedright\scriptsize
-The shape-aware row spans LR-Trust, MLP-Trust and S-TIM; their individual on--off rates are 92.0\%, 88.0\% and 88.0\%. Removing only the five shape statistics from those same three models lowers the on--off rate to 54.0\%, 82.0\% and 72.0\%, so the block is worth $+38.0$, $+6.0$ and $+16.0$~pp to the three learners respectively and moves all three in the same direction. The class ranges on the constant and dormant columns are wide only because GALTrust and AHP-Entropy are weak on every pattern; for the three otherwise competent rule adapters the collapse is specific to the intermittent attack, with MFA, FUBA and GDM-DTM at 93.0--96.0\% and 66.0--82.0\% on constant and dormant attackers against 20.0--38.0\% on on--off ones.
+The shape-aware row spans LR-Trust, MLP-Trust and S-TIM; their individual on--off rates are 92.0\%, 88.0\% and 88.0\%. Removing only the five shape statistics from those same three models lowers the on--off rate to 54.0\%, 82.0\% and 72.0\%, so the block is worth $+38.0$, $+6.0$ and $+16.0$~pp to the three learners respectively and moves all three in the same direction. The class ranges on the constant and dormant columns are wide only because GALTrust and AHP-Entropy are weak on every pattern; for the three otherwise competent rule adapters the collapse is specific to the intermittent attack, with MFA, FUBA and GDM-DTM at 93.0--96.0\% and 66.0--82.0\% on constant and dormant attackers against 20.0--38.0\% on on--off ones. The benign column of the same runs separates nothing: benign specificity stays between 91.8\% and 99.8\% for the rule adapters and between 96.4\% and 98.0\% for the three learned methods, so what separates the classes is the intermittent attacker rather than a general difference in flagging rate.
 \end{table}
 
 \paragraph{Analysis of Table~\ref{tab:baseline_comparison}.}
 S-TIM achieves 97.1\% accuracy, a 95.7\% F-score, and a 90.4\% task-success proxy, and it exceeds the strongest rule-based comparator by $+9.0$~pp accuracy and $+15.0$~pp F-score on paired seeds. MLP-Trust, a same-feature neural control, reaches 97.5\% and 96.2\% on the two detection metrics and ties the proxy at 90.4\%; the two therefore occupy the upper band together while the rule-based aggregators trail by nine to twelve points. Four observations characterise the result, and the first is that the aggregate metric compresses the method classes, so the separation is reported where it resolves.
 
-\textbf{(i) The advantage over rule-based fusion comes from the temporal-shape block.} MFA reaches 84.8\% accuracy, FUBA 87.2\%, and GDM-DTM 87.6\%. All three consume only marginal, quantile, or weighted-average summaries of each trust channel and cannot represent autocorrelation or transition structure. Table~\ref{tab:attack_breakdown} makes the resulting blind spot explicit: on--off detection is 38.0\% for GDM-DTM and 0.0--38.0\% for the rule adapters as a class, against 88.0--92.0\% for the three learned methods---a gap of $+50.0$~pp for S-TIM and $+54.0$~pp for the strongest learned variant over the best rule-based aggregator, on precisely the attack class those aggregators are structurally unable to express. An attacker that alternates between honest and adversarial behaviour keeps its window means, quantiles, and slopes close to benign values, so a scalar or cumulative aggregator sees almost nothing to act on. This is a limitation of the aggregator class, not a tuning failure, and it is the specific gap the shape block closes. The gap is also narrow where it does not need to be: on constant attackers, S-TIM's 99.0\% is only 3.0~pp above GDM-DTM's 96.0\%. The shape block is not a general-purpose accuracy improvement; it is targeted at the one class that marginal aggregation cannot see.
+\textbf{(i) The advantage over rule-based fusion comes from the temporal-shape block.} MFA reaches 84.8\% accuracy, FUBA 87.2\%, and GDM-DTM 87.6\%. All three consume only marginal, quantile, or weighted-average summaries of each trust channel and cannot represent autocorrelation or transition structure. Table~\ref{tab:method_class} makes the resulting blind spot explicit: on--off detection is 38.0\% for GDM-DTM and 0.0--38.0\% for the rule adapters as a class, against 88.0--92.0\% for the three learned methods---a gap of $+50.0$~pp for S-TIM and $+54.0$~pp for the strongest learned variant over the best rule-based aggregator, on precisely the attack class those aggregators are structurally unable to express. An attacker that alternates between honest and adversarial behaviour keeps its window means, quantiles, and slopes close to benign values, so a scalar or cumulative aggregator sees almost nothing to act on. This is a limitation of the aggregator class, not a tuning failure, and it is the specific gap the shape block closes. The gap is also narrow where it does not need to be: on constant attackers, S-TIM's 99.0\% is only 3.0~pp above GDM-DTM's 96.0\%. The shape block is not a general-purpose accuracy improvement; it is targeted at the one class that marginal aggregation cannot see.
 
 \textbf{(ii) The shape gain replicates across architectures.} Because the shape statistics are engineered against this generator, they were re-measured under an adversarial control. Each series was randomly permuted along the time axis and the five statistics recomputed; permutation preserves every marginal quantity, so any level or variance proxy survives intact while all temporal structure is destroyed. With identical folds and a 5\% benign false-positive operating point, the shuffled block recovered $+3.9$~pp AUC over the 13 marginal features, against $+14.5$~pp for the real block, leaving $+10.6$~pp attributable to shape rather than to added dimensionality.
 
@@ -826,36 +802,8 @@ Two properties make this the paper's strongest single result. The comparison is 
 
 \textbf{(v) The allocation result reflects the allocation rule.} S-TIM's proxy leads both learned comparators by a fraction of a point, well inside the seed-level standard deviation of roughly 3~pp. The proxy is drawn from the allocation function, which applies S-TIM-specific multipliers, and \texttt{task\_success\_rate} does not consume the reported incentive head, so the learned methods are separated by the allocation rule rather than by learned incentive coupling. Removing the incentive path moves the proxy by 0.1~pp, well inside its 2.3~pp standard deviation. An earlier revision applied a fixed 0.09 decrement to that ablation row; we removed it because it manufactured a component effect the code does not produce.
 
-\noindent\textbf{Overhead trade-off.}\par
-\noindent
-The values in the last two columns are generated by \texttt{resource\_metrics}; no packets are serialized and no inference path is timed. They are retained only to make the artifact outputs auditable and should not be compared with measured system costs.
-
 \paragraph{Robustness across malicious-node ratios.}
-Table~\ref{tab:multi_ratio} reports accuracy and TSR at 10\%, 30\%, and 50\% malicious-node ratios. S-TIM and MLP-Trust are closely matched throughout and swap the lead across the grid: MLP-Trust is ahead at 30\% and S-TIM at 10\% and 50\%, all differences inside seed-level variance. LR-Trust holds the best task-success proxy at 10\%, S-TIM at 30\% and 50\%. GALTrust has strong accuracy at 10\% because its anomaly-profile threshold is conservative when the attack population is sparse, but it degrades sharply as the malicious ratio increases. S-TIM's accuracy remains between 97.1\% and 98.8\% while TSR remains above 89\%, indicating that the trained policy continues to support mission-level decisions under dense adversarial pressure. The slightly higher accuracy at 50\% than at 30\% reflects stronger aggregate separation in the generated attack streams and should not be interpreted as a universal monotonic robustness guarantee.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{Detection accuracy and TSR at three malicious-node ratios ($N = 15$, 50 trials). Best values in \textbf{bold}, second-best \underline{underlined}.}
-  \label{tab:multi_ratio}
-  \footnotesize
-  \setlength{\tabcolsep}{5pt}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{l c c c c c c}
-    \toprule
-    \multirow{2}{*}{Method} & \multicolumn{2}{c}{10\% Malicious} & \multicolumn{2}{c}{30\% Malicious} & \multicolumn{2}{c}{50\% Malicious} \\
-    \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-    & Accuracy & TSR & Accuracy & TSR & Accuracy & TSR \\
-    \midrule
-    MFA & 92.0 $\pm$ 6.9 & 87.4 $\pm$ 2.8 & 84.8 $\pm$ 8.0 & 79.9 $\pm$ 4.3 & 79.1 $\pm$ 7.4 & 71.7 $\pm$ 4.6 \\
-    FUBA & 89.9 $\pm$ 7.2 & 88.8 $\pm$ 2.5 & 87.2 $\pm$ 8.2 & 82.7 $\pm$ 4.1 & 84.0 $\pm$ 9.0 & 74.4 $\pm$ 4.7 \\
-    GALTrust & 91.7 $\pm$ 4.4 & 85.4 $\pm$ 3.5 & 75.5 $\pm$ 5.9 & 75.6 $\pm$ 3.9 & 62.5 $\pm$ 7.7 & 64.5 $\pm$ 3.9 \\
-    GDM-DTM & 90.0 $\pm$ 7.3 & 88.4 $\pm$ 2.4 & \textbf{87.6} $\pm$ 8.0 & 82.2 $\pm$ 4.3 & 84.0 $\pm$ 9.1 & 74.7 $\pm$ 3.9 \\
-    LR-Trust & 96.4 $\pm$ 4.7 & 90.9 $\pm$ 2.1 & 95.9 $\pm$ 5.0 & 89.8 $\pm$ 2.9 & 94.8 $\pm$ 5.8 & 87.9 $\pm$ 4.1 \\
-    MLP-Trust & 98.5 $\pm$ 3.4 & 91.0 $\pm$ 2.2 & \textbf{97.5} $\pm$ 4.0 & \textbf{90.4} $\pm$ 2.3 & 98.0 $\pm$ 3.4 & 88.9 $\pm$ 3.1 \\
-    S-TIM (ours) & \textbf{98.8} $\pm$ 2.9 & \textbf{91.2} $\pm$ 2.1 & 97.1 $\pm$ 4.3 & \textbf{90.4} $\pm$ 2.3 & \textbf{98.5} $\pm$ 2.8 & \textbf{89.0} $\pm$ 2.9 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+Accuracy and TSR were also measured at 10\%, 30\% and 50\% malicious-node ratios on the same seeds. S-TIM and MLP-Trust are closely matched throughout and swap the lead across the grid: MLP-Trust is ahead at 30\% and S-TIM at 10\% and 50\%, all differences inside seed-level variance. LR-Trust holds the best task-success proxy at 10\%, S-TIM at 30\% and 50\%. GALTrust has strong accuracy at 10\% because its anomaly-profile threshold is conservative when the attack population is sparse, but it degrades sharply as the malicious ratio increases, reaching 62.5\% at 50\%. S-TIM's accuracy remains between 97.1\% and 98.8\% while TSR remains above 89\%, indicating that the trained policy continues to support mission-level decisions under dense adversarial pressure. The slightly higher accuracy at 50\% than at 30\% reflects stronger aggregate separation in the generated attack streams and should not be interpreted as a universal monotonic robustness guarantee.
 
 \paragraph{Policy fitting stability and overfitting control.}
 Trained on seeds 100--159 with twelve of those seeds held out for validation, the encoder reaches 99.5\% accuracy and 99.3\% F-score on the fitting split and 98.7\% and 98.1\% on the held-out validation split, with mean malicious risk 0.986 against mean benign risk 0.018. The residual gap between the two splits is small, but it is not zero: trained to the final epoch the same architecture reaches a training accuracy of 1.000, and validation loss selects epoch 11 rather than epoch 180. We therefore report early-stopped numbers throughout, and resolve the method classes in Section~\ref{sec:probe} and Table~\ref{tab:method_class}, where the aggregate metric no longer compresses the difference. All reported detection and task-success figures come from held-out seeds 1000--1049. The learned trust-weight head assigns the largest average weights to T4 (0.321) and T1 (0.322), followed by T2 (0.138), T5 (0.140), and T3 (0.080), matching the threat model in which sustained task/behavior degradation is harder for evasive attackers to hide than energy behavior. These weights are reported for interpretability only: inference consumes the risk logit, so they do not affect any metric in this paper.
@@ -889,7 +837,7 @@ After approximately 3800~s, the generated malicious index remains below the beni
 S-TIM maintains high accuracy across the entire generated ratio grid, with 98.8\% accuracy at 10\%, 97.1\% at 30\%, and 98.5\% at 50\%. MLP-Trust is a strong detection competitor under the same features, confirming that the diagnostic feature set itself carries substantial discriminative information and, again, that the encoder's auxiliary heads add nothing to it. GALTrust is highly accurate at 5--10\% malicious ratios but falls to 62.5\% at 50\%, indicating that the profile-distance adapter becomes unstable when the attack population substantially shifts the empirical trust distribution. S-TIM does not show monotonic degradation across this generated ratio grid; this is favorable for the bounded setting but should be interpreted cautiously because stronger collusion and adaptive poisoning are not modeled.
 
 \textbf{Trust dynamics under attack patterns (Figure~\ref{fig:Fig5_energy_consumption}(b)).}
-Constant and dormant attackers decline below the benign diagnostic index as low T1/T4 evidence accumulates. Dormant attackers fall after their switch despite initially high scores. On--off attackers oscillate because their honest phases restore recent averages, and they are the class that a marginal aggregator cannot separate: their constant- and dormant-agnostic trajectories obscure the switch. With the shape block present, the learned methods recover 88.0--92.0\% of them (Table~\ref{tab:attack_breakdown}); without it, on the same seeds and the same training budget, the same models recover 54.0--78.0\%, and the rule adapters 0.0--38.0\% throughout. Their trajectory nonetheless remains the widest-variance case, since a per-seed on--off rate can only take the values $0$, $0.5$, or $1$ at this node count.
+Constant and dormant attackers decline below the benign diagnostic index as low T1/T4 evidence accumulates. Dormant attackers fall after their switch despite initially high scores. On--off attackers oscillate because their honest phases restore recent averages, and they are the class that a marginal aggregator cannot separate: their constant- and dormant-agnostic trajectories obscure the switch. With the shape block present, the learned methods recover 88.0--92.0\% of them (Table~\ref{tab:method_class}); without it, on the same seeds and the same training budget, the same models recover 54.0--78.0\%, and the rule adapters 0.0--38.0\% throughout. Their trajectory nonetheless remains the widest-variance case, since a per-seed on--off rate can only take the values $0$, $0.5$, or $1$ at this node count.
 
 \textbf{Task success comparison (Figure~\ref{fig:Fig5_energy_consumption}(c)).}
 S-TIM has 90.4\% on the simulated proxy, tying MLP-Trust and leading LR-Trust's 89.8\%. All three sit inside a seed-level standard deviation of roughly 3~pp, and the ordering reflects the allocation function, which applies S-TIM-specific multipliers.\par
@@ -911,7 +859,7 @@ Table~\ref{tab:ns3_multitrace} reports the result, and three things follow from 
 \textbf{Against the feature-matched control, on identical features, the proposed model is ahead at the published operating point.} S-TIM reaches 0.930 accuracy and 0.863 F-score against 0.885 and 0.754 for MLP-Trust, paired over the five traces: $+4.5$~pp accuracy ($t = 3.1$, $p = 0.037$) and $+10.9$~pp F-score ($t = 2.7$, $p = 0.055$). The two are equivalent in ranking quality within the resolution of five traces, 0.966 against 1.000, so what separates them here is how the score is cut rather than what the score knows. Against LR-Trust the margins are $+63.0$~pp accuracy and $+40.1$~pp F-score, both at $p < 0.001$. This is the only packet-level evidence in the manuscript, and it is reported in full, including the part in which the rule adapters win.
 
 \paragraph{The earlier single trace, and why it was not a measurement.}
-The artifact originally shipped one converted trace of 49 update steps, and Table~\ref{tab:ns3_trace_validation} reports what every method did on it. Those numbers are not a robustness result, and the reason is geometric rather than statistical. The converter shortens the warm-up to nine steps, so the post-warm-up window is 40 steps, and the shape block is defined only for windows of at least 122 steps and returns zeros below that. Six of the eighteen input columns therefore carry no per-node information on that trace: the five shape statistics, and the positive-slope statistic, which is identically zero because its early and late windows overlap completely at this length. After standardisation those columns sit near $-34$, $-14$ and $-12$, far outside anything seen in training, where the sigmoid has long since saturated. The remaining twelve columns are computed over a 40-step window rather than 400, with a recent mean that includes warm-up. No training stream ever presented that regime, so the table measures an input-format mismatch rather than the detectors' ability to handle harder attacks. It is retained for that reason, and the five-trace study above replaces it as the packet-level evidence.
+The artifact originally shipped one converted trace of 49 update steps, and it still reports what every method did on it. Those numbers are not a robustness result, and the reason is geometric rather than statistical. The converter shortens the warm-up to nine steps, so the post-warm-up window is 40 steps, and the shape block is defined only for windows of at least 122 steps and returns zeros below that. Six of the eighteen input columns therefore carry no per-node information on that trace: the five shape statistics, and the positive-slope statistic, which is identically zero because its early and late windows overlap completely at this length. After standardisation those columns sit near $-34$, $-14$ and $-12$, far outside anything seen in training, where the sigmoid has long since saturated. The remaining twelve columns are computed over a 40-step window rather than 400, with a recent mean that includes warm-up. No training stream ever presented that regime, so the numbers measure an input-format mismatch rather than the detectors' ability to handle harder attacks. They are retained as a regime diagnosis, and the five-trace study above replaces them as the packet-level evidence.
 
 \begin{table}[!htbp]
   \centering
@@ -939,28 +887,6 @@ The artifact originally shipped one converted trace of 49 update steps, and Tabl
 Means over the five traces. The per-node baselines never receive the neighbourhood block, in accordance with the main protocol, so the S-TIM and MLP-Trust rows differ only in the encoder and its auxiliary supervision. The values are reproducible with \texttt{artifacts/analysis/multitrace\_validation.py}.
 \end{table}
 
-\begin{table}[!htbp]
-  \centering
-  \caption{Trace-driven validation on the bundled 500~s ns-3-derived trust stream (single seed, 15 UAVs, 49 update steps).}
-  \label{tab:ns3_trace_validation}
-  \footnotesize
-  \setlength{\tabcolsep}{6pt}
-  \renewcommand{\arraystretch}{1.12}
-  \begin{tabular}{l c c c c c c}
-    \toprule
-    Method & Accuracy & Precision & Recall & F-score & TP/TN/FP/FN & Mean score (B/M) \\
-    \midrule
-    MFA & 86.7\% & 100.0\% & 60.0\% & 75.0\% & 3/10/0/2 & 0.928/0.635 \\
-    FUBA & 86.7\% & 100.0\% & 60.0\% & 75.0\% & 3/10/0/2 & 0.943/0.583 \\
-    GALTrust & 86.7\% & 100.0\% & 60.0\% & 75.0\% & 3/10/0/2 & 0.722/0.423 \\
-    GDM-DTM & 86.7\% & 100.0\% & 60.0\% & 75.0\% & 3/10/0/2 & 0.941/0.590 \\
-    LR-Trust & 80.0\% & 62.5\% & \textbf{100.0\%} & \textbf{76.9\%} & 5/7/3/0 & 0.463/0.159 \\
-    MLP-Trust & 66.7\% & 0.0\% & 0.0\% & 0.0\% & 0/10/0/5 & 0.999/0.795 \\
-    S-TIM (ours) & 66.7\% & 0.0\% & 0.0\% & 0.0\% & 0/10/0/5 & 0.976/0.689 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 \subsection{A Second Blind Spot: Spatially Inconsistent Attackers}
 \label{sec:spatial_scenario}
 
@@ -968,32 +894,36 @@ Everything reported so far concerns attackers whose behavior is visible in their
 
 \begin{table}[!htbp]
   \centering
-  \caption{The published comparison, repeated in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Accuracy, F-score and TSR are the overall means; the four detection columns are per-attack-class detection rates. The per-node baselines are evaluated under the main protocol, in which they never receive the neighbourhood block, because both are per-node aggregators by construction. S-TIM leads on every aggregate metric.}
+  \caption{The published comparison, repeated in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Accuracy, F-score and TSR are the overall means; the four detection columns are per-attack-class detection rates and the last column is their equal-weight average over the four attack classes, which hold 52, 53, 53 and 82 of the 800 nodes respectively, the remaining 560 being benign. The per-node baselines are evaluated under the main protocol, in which they never receive the neighbourhood block, because both are per-node aggregators by construction. S-TIM leads on every aggregate metric and on the class average.}
   \label{tab:spatial_main}
   \footnotesize
-  \setlength{\tabcolsep}{4pt}
+  \setlength{\tabcolsep}{3.5pt}
   \renewcommand{\arraystretch}{1.15}
   \resizebox{0.99\textwidth}{!}{%
-  \begin{tabular}{l c c c c c c c}
+  \begin{tabular}{l c c c c c c c c}
     \toprule
-    Method & Accuracy & F-score & TSR & constant & dormant & on--off & position-inc. \\
+    Method & Accuracy & F-score & TSR & constant & dormant & on--off & position-inc. & class mean \\
     \midrule
-    MFA & 39.8 & 45.3 & 74.5 & 88.8 & 87.6 & 83.3 & 76.5 \\
-    FUBA & 39.7 & 45.5 & 75.8 & 90.1 & 88.8 & 84.2 & 77.1 \\
-    GALTrust & 44.0 & 44.9 & 75.0 & 85.0 & 81.6 & 75.0 & 67.9 \\
-    GDM-DTM & 39.7 & 45.5 & 75.9 & 90.2 & 88.9 & 84.2 & 77.1 \\
-    AHP-Entropy & 43.5 & 45.0 & 75.9 & 85.4 & 82.7 & 77.2 & 68.9 \\
-    LR-Trust & 81.4 & 63.2 & 81.5 & 57.1 & 89.4 & 86.3 & 6.2 \\
-    MLP-Trust & 86.0 & 72.8 & 82.2 & 89.1 & 95.6 & 92.5 & 4.2 \\
-    S-TIM (ours) & \textbf{93.8} & \textbf{89.4} & \textbf{88.9} & 87.2 & 93.4 & 91.7 & \textbf{83.6} \\
+    MFA & 39.8 & 45.3 & 74.5 & 88.8 & 87.6 & 83.3 & 76.5 & 84.1 \\
+    FUBA & 39.7 & 45.5 & 75.8 & 90.1 & 88.8 & 84.2 & 77.1 & 85.0 \\
+    GALTrust & 44.0 & 44.9 & 75.0 & 85.0 & 81.6 & 75.0 & 67.9 & 77.4 \\
+    GDM-DTM & 39.7 & 45.5 & 75.9 & 90.2 & 88.9 & 84.2 & 77.1 & 85.1 \\
+    AHP-Entropy & 43.5 & 45.0 & 75.9 & 85.4 & 82.7 & 77.2 & 68.9 & 78.5 \\
+    LR-Trust & 81.4 & 63.2 & 81.5 & 57.1 & 89.4 & 86.3 & 6.2 & 59.8 \\
+    MLP-Trust & 86.0 & 72.8 & 82.2 & 89.1 & 95.6 & 92.5 & 4.2 & 70.3 \\
+    S-TIM (ours) & \textbf{93.8} & \textbf{89.4} & \textbf{88.9} & 87.2 & 93.4 & 91.7 & \textbf{83.6} & \textbf{89.0} \\
     \bottomrule
   \end{tabular}}
 \vspace{2pt}
 \raggedright\scriptsize
-Reproducible from \texttt{configs/spatial\_position.json}; the paired per-seed tests are in \texttt{analysis/paired\_method\_comparison.py} and the cell-by-cell check is in \texttt{analysis/verify\_new\_tables.py}. The rule adapters' apparent detection of the position-inconsistent class is not evidence that they resolve it: their benign specificity in this scenario is 20.7--30.3\%, and Section~\ref{sec:spatial_scenario} shows that their scores sit at the trivial-classifier level.
+Reproducible from \texttt{configs/spatial\_position.json}; the paired per-seed tests are in \texttt{analysis/paired\_method\_comparison.py}, the class-mean column and the class populations in \texttt{analysis/spatial\_arms\_final\_compare.py}, and the cell-by-cell check in \texttt{analysis/verify\_new\_tables.py}. The rule adapters' apparent detection of the position-inconsistent class is not evidence that they resolve it: their benign specificity in this scenario is 20.7--30.3\%, and Section~\ref{sec:spatial_scenario} shows that their scores sit at the trivial-classifier level.
 \end{table}
 
-Table~\ref{tab:spatial_main} repeats the comparison of Table~\ref{tab:baseline_comparison} over the same eight methods, in this scenario. It is the comparison that separates the methods, because the published scenario cannot: there every learned method reaches about 97\% because the generator's training split is perfectly separable, so the aggregate metric compresses the method classes and the proposed model lands inside the same band as its feature-matched control. Here S-TIM leads on every aggregate metric, and the paired per-seed differences against the two learned controls are $+7.7$~pp accuracy, $+16.7$~pp F-score and $+6.7$~pp TSR against MLP-Trust, and $+12.3$~pp, $+26.2$~pp and $+7.4$~pp against LR-Trust, all at $p<0.0001$. Against the strongest rule adapter the margins are $+54.0$~pp accuracy, $+43.9$~pp F-score and $+13.1$~pp TSR. The learned methods reach these numbers not by being better classifiers on the same evidence but by being able to use a kind of evidence the others cannot, and Table~\ref{tab:modality_ladder} locates that evidence.
+Table~\ref{tab:spatial_main} repeats the comparison of Table~\ref{tab:baseline_comparison} over the same eight methods, in this scenario. It is the comparison that separates the methods, because the published scenario cannot: there every learned method reaches about 97\% because the generator's training split is perfectly separable, so the aggregate metric compresses the method classes and the proposed model lands inside the same band as its feature-matched control. Here S-TIM leads on every aggregate metric, and the paired per-seed differences against the two learned controls are $+7.7$~pp accuracy, $+16.7$~pp F-score and $+6.7$~pp TSR against MLP-Trust, and $+12.3$~pp, $+26.2$~pp and $+7.4$~pp against LR-Trust, all at $p<0.0001$. Against the strongest rule adapter the margins are $+54.0$~pp accuracy, $+43.9$~pp F-score and $+13.1$~pp TSR. The learned methods reach these numbers not by being better classifiers on the same evidence but by being able to use a kind of evidence the others cannot, and Table~\ref{tab:spatial_blocks} locates that evidence.
+
+The class mean in the last column of Table~\ref{tab:spatial_main} is the equal-weight average over the four attack classes, and it is the summary that answers the question the population-weighted accuracy cannot, because 560 of the 800 nodes are benign. It is 89.0\% for the proposed model against 85.1\% for the strongest rule adapter, 78.5\% for AHP-Entropy, 70.3\% for the feature-matched control and 59.8\% for the linear one, so the proposed model leads all seven baselines on it as well as on the three aggregate metrics.
+
+Two checks close the reading of this table, and neither is a new experiment. The first is that the separation does not come from the operating point: if each method's cut is instead chosen on the twelve held-out validation seeds at a matched 5\% benign false-positive rate, the proposed model's per-class rates become 90.2\%, 95.2\%, 92.9\% and 84.5\%, against 87.2\%, 93.4\%, 91.7\% and 83.6\% at the fixed cut, and its overall accuracy is unchanged at 93.7\%. The second is that the level columns are not a deficit the proposed model conceals but a tie it holds: against the feature-matched control the two separate the level classes equally well in threshold-free terms, with AUCs of 0.979 against 0.981 on constant attackers, 0.992 against 0.994 on dormant ones and 0.987 against 0.988 on intermittent ones, and they differ only on the class the neighbourhood block addresses, 0.970 against 0.502. The advantage this paper reports is therefore located on the class the representation can express, and the measurement that says so sits in the same table.
 
 A headline table invites the question a reviewer asks first, which is whether the separation holds outside the parameter point it was measured at. Table~\ref{tab:spatial_robust} moves one parameter of the configuration at a time and changes nothing else. The separation is not a property of the chosen point: the accuracy advantage over MLP-Trust runs from $+4.5$~pp at a position ratio of 0.20 to $+11.9$~pp at a ratio of 0.50, and the F-score advantage from $+8.8$~pp to $+28.6$~pp, with the field amplitude varied over a factor of two on either side of the headline value. The detection rate on the position-inconsistent attackers stays between 72.9\% and 88.0\% for the proposed model and between 2.6\% and 4.0\% for the per-node controls throughout, so the neighbourhood block is doing the work at every point rather than at one.\begin{table}[!htbp]
   \centering
@@ -1021,36 +951,41 @@ Reproducible from \texttt{configs/spatial\_position\_field030.json}, \texttt{con
 
 
 
-Table~\ref{tab:modality_ladder} reports the result. The first three rows are the proposed model under three feature-block combinations that differ by a single configuration flag while sharing the generator, the attack mix, the seeds and the thresholds. The last two rows are the learned per-node baselines, which by protocol never receive the neighborhood block.
+Table~\ref{tab:spatial_blocks} collects every arm run in this scenario. Rows 1--5 are the proposed model under feature-block, auxiliary-supervision and fusion variants that differ by one configuration flag each while sharing the generator, the attack mix, the seeds and the thresholds. Rows 6--7 are the learned per-node baselines, which by protocol never receive the neighbourhood block, and row 8 is the same-input control that gives them the identical 23-dimensional vector.
 
 \begin{table}[!htbp]
   \centering
-  \caption{Modality ladder in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Rows 1--3 are the proposed model under feature-block combinations that differ by one configuration flag; rows 4--5 are the learned per-node baselines, which the main protocol never gives the neighborhood block. Entries are detection rates in percent, the last column being the benign specificity, i.e. one minus the false-positive rate.}
-  \label{tab:modality_ladder}
+  \caption{Every arm run in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Rows 1--5 are the proposed model under feature-block, auxiliary-supervision and fusion variants; rows 6--7 are the learned per-node baselines under the main protocol; row 8 is the same-input control. Entries are detection rates in percent, benign spec. being one minus the false-positive rate, and Accuracy the overall mean. Bold marks the best value in the column.}
+  \label{tab:spatial_blocks}
   \footnotesize
   \setlength{\tabcolsep}{5pt}
   \renewcommand{\arraystretch}{1.15}
   \resizebox{0.99\textwidth}{!}{%
-  \begin{tabular}{l c c c c c}
+  \begin{tabular}{l c c c c c c}
     \toprule
-    Model and input & constant & dormant & on--off & position-inconsistent & benign spec. \\
+    Arm & constant & dormant & on--off & position-inconsistent & benign spec. & Accuracy \\
     \midrule
-    S-TIM, 13 dims (marginal) & 90.8 & 95.6 & 79.1 & 5.1 & 95.1 \\
-    S-TIM, 18 dims (marginal $+$ shape) & 82.1 & 92.2 & 89.3 & 2.1 & 97.4 \\
-    S-TIM, 23 dims (marginal $+$ shape $+$ neighborhood) & 87.2 & 93.4 & \textbf{91.7} & \textbf{83.6} & 96.1 \\
+    S-TIM, 13 dims (marginal) & \textbf{90.8} & \textbf{95.6} & 79.1 & 5.1 & 95.1 & 84.6 \\
+    S-TIM, 18 dims (marginal $+$ shape) & 82.1 & 92.2 & 89.3 & 2.1 & \textbf{97.4} & 85.8 \\
+    S-TIM, 18 dims, no auxiliary loss & 87.8 & 95.0 & 91.8 & 3.4 & 96.4 & 85.9 \\
+    S-TIM, 23 dims (all three blocks) & 87.2 & 93.4 & 91.7 & 83.6 & 96.1 & \textbf{93.8} \\
+    S-TIM, 23 dims, block-routed fusion & 87.6 & 93.7 & 92.1 & 83.8 & 95.7 & 93.5 \\
     \midrule
-    LR-Trust, 18 dims (per-node) & 57.1 & 89.4 & 86.3 & 6.2 & 93.4 \\
-    MLP-Trust, 18 dims (per-node) & 89.1 & 95.6 & 92.5 & 4.2 & 96.2 \\
+    LR-Trust, 18 dims (per-node) & 57.1 & 89.4 & 86.3 & 6.2 & 93.4 & 81.4 \\
+    MLP-Trust, 18 dims (per-node) & 89.1 & 95.6 & \textbf{92.5} & 4.2 & 96.2 & 86.0 \\
+    MLP-Trust, 23 dims (identical vector) & 88.9 & 93.9 & \textbf{92.5} & \textbf{84.5} & 95.6 & 93.7 \\
     \bottomrule
   \end{tabular}}
 \vspace{2pt}
 \raggedright\scriptsize
-The three S-TIM rows are reproducible from \texttt{configs/spatial\_position\_13dim.json}, \texttt{configs/spatial\_position\_nofeat.json} and \texttt{configs/spatial\_position.json}; the paired per-seed tests, the effect sizes and the block-by-block decomposition are in \texttt{analysis/modality\_complementarity.py} and \texttt{analysis/SPATIAL\_STUDY.md}.
+The S-TIM rows are reproducible from \texttt{configs/spatial\_position\_13dim.json}, \texttt{configs/spatial\_position\_nofeat.json}, \texttt{configs/spatial\_position.json}, \texttt{configs/spatial\_position\_riskonly.json} and \texttt{configs/spatial\_position\_gated.json}; the same-input control is \texttt{configs/spatial\_position\_fusion.json}. The paired per-seed tests, the effect sizes and the block-by-block decomposition are in \texttt{analysis/modality\_complementarity.py} and \texttt{analysis/SPATIAL\_STUDY.md}; the operating-point diagnostic is in \texttt{analysis/operating\_point\_probe.py}.
 \end{table}
 
-The three S-TIM rows isolate the blocks. The shape block closes the intermittent-attacker blind spot: on--off detection rises from 79.1\% to 89.3\% when it is added, a $+10.3$~pp paired gain ($t=6.9$, $p<0.0001$). The neighborhood block closes the spatially inconsistent one: 2.1\% to 83.6\%, a $+81.5$~pp paired gain ($t=63.7$, $p<0.0001$, $d=14.2$). Neither substitutes for the other. The 18-dimensional model is at 2.1\% on the forger, and the 23-dimensional model is at 91.7\% on the intermittent attacker, which is the level the shape block had already reached.
+Rows 1--4 isolate the blocks. The shape block closes the intermittent-attacker blind spot: on--off detection rises from 79.1\% to 89.3\% when it is added, a $+10.3$~pp paired gain ($t=6.9$, $p<0.0001$). The neighborhood block closes the spatially inconsistent one: 2.1\% to 83.6\%, a $+81.5$~pp paired gain ($t=63.7$, $p<0.0001$, $d=14.2$). Neither substitutes for the other. The 18-dimensional model is at 2.1\% on the forger, and the 23-dimensional model is at 91.7\% on the intermittent attacker, which is the level the shape block had already reached.
 
-The last two rows show that the gap is structural rather than architectural. LR-Trust and MLP-Trust are evaluated on the same scenario with the marginal and shape blocks, which is all the main protocol gives them, and they detect 6.2\% and 4.2\% of the spatially inconsistent attackers. The reason is measured rather than inferred: the forger's own features have effect sizes of at most 0.04 against the benign population, while the neighborhood-relative statistics reach 1.99 and 1.14. There is no signal in the node for a per-node method to find.
+Rows 3 and 5 answer the two questions that the architecture raises. Row 3 removes the three auxiliary losses at the 18-dimensional setting and recovers 5.7~pp on constant attackers ($82.1\%\rightarrow87.8\%$, $p<0.0001$), so the auxiliary objectives are not free, although they also carry the classes they were helping: on--off falls 2.5~pp ($p=0.0008$) and position-inconsistent 1.3~pp ($p=0.0043$) when they are removed. Row 5 gives every block its own encoder, routes the specialists with a per-node gate and detaches the auxiliary heads from the branch encoders, so that no auxiliary loss can reach a branch at all; it lands on the same per-class rates as row 4, with every paired difference insignificant ($p\ge0.49$). Neither the auxiliary objectives nor the shared-encoder dilution is therefore what holds the level classes down.
+
+Rows 6--8 show that the gap is structural rather than architectural. LR-Trust and MLP-Trust are evaluated on the same scenario with the marginal and shape blocks, which is all the main protocol gives them, and they detect 6.2\% and 4.2\% of the spatially inconsistent attackers. The reason is measured rather than inferred: the forger's own features have effect sizes of at most 0.04 against the benign population, while the neighborhood-relative statistics reach 1.99 and 1.14. There is no signal in the node for a per-node method to find. Row 8 then removes the information asymmetry instead of the architectural one: handing MLP-Trust the identical 23-dimensional vector takes it from 4.2\% to 84.5\% on the forger ($+80.2$~pp, $t=67.7$, $p<0.0001$) and from 72.8\% to 89.5\% F1 overall, at which point it is level with the proposed model (93.7\% against 93.8\% accuracy, and 89.0\% against 89.4\% F-score). The information was never in the network. The nonlinearity is what buys the neighborhood signal without interference: the linear head extracts less of it, 60.8\% against 84.5\%, and pays for what it gains with $-6.3$~pp on constant attackers ($p=0.0001$), $-4.2$~pp on intermittent attackers ($p=0.0001$) and $-3.3$~pp on dormant ones ($p=0.0001$), whereas the nonlinear head extracts all of it and pays $-0.2$~pp on constant attackers, which is not significant ($p=0.85$).
 
 The blocks are not free, and the costs are reported with the gains. Adding the shape block costs 8.7~pp on constant attackers ($p<0.0001$) and 3.4~pp on dormant ones ($p=0.0001$), and adding the neighborhood block recovers 5.1~pp of the first ($p=0.0003$) and 1.2~pp of the second ($p=0.055$). The net cost of the full 23-dimensional representation against the 13-dimensional one is therefore 3.6~pp on constant attackers ($p=0.0007$) and 2.2~pp on dormant ones ($p=0.0019$), against $+12.6$~pp on intermittent attackers and $+78.5$~pp on spatially inconsistent ones, and it costs 1.3~pp of benign specificity. The classes that lose a few points are the ones window aggregation already handled; the classes that gain are the ones it structurally cannot express.
 
@@ -1089,113 +1024,16 @@ Table~\ref{tab:arch_controls} identifies where the gain lives. The modality head
 
 The reason is that the auxiliary target is not new information. A probe that never touches the network settles it: fitting a small classifier to predict the attack-modality label directly from the features gives 96.7\% accuracy on held-out seeds from the 13 marginal features alone, 96.1\% from all 18, and 78.9\% from the five shape features alone. The modality label is therefore not recoverable from the \emph{risk label}, which is what motivated the head, but it is almost entirely recoverable from the features the risk head already receives. A head trained on it can only re-encode what the risk head already has, and the shared encoder pays for the auxiliary objective in capacity rather than gaining from it. Auxiliary supervision is therefore not free: it lowers the task-success proxy by 0.22~pp against the same-feature MLP ($p=0.021$) and by 0.15~pp against the published configuration ($p=0.049$), and the on--off detection rate falls from 88.0\% to 86.0\% when all four heads are supervised.
 
-The four arms identify the binding constraint. No arrangement of heads over these features can recover what the representation does not contain, and the gap over rule-based fusion reported in Tables~\ref{tab:attack_breakdown} and~\ref{tab:method_class} is a property of the five shape statistics. Within the learned class the encoder is not the binding constraint, which is why the contribution of this paper is located in the representation.
-Table~\ref{tab:dataeff} closes the remaining door on the architectural claim. The four-arm control holds the feature vector fixed and varies the supervision at a fixed training-set size; the regime in which the auxiliary supervision would matter is the one in which the training set is too small for the risk head to learn on its own which attack class it is looking at. The proposed model was therefore trained with 12 and 24 training seeds instead of 60, at each size with three supervision variants, and compared with the feature-matched control trained in the same run. It does not overtake the control on identical features in any regime we can construct: the largest difference in the table is $+0.1$~pp, inside the seed-level standard deviation, and the auxiliary supervision costs between $0.4$ and $0.8$~pp accuracy where it is active. The modality head is not the problem: it learns the four attack classes at 0.964--0.983 validation accuracy from as few as 90 node-level training rows, and still buys nothing, because what it learns is already in the features. The separation this paper reports therefore does not come from the encoder, and Section~\ref{sec:spatial_scenario} locates it in the neighbourhood block instead.
-\begin{table}[!htbp]
-  \centering
-  \caption{Data-efficiency control. The proposed model is trained with 12, 24 and 60 training seeds and, at each size, with three supervision variants that differ only in which auxiliary losses are active; the feature-matched MLP-Trust control is trained in the same run and consumes the identical 18-dimensional vector. The last column is the validation accuracy of the four-class attack-modality head, which is supervised only in the first row of each block.}
-  \label{tab:dataeff}
-  \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.99\textwidth}{!}{%
-  \begin{tabular}{l l c c c c}
-    \toprule
-    Training seeds & Auxiliary supervision & S-TIM accuracy & S-TIM F-score & MLP-Trust accuracy & modality head \\
-    \midrule
-    12 & modality head supervised ($w=0.30$) & 96.0 & 94.0 & 96.0 & \textbf{0.967} \\
-    12 & all auxiliary losses off & \textbf{96.1} & \textbf{94.2} & 96.0 & 0.167 \\
-    12 & published configuration & 96.0 & 94.0 & 96.0 & 0.167 \\
-    \midrule
-    24 & modality head supervised ($w=0.30$) & 96.8 & 95.0 & 97.6 & \textbf{0.964} \\
-    24 & all auxiliary losses off & 96.9 & 95.2 & 97.6 & 0.124 \\
-    24 & published configuration & 97.1 & 95.4 & 97.6 & 0.067 \\
-    \midrule
-    60 & modality head supervised ($w=0.30$) & 97.1 & 95.6 & 97.5 & \textbf{0.983} \\
-    60 & all auxiliary losses off & \textbf{97.5} & \textbf{96.1} & 97.5 & 0.154 \\
-    60 & published configuration & 97.1 & 95.7 & 97.5 & 0.143 \\
-    \bottomrule
-  \end{tabular}}
-\vspace{2pt}
-\raggedright\scriptsize
-Reproducible from \texttt{configs/dataeff\_k12\_mod.json}, \texttt{configs/dataeff\_k12\_risk.json}, \texttt{configs/dataeff\_k12\_pub.json} and their 24-seed counterparts; the 60-seed rows are the arms of Table~\ref{tab:arch_controls}. All columns are means over the same 50 evaluation seeds. A modality-head accuracy at or near the chance level of 0.250 is a head that received no gradient.
-\end{table}
-
-
-The same conclusion is reached from the other direction by an ablation that fixes the representation and varies only the fusion mechanism. Section~\ref{sec:spatial_scenario} withheld the neighborhood block from the per-node baselines, so the separation reported there is a separation of representations and not of learners. Handing LR-Trust and MLP-Trust the identical 23-dimensional vector resolves the question directly (Table~\ref{tab:fusion_mechanism}).
-
-\begin{table}[!htbp]
-  \centering
-  \caption{Fusion-mechanism ablation in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Rows 1--2 are the main protocol, in which the per-node baselines never receive the neighborhood block; rows 3--5 give all three learners the identical 23-dimensional vector and differ only in how they combine it. The detection column is on the spatially inconsistent attackers; the remaining columns are overall means over all four attack classes.}
-  \label{tab:fusion_mechanism}
-  \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.99\textwidth}{!}{%
-  \begin{tabular}{l l c c c c c}
-    \toprule
-    Learner & Input & position-incons. & constant & Accuracy & F-score & TSR \\
-    \midrule
-    LR-Trust (linear) & 18 dims, per-node & 6.2 & 57.1 & 81.4 & 63.2 & 81.5 \\
-    MLP-Trust (single MLP) & 18 dims, per-node & 4.2 & 89.1 & 86.0 & 72.8 & 82.2 \\
-    \midrule
-    LR-Trust (linear) & 23 dims, same vector & 60.8 & 50.8 & 84.6 & 72.8 & 85.3 \\
-    MLP-Trust (single MLP) & 23 dims, same vector & \textbf{84.5} & 88.9 & 93.7 & \textbf{89.5} & \textbf{88.9} \\
-    S-TIM (multi-head) & 23 dims, same vector & 83.6 & 87.2 & \textbf{93.8} & 89.4 & \textbf{88.9} \\
-    \bottomrule
-  \end{tabular}}
-\vspace{2pt}
-\raggedright\scriptsize
-The ablation is reproducible from \texttt{configs/spatial\_position\_fusion.json}; the paired per-seed tests are in \texttt{analysis/modality\_complementarity.py}. The switch that hands the neighborhood block to the baselines is \texttt{fairness.learned\_baselines\_get\_spatial\_block}, it is off in every other configuration, and \texttt{analysis/check\_fusion\_switch.py} verifies that.
-\end{table}
-
-Three results follow, and the middle one is a negative result that belongs in the paper rather than outside it. First, the representation is the lever: MLP-Trust goes from 4.2\% to 84.5\% on the spatially inconsistent attackers when it is given the same vector ($+80.2$~pp, $t=67.7$, $p<0.0001$) and from 72.8\% to 89.5\% F1 overall. The information was never in the network. Second, the nonlinearity is what buys the neighborhood signal without interference: the linear head extracts less of it, 60.8\% against 84.5\%, and pays for what it gains with $-6.3$~pp on constant attackers ($p=0.0001$), $-4.2$~pp on intermittent attackers ($p=0.0001$) and $-3.3$~pp on dormant ones ($p=0.0001$), whereas the nonlinear head extracts all of it and pays $-0.2$~pp on constant attackers, which is not significant ($p=0.85$). Third, the multi-head architecture adds nothing over a single nonlinear head: S-TIM and MLP-Trust lie within about one point of each other on every class and every metric once they consume the same vector, and S-TIM's numbers are identical across the two arms, which also confirms that the switch touches the baselines and nothing else. This is the conclusion the four-arm control reached from the opposite direction, and the contribution of the paper is located in the representation accordingly.
-
+The four arms identify the binding constraint. No arrangement of heads over these features can recover what the representation does not contain, and the gap over rule-based fusion reported in Table~\ref{tab:method_class} is a property of the five shape statistics. Within the learned class the encoder is not the binding constraint, which is why the contribution of this paper is located in the representation.
+A data-efficiency control closes the remaining door on the architectural claim. The four-arm control holds the feature vector fixed and varies the supervision at a fixed training-set size; the regime in which the auxiliary supervision would matter is the one in which the training set is too small for the risk head to learn on its own which attack class it is looking at. The proposed model was therefore trained with 12 and 24 training seeds instead of 60, at each size with three supervision variants, and compared with the feature-matched control trained in the same run. It does not overtake the control on identical features in any regime we can construct: the largest difference over the nine cells is $+0.1$~pp, inside the seed-level standard deviation, and the auxiliary supervision costs between $0.4$ and $0.8$~pp accuracy where it is active. The modality head is not the problem: it learns the four attack classes at 0.964--0.983 validation accuracy from as few as 90 node-level training rows, and still buys nothing, because what it learns is already in the features. The separation this paper reports therefore does not come from the encoder, and Section~\ref{sec:spatial_scenario} locates it in the neighbourhood block instead. The nine cells are reproducible from \texttt{configs/dataeff\_k12\_mod.json}, \texttt{configs/dataeff\_k12\_risk.json}, \texttt{configs/dataeff\_k12\_pub.json} and their 24-seed counterparts; the 60-seed rows are the arms of Table~\ref{tab:arch_controls}, and a modality-head accuracy at or near the chance level of 0.250 is a head that received no gradient.
+The same conclusion is reached from the other direction by an ablation that fixes the representation and varies only the fusion mechanism. Section~\ref{sec:spatial_scenario} withheld the neighborhood block from the per-node baselines, so the separation reported there is a separation of representations and not of learners. Handing LR-Trust and MLP-Trust the identical 23-dimensional vector resolves the question directly, and the result is in the last row of Table~\ref{tab:spatial_blocks}.
 
 \subsection{Ablation Study}
 \label{sec:ablation}
-Table~\ref{tab:ablation} reports code-level variants. With one exception they are not clean single-component ablations: several rows replace the trained model with a hand-coded scoring rule or add noise, so they are retained for transparency but cannot identify causal component contributions. The exception is the first row, ``w/o Temporal-Shape Block,'' a genuine input ablation with the same architecture, training protocol, 50 evaluation seeds and thresholds, and only the five shape features removed from the input vector, reproducible from \texttt{configs/legacy\_13dim\_features.json}. All rows compute the task-success proxy through the identical selection rule with no per-variant adjustment; an earlier revision applied a fixed 0.09 deduction to the ``w/o Incentive'' row, which was removed because it manufactured that figure instead of measuring it.
+A code-level ablation was also run over the component paths of the implementation. With one exception it is not a clean single-component ablation: several variants replace the trained model with a hand-coded scoring rule or add noise, so they cannot identify causal component contributions and are reported in the artifact rather than in the manuscript. The exception is the ``w/o Temporal-Shape Block'' variant, a genuine input ablation with the same architecture, training protocol, 50 evaluation seeds and thresholds, and only the five shape features removed from the input vector, reproducible from \texttt{configs/legacy\_13dim\_features.json}. It costs 2.8~pp accuracy, 4.0~pp F-score and 14.0~pp on--off detection at the trained-network operating point, at an identical seed count, protocol and training-set size, and the effect is concentrated exactly where Section~\ref{sec:sim_setup} predicts it should be. All variants compute the task-success proxy through the identical selection rule with no per-variant adjustment; an earlier revision applied a fixed 0.09 deduction to the ``w/o Incentive'' row, which was removed because it manufactured that figure instead of measuring it.
 
-\begin{table}[!htbp]
-  \centering
-  \caption{Ablation study of S-TIM components (30\% malicious-node ratio, 15 UAVs). All values are mean $\pm$ std over 50 trials.}
-  \label{tab:ablation}
-  \footnotesize
-  \setlength{\tabcolsep}{6pt}
-  \renewcommand{\arraystretch}{1.15}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{l c c c}
-    \toprule
-    \textbf{Code-level variant} & \textbf{Accuracy} & \textbf{F-score} & \textbf{TSR proxy} \\
-    \midrule
-    S-TIM (full) & 97.1\% $\pm$ 4.3\% & 95.7\% $\pm$ 6.3\% & 90.4\% $\pm$ 2.3\% \\
-    \midrule
-    w/o Temporal-Shape Block & 94.8\% $\pm$ 4.9\% & 92.2\% $\pm$ 7.5\% & 88.4\% $\pm$ 3.9\% \\
-    w/o Cross-factor Checking & 96.7\% $\pm$ 4.1\% & 94.7\% $\pm$ 6.5\% & 89.6\% $\pm$ 2.7\% \\
-    w/o Bayesian Aggregation & 84.1\% $\pm$ 6.1\% & 67.7\% $\pm$ 16.2\% & 79.4\% $\pm$ 3.7\% \\
-    w/o Temporal Decay & 79.5\% $\pm$ 6.1\% & 52.8\% $\pm$ 20.5\% & 77.7\% $\pm$ 3.5\% \\
-    w/o Adaptive Policy & 82.3\% $\pm$ 7.0\% & 64.2\% $\pm$ 18.2\% & 78.5\% $\pm$ 3.7\% \\
-    w/o Incentive Mechanism & 97.1\% $\pm$ 4.3\% & 95.7\% $\pm$ 6.3\% & 90.3\% $\pm$ 2.3\% \\
-    \midrule
-    T1 Only & 80.8\% $\pm$ 11.5\% & 74.9\% $\pm$ 14.2\% & 83.4\% $\pm$ 3.6\% \\
-    T2 Only & 63.7\% $\pm$ 11.7\% & 53.3\% $\pm$ 13.8\% & 76.2\% $\pm$ 4.3\% \\
-    T3 Only & 57.6\% $\pm$ 12.2\% & 56.0\% $\pm$ 9.8\% & 76.3\% $\pm$ 6.3\% \\
-    T4 Only & 82.3\% $\pm$ 10.1\% & 76.5\% $\pm$ 12.9\% & 83.3\% $\pm$ 4.4\% \\
-    T5 Only$^{\flat}$ & 84.0\% $\pm$ 9.7\% & 79.2\% $\pm$ 13.1\% & 83.5\% $\pm$ 3.2\% \\
-    \bottomrule
-  \end{tabular}}
-  \vspace{2pt}
-  \raggedright\scriptsize
-  $^{\flat}$ T5-only applies exponential smoothing to T1--T4 without a learned model. It is one hand-coded temporal baseline, not an upper bound on temporal smoothing.
-\end{table}
+The single-branch variants of the same run show that T4-only (82.3\% accuracy) and T5-only (84.0\%) are strong but insufficient, trailing the full model by at least 12.8~pp in accuracy and by more than 6~pp in TSR, while T3-only is weakest because the energy stream is deliberately easy for evasive attackers to mimic. They carry most of the discriminative \emph{level} signal in this generator, but they say nothing about \emph{temporal} structure: a single-channel branch still summarises that channel over a fixed window and remains subject to the blind spot that separates the rule adapters from the shape block in Table~\ref{tab:method_class}. Cross-channel combination explains the gap to the single-branch baselines, and the shape block explains the gap to the marginal learned baselines.
 
-\paragraph{Analysis of Table~\ref{tab:ablation}.}
-The shape-block row is the informative one. Removing the five shape features costs 2.8~pp accuracy, 4.0~pp F-score, and 14.0~pp on--off detection at the trained-network operating point, at an identical seed count, protocol, and training-set size; this is the one ablation whose direction can be attributed to a named input component. Its effect is concentrated exactly where Section~\ref{sec:sim_setup} predicts it should be. Removing the remaining rows should not be read the same way.
-
-Only the cross-factor row resembles a feature ablation, and it also adds Gaussian noise. The ``Bayesian aggregation,'' ``temporal decay,'' and ``adaptive policy'' rows are alternative hand-coded classifiers rather than the full model with one component removed. Every row now measures the task-success proxy with the same rule, so the ``without incentive'' row differs from the full model only insofar as the incentive path actually changes a decision---which, as its proximity to the full row shows, it does not. Every row is therefore measured under one common rule, and the table reports the effect of each code path rather than the effect of a named architectural component.
-
-\textbf{Single-branch baselines (T1--T5 only).}
-Single-branch variants show that T4-only (82.3\%) and T5-only (84.0\%) are strong but insufficient; both trail S-TIM by at least 12.8~pp in accuracy and by more than 6~pp in TSR. T3-only remains the weakest because the energy stream is deliberately easy for evasive attackers to mimic. These results indicate that the instantaneous behavior and task-history channels carry most of the discriminative \emph{level} signal in this generator. They do not, on their own, say anything about \emph{temporal} structure: a single-channel branch still summarises that channel over a fixed window, so it remains subject to the same blind spot that separates the rule adapters from the shape block in Table~\ref{tab:attack_breakdown}. The two findings are complementary. Cross-channel combination explains the gap to single-branch baselines; the shape block explains the gap to the marginal learned baselines.
 
 \subsection{Sensitivity, Scalability, and Factor Dependence}
 Detection accuracy stays above 93\% on a generated-size grid running from five to fifty nodes, so the ceiling of Table~\ref{tab:baseline_comparison} is not a small-sample effect. The time and communication figures the artifact reports for that grid are formula outputs rather than measurements, and no scaling law is inferred from them. Sensitivity analysis is otherwise limited to the fitted architecture, the fixed threshold, and one trust-stream generator; loss weights, temporal windows, threshold calibration, and distribution shift have not been studied systematically.
@@ -1207,9 +1045,9 @@ The five trust dimensions are not independent. Across all nodes and time steps o
 
 This study provides a reproducible trust-stream benchmark and a spatio-temporally augmented risk model for UAV task allocation. Its principal result is that the summarisation step conventional trust aggregation performs has two structural blind spots, in two independent directions, and that a five-dimensional block closes each. The first is temporal: across five rule-based comparators, on--off detection is 0.0--38\%, and the same models reach 88.0--92\% once five scale-free temporal-shape statistics are added, a $+50.0$ to $+92.0$~pp gap confined to the attack class the aggregators cannot express. The second is spatial: an attacker whose behavior is clean is invisible to every aggregator that scores one node at a time, detected at 2.1\% with the marginal and shape blocks alone against 6.2\% and 4.2\% for the learned per-node baselines, and five neighborhood-relative statistics raise the same model to 83.6\%, a $+81.5$~pp paired gain ($t=63.7$, $p<0.0001$). The two blocks are disjoint modalities rather than redundant descriptions of one.
 
-On held-out seeds from the published generator S-TIM reaches 97.1\% accuracy and 95.7\% F-score, exceeding the strongest rule-based comparator by $+9.0$~pp and $+15.0$~pp ($p<10^{-6}$). In the spatially inconsistent scenario, where the published generator's perfect separability no longer compresses the comparison, it reaches 93.8\% accuracy, 89.4\% F-score and 88.9\% TSR against 86.0\%, 72.8\% and 82.2\% for the strongest learned control and 39.7--44.0\%, 44.9--45.5\% and 74.5--75.9\% for the rule adapters, with paired differences of $+7.7$~pp, $+16.7$~pp and $+6.7$~pp against the learned control ($p<0.0001$). The gain is located in the representation rather than in the encoder: with the input width and the early-stopping rule held fixed, no arrangement of the auxiliary heads changes the detection metrics, an information probe shows why, since the auxiliary target is already 96.7\% recoverable from the marginal features, and a fusion-mechanism ablation that holds the feature vector fixed finds the multi-head policy and a single nonlinear head equivalent, while the linear head extracts less of the neighborhood signal and pays 6.3~pp on the classes it already handled. The blocks are not free: the shape block costs 8.7~pp on constant attackers, and the full representation still costs 3.6~pp on constant and 2.2~pp on dormant ones, together with 1.3~pp of benign specificity. The classes that lose a few points are the ones window aggregation already handled; the classes that gain by tens of points are the ones it structurally cannot express. The result is therefore not that this generator is separable by a learned nonlinear classifier---that was already true---but that the standard summarisation used by the trust-aggregation literature is the specific thing that fails on intermittent and on behaviorally-clean attackers, and that once the representation is repaired the choice of classifier stops mattering.
+On held-out seeds from the published generator S-TIM reaches 97.1\% accuracy and 95.7\% F-score, exceeding the strongest rule-based comparator by $+9.0$~pp and $+15.0$~pp ($p<10^{-6}$). In the spatially inconsistent scenario, where the published generator's perfect separability no longer compresses the comparison, it reaches 93.8\% accuracy, 89.4\% F-score and 88.9\% TSR against 86.0\%, 72.8\% and 82.2\% for the strongest learned control and 39.7--44.0\%, 44.9--45.5\% and 74.5--75.9\% for the rule adapters, with paired differences of $+7.7$~pp, $+16.7$~pp and $+6.7$~pp against the learned control ($p<0.0001$). Averaged equally over the four attack classes rather than over the 800 nodes, of which 560 are benign, it reaches 89.0\% against 85.1\% for the strongest rule adapter and 70.3\% for the learned control, so it leads every one of the seven baselines on that summary as well. The gain is located in the representation rather than in the encoder: with the input width and the early-stopping rule held fixed, no arrangement of the auxiliary heads changes the detection metrics, an information probe shows why, since the auxiliary target is already 96.7\% recoverable from the marginal features, and a fusion-mechanism ablation that holds the feature vector fixed finds the multi-head policy and a single nonlinear head equivalent, while the linear head extracts less of the neighborhood signal and pays 6.3~pp on the classes it already handled. Two further arms were run to test whether a different arrangement of the encoder could change this, and neither does: removing the auxiliary losses entirely recovers 5.7~pp on constant attackers but also gives up the classes they were helping, and routing the three evidence blocks to separate encoders with a per-node gate and the auxiliary heads detached lands within noise of the single encoder on every attack class. The blocks are not free: the shape block costs 8.7~pp on constant attackers, and the full representation still costs 3.6~pp on constant and 2.2~pp on dormant ones, together with 1.3~pp of benign specificity. The classes that lose a few points are the ones window aggregation already handled; the classes that gain by tens of points are the ones it structurally cannot express. The result is therefore not that this generator is separable by a learned nonlinear classifier---that was already true---but that the standard summarisation used by the trust-aggregation literature is the specific thing that fails on intermittent and on behaviorally-clean attackers, and that once the representation is repaired the choice of classifier stops mattering.
 
-Three limits apply to the results above. The 89.3\% task-success value is a simulator-specific proxy: the allocation code applies S-TIM-specific multipliers and does not use the learned incentive head, so the 0.3~pp deficit against MLP-Trust falls well inside the seed-level standard deviation and cannot support a causal claim about incentive learning, and the code-level ablations do not isolate named architectural components. The packet-level study is a domain-transfer measurement rather than a generalization test, because the attack parameters of the scenario were not held out from training, and the learned models' decision threshold does not transfer to it, which costs S-TIM recall (0.767 at a precision of 1.000) while its ranking quality stays high (an AUC of 0.966 against 1.000 for the feature-matched control). On those traces four of the five rule aggregators are not inferior, 0.99 accuracy and 0.98 F-score for MFA and GDM-DTM against 0.93 and 0.86 for S-TIM, because the attacker in that scenario is a level shift and a threshold on the level is what a window aggregator computes; the attack class this manuscript is about is the opposite one, whose level is indistinguishable from the benign population, and that class is absent from the packet scenario, so the packet study neither tests nor refutes the two claims. Against the feature-matched control on identical features, at the published operating point, the proposed model leads by $+4.5$~pp accuracy ($p=0.037$) and $+10.9$~pp F-score ($p=0.055$). One input column, the coefficient of variation of the switch intervals, is constant across nodes in every trace, because the scenario contains only periodically triggered attackers; it is disclosed rather than used to drop a trace. The single 49-step trace that the artifact originally shipped remains in Table~\ref{tab:ns3_trace_validation} as a regime diagnosis: at that length the converter leaves a 40-step post-warm-up window, the shape block is defined only for windows of at least 122 steps, and six of the eighteen input columns degenerate to constants at standardised values far outside the training range, so its numbers measure an input-format mismatch rather than detector robustness in either direction.
+Three limits apply to the results above. The 89.3\% task-success value is a simulator-specific proxy: the allocation code applies S-TIM-specific multipliers and does not use the learned incentive head, so the 0.3~pp deficit against MLP-Trust falls well inside the seed-level standard deviation and cannot support a causal claim about incentive learning, and the code-level ablations do not isolate named architectural components. The packet-level study is a domain-transfer measurement rather than a generalization test, because the attack parameters of the scenario were not held out from training, and the learned models' decision threshold does not transfer to it, which costs S-TIM recall (0.767 at a precision of 1.000) while its ranking quality stays high (an AUC of 0.966 against 1.000 for the feature-matched control). On those traces four of the five rule aggregators are not inferior, 0.99 accuracy and 0.98 F-score for MFA and GDM-DTM against 0.93 and 0.86 for S-TIM, because the attacker in that scenario is a level shift and a threshold on the level is what a window aggregator computes; the attack class this manuscript is about is the opposite one, whose level is indistinguishable from the benign population, and that class is absent from the packet scenario, so the packet study neither tests nor refutes the two claims. Against the feature-matched control on identical features, at the published operating point, the proposed model leads by $+4.5$~pp accuracy ($p=0.037$) and $+10.9$~pp F-score ($p=0.055$). One input column, the coefficient of variation of the switch intervals, is constant across nodes in every trace, because the scenario contains only periodically triggered attackers; it is disclosed rather than used to drop a trace. The single 49-step trace that the artifact originally shipped remains in the artifact as a regime diagnosis: at that length the converter leaves a 40-step post-warm-up window, the shape block is defined only for windows of at least 122 steps, and six of the eighteen input columns degenerate to constants at standardised values far outside the training range, so its numbers measure an input-format mismatch rather than detector robustness in either direction.
 
 A further caveat concerns the generator itself. Because the benign reference profile is separated from each attack profile by roughly four standard deviations before camouflage is applied, a large part of the achievable accuracy follows from the synthetic profile design rather than from any property a deployed detector would need. The camouflage mechanism in the generator is what prevents this separation from being trivial; it is reported here as a limitation of the current evaluation rather than as a validated adversarial model.
 
@@ -1218,31 +1056,7 @@ That separability removes the model itself as a variable, which explains the cei
 \paragraph{How hard would the benchmark have to be?}
 If the published table cannot separate the proposed model from its feature-matched control because the benchmark is saturated, how much harder would it have to be? The generator's camouflage factor is the obvious knob, and what it does is not the intuitive thing: the factor mixes a malicious node's attack profile with an evasive reference, so a larger factor is a quieter attacker, and the effect size that matters is the one on the window summary, because a window averages the observation noise away. Moving the factor to its quietest level takes that effect size from 1.55 to 0.36, below the threshold at which an effect is conventionally called negligible, and the marginal block's held-out separability still does not fall below 93\%. The margin is not only a level summary: it also carries the recent mean, the slope, the volatility and the history channel, and a periodic attacker's intermittency is visible in all of them, so removing the level does not remove the attacker. The second knob, the benign population's own spread, which the camouflage factor does not touch at all, reaches 0.49 and 91.7\%, and the two together reach 0.36 and 92.8\%.
 
-A benchmark of this family therefore does not run out of separability by being made quieter; it runs out only when the attacker's evidence is not in its own channels at all, which is the case the spatial scenario of Section~\ref{sec:spatial_scenario} constructs and the only place in this manuscript where the method classes separate. The measurements in Table~\ref{tab:difficulty_sweep} are a diagnosis of where the comparison can and cannot be made, not a claim that a harder benchmark would favour the proposed model.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{How far the benchmark can be made harder before the comparison means something. The level effect size is Cohen's d between the active attackers' windowed level and the benign windowed level, averaged over the four behaviour channels, on the window the marginal block uses, so it is the effect size a window summary can actually exploit. The separability is the held-out accuracy of a probe on the marginal features, trained on forty-eight seeds and evaluated on twelve, and the last column repeats it with the shape block added.}
-  \label{tab:difficulty_sweep}
-  \footnotesize
-  \setlength{\tabcolsep}{5pt}
-  \renewcommand{\arraystretch}{1.12}
-  \begin{tabular}{l c c c c}
-    \toprule
-    Configuration & mean factor & level effect size & marginal & with shape \\
-    \midrule
-    published, camouflage $\beta(2.7, 1.8)$ & 0.600 & 1.55 & 97.2\% & 97.8\% \\
-    camouflage $\beta(6, 1)$ & 0.857 & 0.90 & 93.9\% & 95.0\% \\
-    camouflage $\beta(9, 1)$ & 0.900 & 0.81 & 96.1\% & 95.6\% \\
-    node offset $0.40$ & 0.600 & 0.56 & 93.3\% & 96.1\% \\
-    node offset $0.60$ & 0.600 & 0.49 & 91.7\% & 93.9\% \\
-    node offset $0.40$ and camouflage $\beta(9, 1)$ & 0.900 & 0.36 & 92.8\% & 95.0\% \\
-    \bottomrule
-  \end{tabular}
-\vspace{2pt}
-\raggedright\scriptsize
-Reproducible from \texttt{artifacts/analysis/camouflage\_direction\_sweep.py}. The node offset is the per-node, per-channel constant the generator applies to every node, and it is the one part of the level evidence the camouflage factor leaves untouched; it is now a configuration key, \texttt{generator.node\_bias\_sd}, whose default reproduces the published generator exactly.
-\end{table}
+A benchmark of this family therefore does not run out of separability by being made quieter; it runs out only when the attacker's evidence is not in its own channels at all, which is the case the spatial scenario of Section~\ref{sec:spatial_scenario} constructs and the only place in this manuscript where the method classes separate. The measurements above are a diagnosis of where the comparison can and cannot be made, not a claim that a harder benchmark would favour the proposed model.
 
 The repository is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine agent-local observations and aggregation, and repeat the multi-seed packet-trace study with attack parameters held out from training and with a scenario whose attacker is level-indistinguishable, so that the two blind-spot claims are tested on packet data rather than only on generated streams. Reinforcement-learning claims would additionally require environment interaction, reward-defined returns, and comparison with supervised and non-learning policies. Until those experiments are available, S-TIM should be described as a supervised trust-stream proof of concept rather than a validated MARL or zero-trust deployment.
 

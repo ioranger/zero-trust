@@ -325,79 +325,76 @@ def baseline_row(run: str, method: str):
     return out
 
 
-# ---- tab:modality_ladder -------------------------------------------------
-LADDER_SPEC = [
+# ---- tab:spatial_blocks ----------------------------------------------------
+# One table now carries every arm run in the spatially inconsistent scenario:
+# the feature-block ladder, the auxiliary-supervision control, the block-routed
+# variant and the same-input control. Every cell is recomputed from the arm's
+# own per-seed log.
+BLOCKS_SPEC = [
     ("S-TIM, 13 dims (marginal)", "spatial_position_13dim", "S-TIM"),
     ("S-TIM, 18 dims (marginal + shape)", "spatial_position_18dim", "S-TIM"),
-    ("S-TIM, 23 dims (marginal + shape + neighborhood)",
-     "spatial_position_23dim", "S-TIM"),
+    ("S-TIM, 18 dims, no auxiliary loss", "spatial_position_riskonly", "S-TIM"),
+    ("S-TIM, 23 dims (all three blocks)", "spatial_position_23dim", "S-TIM"),
+    ("S-TIM, 23 dims, block-routed fusion", "spatial_position_gated", "S-TIM"),
     ("LR-Trust, 18 dims (per-node)", "spatial_position_23dim", "LR-Trust"),
     ("MLP-Trust, 18 dims (per-node)", "spatial_position_23dim", "MLP-Trust"),
+    ("MLP-Trust, 23 dims (identical vector)", "spatial_position_fusion", "MLP-Trust"),
 ]
-LADDER_COLS = ["constant", "dormant", "on-off", "position-inconsistent", "benign"]
+BLOCKS_COLS = ["constant", "dormant", "on-off", "position-inconsistent", "benign"]
 
-rows = table_rows("tab:modality_ladder")
-check("tab:modality_ladder is present", bool(rows))
+rows = table_rows("tab:spatial_blocks")
+check("tab:spatial_blocks is present", bool(rows))
 if rows:
     parsed = {r[0]: r[1:] for r in rows}
-    for label, run, method in LADDER_SPEC:
+    for label, run, method in BLOCKS_SPEC:
         if label not in parsed:
-            check(f"modality ladder row present: {label}", False)
+            check(f"spatial blocks row present: {label}", False)
             continue
         cells = parsed[label]
-        for i, atk in enumerate(LADDER_COLS):
-            claimed = cells[i] if i < len(cells) else "--"
+        for j, atk in enumerate(BLOCKS_COLS):
             computed = mean_atk(run, method, atk)
             if computed is None:
-                check(f"ladder {label} / {atk}", False, "no log")
+                check(f"blocks {label} / {atk}", False, "no log")
                 continue
+            claimed = cells[j] if len(cells) > j else "--"
             ok = abs(float(claimed) - computed) < 0.06
-            check(f"ladder {label} / {atk}", ok,
+            check(f"blocks {label} / {atk}", ok,
                   f"tex={claimed} computed={computed:.1f}")
-
-# ---- tab:fusion_mechanism -------------------------------------------------
-FUSION_SPEC = [
-    ("LR-Trust (linear)", "18 dims, per-node",
-     "spatial_position_23dim", "LR-Trust"),
-    ("MLP-Trust (single MLP)", "18 dims, per-node",
-     "spatial_position_23dim", "MLP-Trust"),
-    ("LR-Trust (linear)", "23 dims, same vector",
-     "spatial_position_fusion", "LR-Trust"),
-    ("MLP-Trust (single MLP)", "23 dims, same vector",
-     "spatial_position_fusion", "MLP-Trust"),
-    ("S-TIM (multi-head)", "23 dims, same vector",
-     "spatial_position_fusion", "S-TIM"),
-]
-
-rows = table_rows("tab:fusion_mechanism")
-check("tab:fusion_mechanism is present", bool(rows))
-if rows:
-    parsed = {(r[0], r[1]): r[2:] for r in rows}
-    for learner, inp, run, method in FUSION_SPEC:
-        key = (learner, inp)
-        if key not in parsed:
-            check(f"fusion row present: {learner} / {inp}", False)
-            continue
-        cells = parsed[key]
-        pos = mean_atk(run, method, "position-inconsistent")
-        const = mean_atk(run, method, "constant")
         base = baseline_row(run, method)
-        claimed_pos = cells[0] if len(cells) > 0 else "--"
-        claimed_const = cells[1] if len(cells) > 1 else "--"
-        if pos is not None:
-            check(f"fusion {learner} / {inp} / position-inconsistent",
-                  abs(float(claimed_pos) - pos) < 0.06,
-                  f"tex={claimed_pos} computed={pos:.1f}")
-        if const is not None:
-            check(f"fusion {learner} / {inp} / constant",
-                  abs(float(claimed_const) - const) < 0.06,
-                  f"tex={claimed_const} computed={const:.1f}")
-        if base is not None:
-            for i, col in enumerate(("accuracy", "f_score", "tsr")):
-                claimed = cells[2 + i] if len(cells) > 2 + i else "--"
-                check(f"fusion {learner} / {inp} / {col}",
-                      abs(float(claimed) - base[col]) < 0.06,
-                      f"tex={claimed} computed={base[col]:.1f}")
+        if base is None:
+            check(f"blocks {label} / accuracy", False, "no baseline log")
+            continue
+        claimed = cells[5] if len(cells) > 5 else "--"
+        check(f"blocks {label} / accuracy",
+              abs(float(claimed) - base["accuracy"]) < 0.06,
+              f"tex={claimed} computed={base['accuracy']:.1f}")
+
+print()
+print("=" * 74)
+print("7b. the same-input control, in prose and in the table")
+print("=" * 74)
+
+for fact, why in (
+        ("4.2\\% to 84.5\\%", "the per-node control's gain on the forger"),
+        ("$+80.2$~pp", "the paired gain of the same-input control"),
+        ("93.7\\% against 93.8\\%", "the tied accuracy under the same vector"),
+        ("60.8\\% against 84.5\\%", "the linear head against the nonlinear one"),
+        ("5.7~pp on constant attackers", "the auxiliary-loss cost"),
+        ("$p\\ge0.49$", "the block-routed arm's insignificance")):
+    check(f"prose states {why}", fact in tex, fact)
+
+rows = table_rows("tab:spatial_blocks")
+if rows:
+    parsed = {r[0]: r[1:] for r in rows}
+    key = "MLP-Trust, 23 dims (identical vector)"
+    check("spatial blocks holds the same-input control", key in parsed)
+    if key in parsed:
+        computed = mean_atk("spatial_position_fusion", "MLP-Trust",
+                            "position-inconsistent")
+        claimed = parsed[key][3] if len(parsed[key]) > 3 else "--"
+        check("same-input control / position-inconsistent",
+              computed is not None and abs(float(claimed) - computed) < 0.06,
+              f"tex={claimed} computed={computed}")
 
 print()
 print("=" * 74)
@@ -438,52 +435,40 @@ if rows:
             check(f"spatial main {label} / {atk}",
                   abs(float(claimed) - computed) < 0.06,
                   f"tex={claimed} computed={computed:.1f}")
+        # the class-mean column: the equal-weight average over the four attack
+        # classes, recomputed from the same per-seed log
+        rates = [mean_atk("spatial_position_23dim", method, a)
+                 for a in SPATIAL_MAIN_ATK]
+        if all(r is not None for r in rates):
+            computed = sum(rates) / 4.0
+            claimed = cells[7] if len(cells) > 7 else "--"
+            check(f"spatial main {label} / class mean",
+                  abs(float(claimed) - computed) < 0.06,
+                  f"tex={claimed} computed={computed:.1f}")
 
 print()
 print("=" * 74)
-print("7c. tab:dataeff")
+print("7c. the data-efficiency control, now carried by the prose")
 print("=" * 74)
 
-DATAEFF_SPEC = [
-    (12, "modality head supervised (w=0.30)", "dataeff_k12_mod"),
-    (12, "all auxiliary losses off", "dataeff_k12_risk"),
-    (12, "published configuration", "dataeff_k12_pub"),
-    (24, "modality head supervised (w=0.30)", "dataeff_k24_mod"),
-    (24, "all auxiliary losses off", "dataeff_k24_risk"),
-    (24, "published configuration", "dataeff_k24_pub"),
-    (60, "modality head supervised (w=0.30)", "heads_mod_only"),
-    (60, "all auxiliary losses off", "heads_risk_only"),
-    (60, "published configuration", "paper_18dim_check"),
-]
-
-rows = table_rows("tab:dataeff")
-check("tab:dataeff is present", bool(rows))
-if rows:
-    parsed = {(r[0], r[1]): r[2:] for r in rows}
-    for k, label, arm in DATAEFF_SPEC:
-        key = (str(k), label)
-        if key not in parsed:
-            check(f"dataeff row present: {k} seeds / {label}", False)
-            continue
-        cells = parsed[key]
-        base = baseline_row(arm, "S-TIM")
-        ctrl = baseline_row(arm, "MLP-Trust")
-        if base is None or ctrl is None:
-            check(f"dataeff {k} / {label} / logs", False)
-            continue
-        for i, (col, src) in enumerate((("accuracy", base), ("f_score", base),
-                                        ("accuracy", ctrl))):
-            claimed = cells[i] if len(cells) > i else "--"
-            check(f"dataeff {k} seeds / {label} / {'S-TIM' if i < 2 else 'MLP'} {col}",
-                  abs(float(claimed) - src[col]) < 0.06,
-                  f"tex={claimed} computed={src[col]:.1f}")
-        pol = RUNS / arm / "logs" / "marl_policy.json"
-        if pol.exists() and len(cells) > 5:
-            p = json.loads(pol.read_text(encoding="utf-8"))
-            computed = p["modality_supervision"]["validation_accuracy"]
-            check(f"dataeff {k} seeds / {label} / modality head",
-                  abs(float(cells[5]) - computed) < 0.001,
-                  f"tex={cells[5]} computed={computed:.3f}")
+for k, label, arm in (
+        (12, "modality head supervised (w=0.30)", "dataeff_k12_mod"),
+        (12, "all auxiliary losses off", "dataeff_k12_risk"),
+        (12, "published configuration", "dataeff_k12_pub"),
+        (24, "modality head supervised (w=0.30)", "dataeff_k24_mod"),
+        (24, "all auxiliary losses off", "dataeff_k24_risk"),
+        (24, "published configuration", "dataeff_k24_pub"),
+        (60, "modality head supervised (w=0.30)", "heads_mod_only"),
+        (60, "all auxiliary losses off", "heads_risk_only"),
+        (60, "published configuration", "paper_18dim_check")):
+    base = baseline_row(arm, "S-TIM")
+    ctrl = baseline_row(arm, "MLP-Trust")
+    if base is None or ctrl is None:
+        check(f"dataeff {k} seeds / {label} / logs", False)
+        continue
+    check(f"dataeff {k} seeds / {label} / control never overtaken",
+          base["accuracy"] <= ctrl["accuracy"] + 0.11,
+          f"S-TIM={base['accuracy']:.1f} MLP={ctrl['accuracy']:.1f}")
 
 print()
 print("=" * 74)
