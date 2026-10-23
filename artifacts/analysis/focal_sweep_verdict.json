@@ -1,0 +1,293 @@
+{
+  "2.0": {
+    "arm": "spatial_position_focal",
+    "pass": false,
+    "lines": [
+      {
+        "line": "class mean over the four attack classes",
+        "value": 84.86457485220717,
+        "required": 89.0,
+        "ok": false
+      },
+      {
+        "line": "aggregate accuracy",
+        "value": 93.8,
+        "required": 93.3,
+        "ok": true
+      },
+      {
+        "line": "constant",
+        "value": 80.1923076923077,
+        "required": 87.2,
+        "ok": false
+      },
+      {
+        "line": "constant (strict line of the first pre-registration)",
+        "value": 80.1923076923077,
+        "required": 90.8,
+        "ok": false
+      },
+      {
+        "line": "dormant",
+        "value": 90.37735849056604,
+        "required": 93.4,
+        "ok": false
+      },
+      {
+        "line": "on--off",
+        "value": 87.54716981132076,
+        "required": 91.7,
+        "ok": false
+      },
+      {
+        "line": "position-inconsistent",
+        "value": 81.34146341463415,
+        "required": 83.6,
+        "ok": false
+      },
+      {
+        "line": "benign specificity",
+        "value": 97.73214285714286,
+        "required": 93.0,
+        "ok": true
+      },
+      {
+        "line": "no regression on constant",
+        "value": -7.019230769230774,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on dormant",
+        "value": -3.018867924528294,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on on-off",
+        "value": -4.15094339622641,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on position-inconsistent",
+        "value": -2.2560975609756326,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "leads the control on the level classes at p<0.05",
+        "value": 0.0,
+        "required": 0.0,
+        "ok": true
+      }
+    ],
+    "rates": {
+      "constant": 80.1923076923077,
+      "dormant": 90.37735849056604,
+      "on-off": 87.54716981132076,
+      "position-inconsistent": 81.34146341463415,
+      "benign": 97.73214285714286
+    },
+    "class_mean": 84.86457485220717,
+    "baseline": {
+      "accuracy": 93.8,
+      "f_score": 89.0,
+      "tsr": 88.6
+    }
+  },
+  "1.0": {
+    "arm": "spatial_position_focal_g10",
+    "pass": false,
+    "lines": [
+      {
+        "line": "class mean over the four attack classes",
+        "value": 85.74540249212362,
+        "required": 89.0,
+        "ok": false
+      },
+      {
+        "line": "aggregate accuracy",
+        "value": 93.8,
+        "required": 93.3,
+        "ok": true
+      },
+      {
+        "line": "constant",
+        "value": 80.76923076923077,
+        "required": 87.2,
+        "ok": false
+      },
+      {
+        "line": "constant (strict line of the first pre-registration)",
+        "value": 80.76923076923077,
+        "required": 90.8,
+        "ok": false
+      },
+      {
+        "line": "dormant",
+        "value": 91.13207547169809,
+        "required": 93.4,
+        "ok": false
+      },
+      {
+        "line": "on--off",
+        "value": 89.43396226415092,
+        "required": 91.7,
+        "ok": false
+      },
+      {
+        "line": "position-inconsistent",
+        "value": 81.64634146341466,
+        "required": 83.6,
+        "ok": false
+      },
+      {
+        "line": "benign specificity",
+        "value": 97.39285714285714,
+        "required": 93.0,
+        "ok": true
+      },
+      {
+        "line": "no regression on constant",
+        "value": -6.442307692307693,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on dormant",
+        "value": -2.2641509433962455,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on on-off",
+        "value": -2.2641509433962455,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on position-inconsistent",
+        "value": -1.9512195121951237,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "leads the control on the level classes at p<0.05",
+        "value": 0.0,
+        "required": 0.0,
+        "ok": false
+      }
+    ],
+    "rates": {
+      "constant": 80.76923076923077,
+      "dormant": 91.13207547169809,
+      "on-off": 89.43396226415092,
+      "position-inconsistent": 81.64634146341466,
+      "benign": 97.39285714285714
+    },
+    "class_mean": 85.74540249212362,
+    "baseline": {
+      "accuracy": 93.8,
+      "f_score": 89.1,
+      "tsr": 89.2
+    }
+  },
+  "0.5": {
+    "arm": "spatial_position_focal_g05",
+    "pass": false,
+    "lines": [
+      {
+        "line": "class mean over the four attack classes",
+        "value": 85.4750168147545,
+        "required": 89.0,
+        "ok": false
+      },
+      {
+        "line": "aggregate accuracy",
+        "value": 92.7,
+        "required": 93.3,
+        "ok": false
+      },
+      {
+        "line": "constant",
+        "value": 79.42307692307693,
+        "required": 87.2,
+        "ok": false
+      },
+      {
+        "line": "constant (strict line of the first pre-registration)",
+        "value": 79.42307692307693,
+        "required": 90.8,
+        "ok": false
+      },
+      {
+        "line": "dormant",
+        "value": 90.94339622641508,
+        "required": 93.4,
+        "ok": false
+      },
+      {
+        "line": "on--off",
+        "value": 88.30188679245282,
+        "required": 91.7,
+        "ok": false
+      },
+      {
+        "line": "position-inconsistent",
+        "value": 83.23170731707317,
+        "required": 83.6,
+        "ok": false
+      },
+      {
+        "line": "benign specificity",
+        "value": 95.94642857142858,
+        "required": 93.0,
+        "ok": true
+      },
+      {
+        "line": "no regression on constant",
+        "value": -7.788461538461533,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on dormant",
+        "value": -2.4528301886792576,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on on-off",
+        "value": -3.396226415094347,
+        "required": 0.0,
+        "ok": false
+      },
+      {
+        "line": "no regression on position-inconsistent",
+        "value": -0.3658536585366079,
+        "required": 0.0,
+        "ok": true
+      },
+      {
+        "line": "leads the control on the level classes at p<0.05",
+        "value": 0.0,
+        "required": 0.0,
+        "ok": false
+      }
+    ],
+    "rates": {
+      "constant": 79.42307692307693,
+      "dormant": 90.94339622641508,
+      "on-off": 88.30188679245282,
+      "position-inconsistent": 83.23170731707317,
+      "benign": 95.94642857142858
+    },
+    "class_mean": 85.4750168147545,
+    "baseline": {
+      "accuracy": 92.7,
+      "f_score": 87.5,
+      "tsr": 88.8
+    }
+  }
+}
