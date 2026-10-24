@@ -10,10 +10,10 @@ Manuscript-facing files.
 - `template.pdf`: latest compiled PDF.
 - `Definitions/mdpi.cls`: MDPI LaTeX class required by `template.tex`.
 - `figures/`: current figures referenced by the manuscript:
-  - `ov2.png`: S-TIM framework overview.
-  - `update.png`: S-TIM state-update and artifact-provenance mechanism.
+  - `pipeline.png`: the executed pipeline (TikZ source `pipeline_tikz.tex`).
+  - `deployment.png`: the intended deployment and its unimplemented extensions (TikZ source `deployment_tikz.tex`).
   - `trust_value_evolution.png`: trust evolution curve.
-  - `Fig5_energy_consumption.png`: comparative evaluation figure.
+  - `ratio_dynamics_tsr.png`: comparative evaluation figure.
 - `archive/`: historical PDFs and unused/reference figures retained for traceability.
 
 ## `artifacts/`

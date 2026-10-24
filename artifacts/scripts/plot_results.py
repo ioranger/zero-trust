@@ -109,7 +109,6 @@ def main() -> None:
         ("GALTrust", "#9467bd"),
         ("GDM-DTM", "#1f77b4"),
         ("LR-Trust", "#8c564b"),
-        ("MLP-Trust", "#e377c2"),
         ("S-TIM", "#2ca02c"),
     ]:
         line = ratio_summary[ratio_summary["method"] == method].sort_values("malicious_ratio")
@@ -144,9 +143,20 @@ def main() -> None:
     axes[1].legend(fontsize=8)
     axes[1].set_title("(b) Attack dynamics")
 
+    # The manuscript reports seven methods; the artifact trains one more
+    # comparator that the manuscript does not report as a competitor, so the
+    # figure is restricted to the reported set and the bars keep one colour
+    # each.
     baseline = pd.read_csv(outputs / "tables" / "baseline_comparison.csv")
+    reported = ["MFA", "FUBA", "GALTrust", "GDM-DTM", "AHP-Entropy",
+                "LR-Trust", "S-TIM"]
+    baseline = baseline[baseline["method"].isin(reported)]
+    bar_colors = {"MFA": "#7f7f7f", "FUBA": "#ff7f0e", "GALTrust": "#9467bd",
+                  "GDM-DTM": "#1f77b4", "AHP-Entropy": "#e377c2",
+                  "LR-Trust": "#8c564b", "S-TIM": "#2ca02c"}
     tsr_means = [parse_mean_std(v)[0] for v in baseline["tsr"]]
-    axes[2].bar(baseline["method"], tsr_means, color=["#7f7f7f", "#ff7f0e", "#9467bd", "#1f77b4", "#2ca02c"])
+    axes[2].bar(baseline["method"], tsr_means,
+                 color=[bar_colors[m] for m in baseline["method"]])
     axes[2].set_ylabel("Task success rate (%)")
     axes[2].set_ylim(45, 100)
     axes[2].tick_params(axis="x", rotation=35)
@@ -154,7 +164,11 @@ def main() -> None:
     axes[2].set_title("(c) TSR at 30% malicious")
 
     fig.tight_layout()
-    for output in [figures / "Fig5_energy_consumption.png", manuscript_figures / "Fig5_energy_consumption.png"]:
+    # the file used to be called Fig5_energy_consumption, but it shows no
+    # energy measurement: the name predates the removal of the resource
+    # columns and would misdescribe the panel.
+    for output in [figures / "ratio_dynamics_tsr.png",
+                   manuscript_figures / "ratio_dynamics_tsr.png"]:
         fig.savefig(output)
     plt.close(fig)
     print(f"Wrote figures to {figures}")

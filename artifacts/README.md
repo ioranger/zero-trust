@@ -56,9 +56,9 @@ Run the full pipeline:
 .venv/bin/python artifacts/scripts/run_reference_experiment.py --config artifacts/configs/default.json
 .venv/bin/python artifacts/scripts/summarize_results.py --config artifacts/configs/default.json
 .venv/bin/python artifacts/scripts/evaluate_trace_driven.py --config artifacts/configs/default.json --trace artifacts/outputs/logs/ns3_trust_streams.csv
-.venv/bin/python artifacts/scripts/plot_update_mechanism.py
 .venv/bin/python artifacts/scripts/plot_results.py --config artifacts/configs/default.json
 .venv/bin/python artifacts/scripts/plot_training_trace.py --config artifacts/configs/default.json
+powershell -NoProfile -ExecutionPolicy Bypass -File artifacts/analysis/build_architecture_figures.ps1
 ```
 
 The training script writes a PyTorch checkpoint, learned baseline
@@ -140,8 +140,9 @@ reimplementations unless official code and original feature pipelines are added.
 - `artifacts/outputs/tables/statistical_tests.csv`: paired tests with Holm correction.
 - `artifacts/outputs/tables/ns3_trace_validation.csv`: single-trace ns-3-derived sanity-check results.
 - `artifacts/outputs/figures/trust_value_evolution.png`: generated trust evolution figure.
-- `artifacts/outputs/figures/update_mechanism.png`: generated S-TIM state-update and artifact-provenance mechanism figure.
-- `artifacts/outputs/figures/Fig5_energy_consumption.png`: generated comparative evaluation figure.
+- `artifacts/outputs/figures/ratio_dynamics_tsr.png`: generated comparative evaluation figure.
+- `artifacts/outputs/figures/pipeline.png`: the executed pipeline (built from `paper/figures/pipeline_tikz.tex`).
+- `artifacts/outputs/figures/deployment.png`: the intended deployment and its unimplemented extensions (built from `paper/figures/deployment_tikz.tex`).
 - `artifacts/outputs/figures/marl_training_trace.png`: PyTorch training diagnostics.
 
 All random number generation is seeded through `artifacts/configs/default.json`.

@@ -827,18 +827,18 @@ After approximately 3800~s, the generated malicious index remains below the beni
 \subsection{Comparative Performance Analysis}
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{Fig5_energy_consumption.png}
+\includegraphics[width=\textwidth]{ratio_dynamics_tsr.png}
 \caption{Results from the generated trust-stream environment. (a) Detection accuracy across malicious-node ratios. (b) Diagnostic index for the generator's four behaviour profiles. (c) Model-based task-success proxy at a 30\% malicious-node ratio.}
-\label{fig:Fig5_energy_consumption}
+\label{fig:ratio_dynamics_tsr}
 \end{figure}
 
-\textbf{Anti-manipulation under varying malicious ratios (Figure~\ref{fig:Fig5_energy_consumption}(a)).}
+\textbf{Anti-manipulation under varying malicious ratios (Figure~\ref{fig:ratio_dynamics_tsr}(a)).}
 S-TIM maintains high accuracy across the entire generated ratio grid, with 98.8\% accuracy at 10\%, 97.1\% at 30\%, and 98.5\% at 50\%. LR-Trust, the learned per-node comparator, is a stronger detection competitor than the rule adapters under the same features, confirming that the diagnostic feature set itself carries substantial discriminative information, and Section~\ref{sec:arch_controls} shows again that the encoder's auxiliary heads add nothing to it. GALTrust is highly accurate at 5--10\% malicious ratios but falls to 62.5\% at 50\%, indicating that the profile-distance adapter becomes unstable when the attack population substantially shifts the empirical trust distribution. S-TIM does not show monotonic degradation across this generated ratio grid; this is favourable for the bounded setting but should be interpreted cautiously because stronger collusion and adaptive poisoning are not modelled.
 
-\textbf{Trust dynamics under attack patterns (Figure~\ref{fig:Fig5_energy_consumption}(b)).}
+\textbf{Trust dynamics under attack patterns (Figure~\ref{fig:ratio_dynamics_tsr}(b)).}
 Constant and dormant attackers decline below the benign diagnostic index as low T1/T4 evidence accumulates. Dormant attackers fall after their switch despite initially high scores. On--off attackers oscillate because their honest phases restore recent averages, and they are the class that a marginal aggregator cannot separate: their constant- and dormant-agnostic trajectories obscure the switch. With the shape block present, the learned methods recover 88.0--92.0\% of them (Table~\ref{tab:method_class}); without it, on the same seeds and the same training budget, the same models recover 54.0--72.0\%, and the rule adapters 0.0--38.0\% throughout. Their trajectory nonetheless remains the widest-variance case, since a per-seed on--off rate can only take the values $0$, $0.5$, or $1$ at this node count.
 
-\textbf{Task success comparison (Figure~\ref{fig:Fig5_energy_consumption}(c)).}
+\textbf{Task success comparison (Figure~\ref{fig:ratio_dynamics_tsr}(c)).}
 S-TIM has 90.4\% on the simulated proxy, leading LR-Trust's 89.8\%. Both sit inside a seed-level standard deviation of roughly 3~pp, and the ordering reflects the allocation function, which applies S-TIM-specific multipliers.\par
 
 \textbf{Stress cases not claimed.}
