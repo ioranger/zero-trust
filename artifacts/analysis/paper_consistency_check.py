@@ -149,7 +149,7 @@ checks = [
     ("shuffle control reported",
      "time-shuffle" in tex or "time-permuted" in tex),
     ("13-dim legacy config referenced",
-     "legacy_13dim" in tex or "legacy\\_13dim" in tex),
+     "13-feature variant" in tex or "13-dimensional" in tex),
     ("states the modality-head negative result",
      "attack-modality" in tex),
 ]

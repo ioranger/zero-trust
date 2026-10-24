@@ -55,6 +55,11 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `diff_devtree_vs_gitwork.py` | Lists the files that differ between the development tree and the git worktree. |
 | `patch_text.py` | Applies exact-text replacements to a file and refuses to write if a match is missing or ambiguous. |
 | `latex_warnings.py` | Reports the LaTeX warnings that matter: undefined references, overfull and underfull boxes, errors. |
+| `list_code_paths.py` | Lists the repository-internal file paths that appear in the manuscript, so none of them reaches a reviewer-facing paper. |
+| `list_repo_talk.py` | Lists the sentences that point at a place in the package rather than at the method or the result. |
+| `table_type_sizes.py` | Measures the type size each table ends up with in the built PDF and reports the factor that would give it a common size. |
+| `set_table_scales.py` | Sets the tables' resizebox factors so that they share a type size and none overflows the text width. |
+| `fix_table_notes.py` | Puts each table's note on its own line below the table, rather than beside it. |
 | `extract_search_results.py` | Reassembles a chunked search artifact and prints its result list. |
 | `pdf_find_page.py` | Finds the page on which a phrase appears in the built PDF. |
 | `spatial_arms_final_compare.py` | Puts the five spatial-scenario arms side by side: per-class detection rate, the class-macro-average, the population-weighted accuracy and the paired tests, so the two summaries can be read together. |
