@@ -195,7 +195,7 @@ Figure~\ref{fig:Proposed} gives the executed pipeline, and Figure~\ref{fig:updat
 The remainder of this paper reviews related work, states the system design and the part of it that is implemented and evaluated, reports the trust-stream experiments, and closes with limitations.
 
 \section{Related Work}
-Trust evaluation for UAV networks now includes reputation models, evidence fusion, blockchain support, and learning-based designs. Yet low-altitude UAV studies rarely integrate zero-trust verification, distributed trust learning, uncertainty aggregation, and mission incentives. We review four related areas: UAV trust management, position-aware trust and integrity monitoring, zero-trust assessment, and MARL for UAV networking and security.
+Trust evaluation for UAV networks now includes reputation models, evidence fusion, blockchain support, and learning-based designs. Yet low-altitude UAV studies rarely integrate zero-trust verification, distributed trust learning, uncertainty aggregation, and mission incentives. We review three related areas: UAV trust management, position-aware trust and integrity monitoring, and zero-trust assessment.
 
 \subsection{Trust Management in UAV and FANET Systems}
 Recent surveys show that trust management has become a core security primitive in FANETs, where dynamic topology, intermittent links, and resource limits make purely identity-based protection insufficient \cite{kundu2024survey,noor2020fanet,brik2020fluav,nguyen2021fliotsurvey,qu2021dflun}. Existing schemes fall into three categories: behaviour-centric trust analytics, distributed or blockchain-supported trust, and learning-enhanced trust evaluation.
@@ -204,6 +204,14 @@ Behaviour-centric trust evaluation widely uses fuzzy and evidence-fusion methods
 
 A second line of work improves trust persistence and auditability through distributed storage or hierarchical trust exchange. Ge et al. developed a provenance-aware distributed trust model for resilient UAV networks, highlighting the value of peer-to-peer evidence tracing in hostile environments \cite{ge2021uavpro}. Zuo et al. proposed a hierarchical blockchain-based trust measurement method for drone clusters to address trust inheritance, cross-cluster re-evaluation, and historical trust verification under dynamic node entry and exit \cite{zuo2023blockchain}. Akram et al. proposed TMIoDT, which integrates digital twins, blockchain, and deep-learning-based intrusion detection to secure Open RAN-based Internet of Drone Things applications \cite{akram2024tmiodt}. Closely related secure-FL frameworks have further explored malicious-node detection and trusted collaboration through blockchain-supported service provisioning, privacy-preserving IoDT security, and hierarchical federated aggregation \cite{abubaker2022blockchained,akram2023chained,zheng2024tinyfl,tong2024hierarchicalfl}. Xu et al.\ pair a Bayesian trust assessment for quantum federated learning with Stackelberg incentives for the same UAV-assisted setting \cite{trustgame_qfl_uav}. The two parts are separable: the incentive side is a full game-theoretic construction, whereas the trust degree itself is the posterior mean of a Beta--Binomial model, that is, a smoothed cumulative proportion of high-quality model updates. Their reported neutral device, which alternates between good and bad updates, therefore settles at an intermediate trust value rather than converging to a malicious verdict---an outcome the aggregator implies by construction rather than by choice. More recently, Hu et al. proposed GDM-DTM for malicious-node detection in low-altitude UAV networks by combining group decision making with dynamic trust management \cite{hu2025gdm}. Its attacker model is a single message-tampering and false-information scheme, in which malicious nodes alter the attributes they forward and broadcast fabricated messages, and it recognises no periodic behaviour, so a window summary remains adequate against it and the question this manuscript asks is not posed. Its consistency evaluation also aggregates the neighbours' trust reports about a node, and therefore depends on the willingness of those neighbours to report, whereas the comparison used here is between a node's own channels and the radio conditions its neighbours actually experience, which requires no report. These schemes improve distributed credibility, trust persistence, and malicious-node detection. For our setting, the central gap is that the trust state is usually treated as an assessment output rather than as the basis for learned reward, penalty, and task-allocation decisions.
 
+
+Three problems remain open in that literature for low-altitude UAVs, and they are the ones this paper addresses.
+
+The first is accurate trust assessment under high malicious-node ratios: fuzzy, profile-based, and group-decision mechanisms can lose discrimination when the malicious population substantially shifts local trust distributions, leading to poor mission continuity.
+
+The second is temporal and multi-factor evasion: dormant and on--off attackers can exploit historical trust accumulation, while multi-factor manipulation requires deciding which behavioural, communication, energy, task, and history evidence remains reliable at each update. This problem is not open. On-off-aware trust management is established, from the model that defends on--off attacks directly \cite{chae2014onoff} through its distributed variant \cite{mendoza2015onoff} and the smart-middleware detector \cite{caminha2018onoff}, to the demonstration that cumulative and exponentially weighted moving averages do not work well under on--off attacks and the asymmetric weighting that repairs them \cite{salimitari2020prospect}, and to the recent model that criticises sliding-window aggregation for being unable to select an appropriate window length \cite{ziauddin2026recfilter}. What these mechanisms share is that they intervene on the aggregated trust value or on the aggregation that produces it---they re-weight it, re-window it, mitigate the damage it does, or index its fragmentation \cite{kannan2023onoff}---and an index applied afterwards inherits whatever the underlying aggregator has already smoothed away. The question asked here is upstream of all of them, and it is the one they leave open: whether the information an intermittent attacker destroys can be recovered at all from the summaries a fixed-window aggregator is defined to produce. Our answer is that it cannot be recovered from those summaries, and that the recovery requires different statistics over each channel rather than a different weighting, a different window, or an index applied afterwards.
+
+The third is spatially inconsistent attackers: an attacker whose telemetry is drawn from the benign population is invisible to every aggregator that scores one node at a time, because the statistics such an aggregator computes are by construction the statistics a benign node in the same radio cell produces. The missing information is not in the node, so no amount of temporal detail recovers it, and the position-integrity literature that does address this class of attacker relies on an absolute reference that a swarm in infrastructure-scarce conditions does not have. What is needed is a statistic that compares a node against the conditions its neighbours actually experience, which is a question about what a trust aggregator must represent rather than about which detection rule to apply.
 \subsection{Position-Aware Trust and Integrity Monitoring in UAV Swarms}
 A separate line of work attacks the problem from the position side. A UAV that
 forges its reported location can steer a swarm, corrupt cooperative
@@ -256,24 +264,6 @@ Zero trust is particularly relevant to low-altitude UAV swarms: node roles may c
 
 These studies move trust evaluation closer to continuous verification. Nevertheless, the current zero-trust literature still focuses mainly on authentication, access control, or intrusion detection. It does not fully address how trust should evolve online in low-altitude UAV swarms when heterogeneous evidence from behaviour, communication quality, task execution, energy state, and historical interactions must be fused under strict resource constraints. In particular, uncertainty-aware aggregation and decentralized incentive adaptation remain underexplored in zero-trust UAV settings.
 
-\subsection{MARL for UAV Networking and Security}
-MARL has recently become a prominent framework for decentralized decision making in UAV systems. A recent survey reports that it has mainly been used for UAV control, formation, coverage, coordination, and cooperative optimisation, rather than for trust management itself \cite{ekechi2025survey}. Representative examples include MADDPG-based multi-UAV trajectory planning for UAV-assisted mobile edge computing \cite{wang2020trajectory}, semi-distributed multi-agent federated reinforcement learning for resource management \cite{nie2021resource}, and joint optimisation of trajectory, offloading, and resources in air--ground integrated networks \cite{alam2024joint}, alongside learning-and-optimisation studies of federated scheduling, participant selection, and energy-aware management in UAV-enabled federated settings \cite{yang2021ppfluav,lim2021contractfl,wang2023hnpfl,qureshi2024asynfl,jing2023agifl,fu2025energyfl}. These works show that distributed learning can support optimisation under partial observability and dynamic coupling among UAVs. More recently, Cao et al. explored LLM-based multi-agent situation awareness for zero-trust space-air-ground integrated networks \cite{cao2025sagin}, suggesting that model selection in security-oriented multi-agent systems should balance capability against deployment cost.
-
-However, existing MARL applications in UAV networking remain largely performance driven, with objectives such as delay reduction, energy efficiency, coverage, or offloading efficiency. The reward design in these studies is rarely aligned with trustworthiness, collusion resistance, or long-horizon security incentives. MARL has been used to optimise how UAVs move, communicate, or allocate resources, but not how they collaboratively evaluate trust, calibrate trust-factor importance, and propagate trustworthy decisions under zero-trust assumptions.
-
-Overall, prior work has made strong progress in trust modelling, distributed auditability, and UAV-oriented MARL, but four problem-specific challenges remain insufficiently addressed for low-altitude UAV trust evaluation:
-
-(1) \textbf{Accurate trust assessment under high malicious-node ratios}: Fuzzy, profile-based, and group-decision mechanisms can lose discrimination when the malicious population substantially shifts local trust distributions, leading to poor mission continuity.
-
-(2) \textbf{Temporal and multi-factor evasion}: Dormant and on--off attackers can exploit historical trust accumulation, while multi-factor manipulation requires deciding which behavioural, communication, energy, task, and history evidence remains reliable at each update. This problem is not open. On-off-aware trust management is established, from the model that defends on--off attacks directly \cite{chae2014onoff} through its distributed variant \cite{mendoza2015onoff} and the smart-middleware detector \cite{caminha2018onoff}, to the demonstration that cumulative and exponentially weighted moving averages do not work well under on--off attacks and the asymmetric weighting that repairs them \cite{salimitari2020prospect}, and to the recent model that criticises sliding-window aggregation for being unable to select an appropriate window length \cite{ziauddin2026recfilter}. What these mechanisms share is that they intervene on the aggregated trust value or on the aggregation that produces it---they re-weight it, re-window it, mitigate the damage it does, or index its fragmentation \cite{kannan2023onoff}---and an index applied afterwards inherits whatever the underlying aggregator has already smoothed away. The question asked here is upstream of all of them, and it is the one they leave open: whether the information an intermittent attacker destroys can be recovered at all from the summaries a fixed-window aggregator is defined to produce. Our answer is that it cannot be recovered from those summaries, and that the recovery requires different statistics over each channel rather than a different weighting, a different window, or an index applied afterwards.
-
-(3) \textbf{Closing the trust-to-action loop}: A detector that outputs only a trust or risk score does not by itself decide what task allocation, incentives, or penalties should change; this is the specific gap exposed by the allocation result, in which the task-success proxy does not consume the reported incentive head and the differences between the methods stay inside the seed-level standard deviation.
-
-(4) \textbf{Spatially inconsistent attackers}: An attacker whose telemetry is drawn from the benign population is invisible to every aggregator that scores one node at a time, because the statistics such an aggregator computes are by construction the statistics a benign node in the same radio cell produces. The missing information is not in the node, so no amount of temporal detail recovers it, and the position-integrity literature that does address this class of attacker relies on an absolute reference that a swarm in infrastructure-scarce conditions does not have. What is needed is a statistic that compares a node against the conditions its neighbours actually experience, which is a question about what a trust aggregator must represent rather than about which detection rule to apply.
-
-The implementation presented here addresses only part of this gap: it evaluates temporal trust features and a score-based allocation proxy, and multi-agent execution and confidence-aware aggregation remain proposed extensions. The hybrid action space used here---a continuous factor-weight vector together with a quantized incentive level---is the setting that parameterized deep Q-networks are designed for \cite{xiong2018pdqn,hausknecht2016parameterized}, and a genuine multi-agent learner would additionally optimise the shared objective through bootstrapped value targets under partial observability \cite{bertsekas1996reinforcement,hausknecht2015drqn}. The released implementation performs neither: its auxiliary heads are supervised regularizers on targets derived from the class label, and only the risk head is read at evaluation time.
-
-%%%%%%%%%%%%%
 \section{System Model}
 \label{sec:system_model}
 
@@ -1111,8 +1101,6 @@ Wang, X.; Yuan, Q.; Liu, C.; Wang, P.; Tao, J.; Li, L.; Wang, X.; Wang, Y. Who I
 \bibitem{rose2020zero}
 Rose, S.; Borchert, O.; Mitchell, S.; Connelly, S. Zero Trust Architecture. {\em NIST Spec. Publ.} {\bf 2020}, {\em 800-207}, 1--59.
 
-\bibitem{ekechi2025survey}
-Ekechi, C.C.; Elfouly, T.; Alouani, A.; Khattab, T. A Survey on UAV Control with Multi-Agent Reinforcement Learning. {\em Drones} {\bf 2025}, {\em 9}, 484.
 
 \bibitem{akram2024tmiodt}
 Akram, J.; Anaissi, A.; Rathore, R.S.; Jhaveri, R.H.; Akram, A. Digital Twin-Driven Trust Management in Open RAN-Based Spatial Crowdsourcing Drone Services. {\em IEEE Trans. Green Commun. Netw.} {\bf 2024}, {\em 8}, 1061--1075.
@@ -1160,51 +1148,23 @@ Wang, X.; Yuan, Q.; Wang, Y.; Teng, J.; Tao, J.; Shen, M. Zero Trust-Driven Coll
 \bibitem{ridhawi2023zerotrust6g}
 Al Ridhawi, I.; Aloqaily, M. Zero-Trust UAV-Enabled and DT-Supported 6G Networks. {\em IEEE Internet Comput.} {\bf 2023}, {\em 27}, 59--67.
 
-\bibitem{wang2020trajectory}
-Wang, L.; Wang, K.; Pan, C.; Xu, W.; Aslam, N.; Hanzo, L. Multi-Agent Deep Reinforcement Learning Based Trajectory Planning for Multi-UAV Assisted Mobile Edge Computing. {\em IEEE Trans. Cogn. Commun. Netw.} {\bf 2021}, {\em 7}, 73--84.
 
-\bibitem{nie2021resource}
-Nie, Y.; Zhao, J.; Gao, F.; Yu, F.R. Semi-Distributed Resource Management in UAV-Aided MEC Systems: A Multi-Agent Federated Reinforcement Learning Approach. {\em IEEE Trans. Veh. Technol.} {\bf 2021}, {\em 70}, 13162--13173.
 
-\bibitem{alam2024joint}
-Alam, M.M.; Moh, S. Joint Optimization of Trajectory Control, Task Offloading, and Resource Allocation in Air-Ground Integrated Networks. {\em IEEE Internet Things J.} {\bf 2024}, {\em 11}, 24273--24288.
 
-\bibitem{yang2021ppfluav}
-Yang, H.; Zhao, J.; Xiong, Z.; Lam, K.-Y.; Sun, S.; Xiao, L. Privacy-Preserving Federated Learning for UAV-Enabled Networks: Learning-Based Joint Scheduling and Resource Management. {\em IEEE J. Sel. Areas Commun.} {\bf 2021}, {\em 39}, 3144--3159.
 
-\bibitem{lim2021contractfl}
-Lim, W.Y.B.; Huang, J.; Xiong, Z.; Kang, J.; Niyato, D.; Hua, X.-S.; Leung, C.; Miao, C. Towards Federated Learning in UAV-Enabled Internet of Vehicles: A Multi-Dimensional Contract-Matching Approach. {\em IEEE Trans. Intell. Transp. Syst.} {\bf 2021}, {\em 22}, 5140--5154.
 
-\bibitem{wang2023hnpfl}
-Wang, S.; Hosseinalipour, S.; Gorlatova, M.; Brinton, C.G.; Chiang, M. UAV-Assisted Online Machine Learning Over Multi-Tiered Networks: A Hierarchical Nested Personalized Federated Learning Approach. {\em IEEE Internet Things J.} {\bf 2024}, {\em 11}, 20899--20911.
 
-\bibitem{qureshi2024asynfl}
-Qureshi, K.I.; Wang, L.; Xiong, X.; Lodhi, M.A. Asynchronous Federated Learning for Resource Allocation in Software-Defined Internet of UAVs. {\em IEEE Internet Things J.} {\bf 2024}, {\em 11}, 15523--15538.
 
-\bibitem{jing2023agifl}
-Jing, Y.; Qu, Y.; Dong, C.; Ren, W.; Shen, Y.; Wu, Q.; Guo, S. Exploiting UAV for Air-Ground Integrated Federated Learning: A Joint UAV Location and Resource Optimization Approach. {\em IEEE Trans. Green Commun. Netw.} {\bf 2023}, {\em 7}, 1420--1433.
 
-\bibitem{fu2025energyfl}
-Fu, Z.; Liu, J.; Mao, Y.; Qu, L.; Xie, L.F.; Wang, X. Energy-Efficient UAV-Assisted Federated Learning: Trajectory Optimization, Device Scheduling, and Resource Management. {\em IEEE Trans. Netw. Serv. Manag.} {\bf 2025}, {\em 22}, 974--988.
 
-\bibitem{cao2025sagin}
-Cao, X.; Nan, G.; Guo, H.; Mu, H.; Wang, L.; Lin, Y.; Zhou, Q.; Li, J.; Qin, B.; Cui, Q.; Tao, X.; Fang, H.; Du, H.; Quek, T.Q.S. Exploring LLM-Based Multi-Agent Situation Awareness for Zero-Trust Space-Air-Ground Integrated Network. {\em IEEE J. Sel. Areas Commun.} {\bf 2025}, {\em 43}, 2230--2247.
 
-\bibitem{bertsekas1996reinforcement}
-Bertsekas, D.P.; Tsitsiklis, J.N. {\em Neuro-Dynamic Programming}; Athena Scientific: Nashua, NH, USA, 1996.
 
 \bibitem{oliehoek2008optimal}
 Oliehoek, F.A.; Spaan, M.T.; Vlassis, N. Optimal and Approximate Solutions to Decentralized POMDPs. In {\em Proceedings of the 17th International Conference on Automated Planning and Scheduling (ICAPS)}; AAAI Press: 2008; pp. 274--281.
 
 
-\bibitem{hausknecht2015drqn}
-Hausknecht, M.; Stone, P. Deep Recurrent Q-Learning for Partially Observable MDPs. In {\em Proceedings of the AAAI Fall Symposium on Sequential Decision Making for Intelligent Agents}; AAAI Press: 2015; pp. 29--37.
 
-\bibitem{hausknecht2016parameterized}
-Hausknecht, M.; Stone, P. Deep Reinforcement Learning in Parameterized Action Space. In {\em Proceedings of the International Conference on Learning Representations (ICLR)}; 2016.
 
-\bibitem{xiong2018pdqn}
-Xiong, J.; Wang, Q.; Yang, Z.; Sun, P.; Han, L.; Zheng, Y.; Fu, H.; Zhang, T.; Liu, J.; Liu, H. Parametrized Deep Q-Networks Learning: Reinforcement Learning with Discrete-Continuous Hybrid Action Space. {\em arXiv} {\bf 2018}, arXiv:1810.06394.
 \bibitem{vijay2025anchorfree}
 Vijay, V.; Pant, K.A.; Cho, M.; Guo, Y.; Goppert, J.M.; Hwang, I. Range-Based Multi-Robot Integrity Monitoring For Cyberattacks and Faults: An Anchor-Free Approach. {\em IEEE Robot. Autom. Lett.} {\bf 2025}, {\em 10}, 2630--2637, doi: \href{https://doi.org/10.1109/lra.2025.3534068}{10.1109/lra.2025.3534068}.
 
