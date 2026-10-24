@@ -23,7 +23,7 @@ TEX = ROOT / "paper" / "template.tex"
 RUNS = ROOT / "artifacts" / "analysis" / "runs"
 
 RULE = ["MFA", "FUBA", "GALTrust", "GDM-DTM", "AHP-Entropy"]
-LEARNED = ["LR-Trust", "S-TIM"]
+LEARNED = ["S-TIM"]
 ATK = ["constant", "dormant", "on-off"]
 
 failures = []
@@ -80,9 +80,9 @@ if shape is not None and marg is not None:
             continue
         name = re.sub(r"\\emph\{([^}]*)\}", r"\1", cells[0]).strip()
         name = name.replace("Rule-based aggregation", "rule")
-        name = name.replace("Learned, marginal block only", "marg")
-        name = name.replace("Learned, shape-aware", "shape")
-        name = name.replace("Gap, shape-aware minus rule-based", "gap")
+        name = name.replace("Proposed model, 13 dimensions", "marg")
+        name = name.replace("Proposed model, 18 dimensions", "shape")
+        name = name.replace("Gap, proposed model (18 dims) minus rule-based", "gap")
         vals = []
         for c in cells[1:4]:
             nums = re.findall(r"([\d.]+)", c.replace("$", ""))
@@ -105,8 +105,8 @@ if shape is not None and marg is not None:
 
     r_lo, r_hi = rng(shape, RULE, "on-off")
     s_lo, s_hi = rng(shape, LEARNED, "on-off")
-    check("gap on--off is +50.0 to +92.0",
-          abs((s_lo - r_hi) - 50.0) < 0.05 and abs((s_hi - r_lo) - 92.0) < 0.05,
+    check("gap on--off is +50.0 to +88.0",
+          abs((s_lo - r_hi) - 50.0) < 0.05 and abs((s_hi - r_lo) - 88.0) < 0.05,
           f"computed +{s_lo - r_hi:.1f} to +{s_hi - r_lo:.1f}")
 
     print("\n    per-method block effect on--off (13-dim -> 18-dim):")
@@ -276,15 +276,25 @@ def strip_tex(s: str) -> str:
 
 
 def table_rows(label: str) -> list[list[str]]:
-    """Rows of the tabular inside the table whose label is `label`."""
+    """Rows of the tabular belonging to the table whose label is `label`.
+
+    The label is not always inside the same `\begin{table}` ... `\end{table}`
+    span as the tabular: in some tables the environment opens at the end of
+    the preceding paragraph, so searching backwards for `\begin{table}` finds
+    the previous table instead. The tabular is therefore located forward from
+    the label, and the environment is taken as the one that contains it.
+    """
     m = re.search(r"\\label\{" + re.escape(label) + r"\}", tex)
     if not m:
         return []
-    start = tex.rfind("\\begin{table}", 0, m.start())
-    end = tex.find("\\end{table}", m.start())
-    block = tex[start:end]
-    body = block[block.find("\\begin{tabular}"):]
-    body = body[:body.find("\\end{tabular}")]
+    tab = tex.find("\\begin{tabular}", m.start())
+    if tab < 0:
+        return []
+    start = tex.rfind("\\begin{table}", 0, tab)
+    end = tex.find("\\end{tabular}", tab)
+    if start < 0 or end < 0:
+        return []
+    body = tex[tab:end]
     rows = []
     for line in body.splitlines():
         line = line.strip()
@@ -332,7 +342,7 @@ BLOCKS_SPEC = [
     ("S-TIM, 18 dims, no auxiliary loss", "spatial_position_riskonly", "S-TIM"),
     ("S-TIM, 23 dims (all three blocks)", "spatial_position_23dim", "S-TIM"),
     ("S-TIM, 23 dims, block-routed fusion", "spatial_position_gated", "S-TIM"),
-    ("LR-Trust, 18 dims (per-node)", "spatial_position_23dim", "LR-Trust"),
+    ("S-TIM, 23 dims (all three blocks)", "spatial_position_23dim", "S-TIM"),
 ]
 BLOCKS_COLS = ["constant", "dormant", "on-off", "position-inconsistent", "benign"]
 
@@ -365,12 +375,10 @@ if rows:
 
 print()
 print("=" * 74)
-print("7b. the per-node control and the linear head, in prose and in the table")
+print("7b. the auxiliary-loss and fusion controls, in prose")
 print("=" * 74)
 
 for fact, why in (
-        ("6.2\\%", "the per-node control's rate on the forger"),
-        ("60.8\\%", "the linear head against the proposed model"),
         ("5.7~pp on constant attackers", "the auxiliary-loss cost"),
         ("$p\\ge0.49$", "the block-routed arm's insignificance")):
     check(f"prose states {why}", fact in tex, fact)
@@ -378,13 +386,13 @@ for fact, why in (
 rows = table_rows("tab:spatial_blocks")
 if rows:
     parsed = {r[0]: r[1:] for r in rows}
-    key = "LR-Trust, 18 dims (per-node)"
-    check("spatial blocks holds the per-node comparator", key in parsed)
+    key = "S-TIM, 23 dims (all three blocks)"
+    check("spatial blocks holds the proposed model at 23 dims", key in parsed)
     if key in parsed:
-        computed = mean_atk("spatial_position_23dim", "LR-Trust",
+        computed = mean_atk("spatial_position_23dim", "S-TIM",
                             "position-inconsistent")
         claimed = parsed[key][3] if len(parsed[key]) > 3 else "--"
-        check("per-node comparator / position-inconsistent",
+        check("proposed model at 23 dims / position-inconsistent",
               computed is not None and abs(float(claimed) - computed) < 0.06,
               f"tex={claimed} computed={computed}")
 
@@ -396,7 +404,6 @@ print("=" * 74)
 SPATIAL_MAIN_SPEC = [
     ("MFA", "MFA"), ("FUBA", "FUBA"), ("GALTrust", "GALTrust"),
     ("GDM-DTM", "GDM-DTM"), ("AHP-Entropy", "AHP-Entropy"),
-    ("LR-Trust", "LR-Trust"),
     ("S-TIM (ours)", "S-TIM"),
 ]
 SPATIAL_MAIN_ATK = ["constant", "dormant", "on-off", "position-inconsistent"]
@@ -488,21 +495,22 @@ if rows:
             continue
         cells = parsed[label]
         base = baseline_row(arm, "S-TIM")
-        ctrl = baseline_row(arm, "LR-Trust")
-        if base is None or ctrl is None:
+        if base is None:
             check(f"robustness {label} / logs", False)
             continue
-        want = [base["accuracy"], base["f_score"], ctrl["accuracy"],
-                ctrl["f_score"]]
+        # The table's columns are Configuration, field amp., position ratio,
+        # S-TIM accuracy, S-TIM F-score, best rule accuracy. `r[0]` is the row
+        # label and is dropped when the rows are keyed, so the values start at
+        # index 2 of `cells`.
+        want = [base["accuracy"], base["f_score"]]
         for i, (col, value) in enumerate(zip(
-                ("S-TIM accuracy", "S-TIM f_score", "LR accuracy",
-                 "LR f_score"), want)):
+                ("S-TIM accuracy", "S-TIM f_score"), want)):
             claimed = cells[2 + i] if len(cells) > 2 + i else "--"
             check(f"robustness {label} / {col}",
                   abs(float(claimed) - value) < 0.06,
                   f"tex={claimed} computed={value:.1f}")
         rule_best = max(baseline_row(arm, m)["accuracy"] for m in RULE_METHODS)
-        claimed = cells[6] if len(cells) > 6 else "--"
+        claimed = cells[4] if len(cells) > 4 else "--"
         check(f"robustness {label} / best rule accuracy",
               abs(float(claimed) - rule_best) < 0.06,
               f"tex={claimed} computed={rule_best:.1f}")
@@ -538,13 +546,10 @@ print("=" * 74)
 for fact, why in (
     ("83.6", "the forger detection rate with the neighborhood block"),
     ("2.1", "the forger detection rate without it"),
-    ("6.2", "LR-Trust on the forger"),
     ("$+81.5$~pp", "the paired spatial gain"),
     ("81.5", "the paired spatial gain, plain form"),
     ("1.99", "the largest neighborhood effect size"),
     ("0.04", "the largest behavioural effect size"),
-    ("60.8", "LR-Trust on the forger with the same vector"),
-    ("$-6.3$~pp", "the linear head's interference cost"),
     ("8.7~pp", "the shape block's cost on constant attackers"),
     ("3.6~pp", "the net cost on constant attackers"),
     ("2.2~pp", "the net cost on dormant attackers"),
@@ -553,18 +558,17 @@ for fact, why in (
     ("93.8", "S-TIM accuracy in the spatial scenario"),
     ("89.4", "S-TIM F-score in the spatial scenario"),
     ("88.9", "S-TIM TSR in the spatial scenario"),
-    ("$+12.3$~pp", "the paired accuracy gain over LR-Trust"),
-    ("$+26.2$~pp", "the paired F-score gain over LR-Trust"),
-    ("$+7.4$~pp", "the paired TSR gain over LR-Trust"),
-    ("$+54.0$~pp", "the accuracy gain over the strongest rule adapter"),
+    ("$+49.8$~pp", "the accuracy gain over the strongest rule adapter"),
+    ("$+43.9$~pp", "the F-score gain over the strongest rule adapter"),
+    ("$+13.0$~pp", "the TSR gain over the strongest rule adapter"),
     ("0.967", "the modality head accuracy at 12 training seeds"),
     ("0.964", "the modality head accuracy at 24 training seeds"),
     ("0.4~pp", "the largest data-efficiency spread at a fixed training-set size"),
     ("90 node-level training rows", "the size of the smallest training set"),
-    ("$+10.0$~pp", "the smallest accuracy advantage in the robustness sweep"),
-    ("$+15.8$~pp", "the largest accuracy advantage in the robustness sweep"),
-    ("$+19.5$~pp", "the smallest F-score advantage in the robustness sweep"),
-    ("$+36.5$~pp", "the largest F-score advantage in the robustness sweep"),
+    ("$+46.6$~pp", "the smallest accuracy advantage in the robustness sweep"),
+    ("$+52.3$~pp", "the largest accuracy advantage in the robustness sweep"),
+    ("$+41.7$~pp", "the smallest F-score advantage in the robustness sweep"),
+    ("$+44.5$~pp", "the largest F-score advantage in the robustness sweep"),
     ("72.9\\%", "the lowest forger detection rate in the robustness sweep"),
     ("88.0\\%", "the highest forger detection rate in the robustness sweep"),
 ):

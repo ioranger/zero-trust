@@ -108,7 +108,7 @@ def main() -> None:
         ("FUBA", "#ff7f0e"),
         ("GALTrust", "#9467bd"),
         ("GDM-DTM", "#1f77b4"),
-        ("LR-Trust", "#8c564b"),
+        ("AHP-Entropy", "#e377c2"),
         ("S-TIM", "#2ca02c"),
     ]:
         line = ratio_summary[ratio_summary["method"] == method].sort_values("malicious_ratio")
@@ -143,17 +143,17 @@ def main() -> None:
     axes[1].legend(fontsize=8)
     axes[1].set_title("(b) Attack dynamics")
 
-    # The manuscript reports seven methods; the artifact trains one more
-    # comparator that the manuscript does not report as a competitor, so the
-    # figure is restricted to the reported set and the bars keep one colour
-    # each.
+    # The manuscript reports six methods: the five rule-based aggregators and
+    # the proposed model. The artifact trains two learned comparators that the
+    # manuscript does not report as competitors, so the figure is restricted to
+    # the reported set and the bars keep one colour each.
     baseline = pd.read_csv(outputs / "tables" / "baseline_comparison.csv")
     reported = ["MFA", "FUBA", "GALTrust", "GDM-DTM", "AHP-Entropy",
-                "LR-Trust", "S-TIM"]
+                "S-TIM"]
     baseline = baseline[baseline["method"].isin(reported)]
     bar_colors = {"MFA": "#7f7f7f", "FUBA": "#ff7f0e", "GALTrust": "#9467bd",
                   "GDM-DTM": "#1f77b4", "AHP-Entropy": "#e377c2",
-                  "LR-Trust": "#8c564b", "S-TIM": "#2ca02c"}
+                  "S-TIM": "#2ca02c"}
     tsr_means = [parse_mean_std(v)[0] for v in baseline["tsr"]]
     axes[2].bar(baseline["method"], tsr_means,
                  color=[bar_colors[m] for m in baseline["method"]])

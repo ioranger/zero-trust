@@ -65,13 +65,15 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 
 ## The method set the manuscript reports, and the one the artifact trains
 
-The manuscript's comparison tables list six comparators: the five rule-based
-ones (MFA, FUBA, GALTrust, GDM-DTM, AHP-Entropy) and the learned per-node
-comparator LR-Trust. The artifact additionally trains a same-feature neural
-control (a two-layer risk classifier on the identical diagnostic features and
-seeds), because the pre-registered controls and the diagnostic scripts need it:
+The manuscript's comparison tables list five comparators, all rule-based:
+MFA, FUBA, GALTrust, GDM-DTM and AHP-Entropy. No learned comparator is
+reported as a competitor. The artifact still trains two, because the
+pre-registered controls and the diagnostic scripts need them:
 
-* the focal-loss arms were run with that control trained **under the same
+* a per-node learned baseline (LR-Trust) and a same-feature neural control
+  (MLP-Trust, a two-layer risk classifier on the identical diagnostic features
+  and seeds);
+* the focal-loss arms were run with both of them trained **under the same
   objective inside the same run**, and their verdicts are the negative result
   the manuscript reports (`FOCAL_ARM_PREREGISTRATION.md`,
   `FOCAL_GAMMA_SWEEP_PREREGISTRATION.md`, `evaluate_focal_arm.py`,
@@ -82,10 +84,11 @@ seeds), because the pre-registered controls and the diagnostic scripts need it:
 * the operating-point diagnostic compares the two learners at a matched benign
   false-positive rate (`operating_point_probe.py`).
 
-The manuscript does not report that control as a competitor, so the tables
-here are a superset of the manuscript's. Deleting it from the artifact would
-remove the instrument those three measurements are made with and would change
-no number the manuscript prints.
+The manuscript does not report those controls as competitors, so the tables
+here are a superset of the manuscript's, and the generated figures are
+restricted to the reported set. Deleting them from the artifact would remove
+the instruments those measurements are made with and would change no number the
+manuscript prints.
 
 ## `runs/`
 
