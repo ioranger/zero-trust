@@ -73,7 +73,7 @@
 
 %=================================================================
 % Full title of the paper (Capitalized)
-\Title{Spatio-Temporal Trust Inference Closes Two Structural Blind Spots of Window-Based Trust Aggregation in Low-Altitude UAV Networks}
+\Title{S-TIM: A Spatio-Temporal Trust Evaluation Method for Malicious Node Detection in Low-Altitude UAV Networks}
 
 % Author Orchid ID: enter ID or remove command
 \newcommand{\orcidauthorA}{0000-0000-0000-000X} % Add \orcidA{} behind the author's name
@@ -164,7 +164,7 @@ UAV swarms used for inspection, sensing, and emergency response rely on nodes th
 
 Trust management addresses this problem by updating a node score from recent observations. Existing schemes use fuzzy fusion, anomaly profiles, provenance, or group decisions \cite{benfriha2024fuba,akram2024galtrust,ge2021uavpro,hu2025gdm}. Their scores, however, are often evaluated only as detector outputs. In a mission, the practical question is what changes after a node becomes risky: whether it may receive a sensitive task, how much traffic it may relay, and when it should be isolated. This study examines that narrower trust-to-allocation question.
 
-We present S-TIM (Spatio-Temporal Trust Inference Model) as a reproducible proof of concept rather than a deployment-ready zero-trust architecture. The artifact generates five trust-factor streams, fits a supervised encoder, and uses its risk output in a model-based task-allocation simulation. Although the architecture was motivated by parameterized multi-agent decision making, the released training procedure is not reinforcement learning: there is no sampled return, Bellman target, policy-gradient update, or online interaction with an environment. Calling the executable model MARL would therefore overstate what was implemented.
+We present S-TIM (Spatio-Temporal Trust Inference Model) as a spatio-temporal trust evaluation method and as a reproducible proof of concept rather than a deployment-ready zero-trust architecture. The artifact generates five trust-factor streams, fits a supervised encoder, and uses its risk output in a model-based task-allocation simulation. Although the architecture was motivated by parameterized multi-agent decision making, the released training procedure is not reinforcement learning: there is no sampled return, Bellman target, policy-gradient update, or online interaction with an environment. Calling the executable model MARL would therefore overstate what was implemented.
 
 The blindness described above is specific to attacks that live in a node's own
 behaviour, and it is therefore silent about the attacker that matters most when
