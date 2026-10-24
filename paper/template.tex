@@ -106,10 +106,10 @@ Department of Computer Science and Engineering, Anonymous Institution}
 %\conference{} % An extended version of a conference paper
 
 % Abstract (Do not insert blank lines, i.e. \\) 
-\abstract{Trust scores are useful in a cooperative UAV mission only when they inform an operational decision, and the decision begins with what the aggregator is able to see. We construct five normalised evidence streams---behaviour, communication, energy, task execution and history---and study what a trust aggregator must represent in order to catch an attacker that it cannot see directly. The finding is a structural blind spot in the summarisation step rather than a deficiency of the aggregation rules that consume the result, and it takes two independent forms. The first is temporal: the marginal window summaries that conventional trust aggregation computes leave periodic on--off attackers at 0.0--38\% detection across five rule-based comparators, while five scale-free temporal-shape statistics lift the same models to at least 88\%. The second is spatial: an attacker whose telemetry is indistinguishable from the benign population is invisible to every method that scores one node at a time, at 2.1\% detection with the marginal and shape blocks alone, while a five-dimensional neighbourhood-relative block, which compares a node against the link conditions its neighbours actually experience, raises detection above 83\%. We instantiate the finding in S-TIM, a supervised encoder over the marginal, shape and neighbourhood blocks. It exceeds the strongest rule-based comparator by $+9.0$~pp accuracy on paired seeds, and in the scenario that contains the behaviourally-clean attacker it leads every aggregate metric by $+49.8$~pp accuracy over the strongest rule adapter ($p<0.0001$). The gain belongs to the representation: with the encoder, the input width and the early-stopping rule held fixed, no arrangement of the auxiliary heads changes the detection rates, and the same holds for alternative training objectives. The blocks are not free, and their costs are reported alongside the gains. The executable implementation is deliberately narrower than a full multi-agent reinforcement-learning system, and the limits of what the evaluation supports are stated rather than left implicit.}
+\abstract{Trust scores are useful in a cooperative UAV mission only when they inform an operational decision, and the decision begins with what the aggregator is able to see. We construct five normalised evidence streams---behaviour, communication, energy, task execution and history---and study what a trust aggregator must represent in order to catch an attacker that it cannot see directly. The finding is a structural blind spot in the summarisation step rather than a deficiency of the aggregation rules that consume the result, and it takes two independent forms. The first is temporal: the marginal window summaries that conventional trust aggregation computes leave periodic on--off attackers at 0.0--38\% detection across five rule-based comparators, while five scale-free temporal-shape statistics lift the same models to at least 88\%. The second is spatial: an attacker whose telemetry is indistinguishable from the benign population is invisible to every method that scores one node at a time, at 2.1\% detection with the marginal and shape blocks alone, while a five-dimensional neighbourhood-relative block, which compares a node against the link conditions its neighbours actually experience, raises detection above 83\%. We instantiate the finding in S-TIM, a supervised encoder over the marginal, shape and neighbourhood blocks. It exceeds the strongest rule-based comparator by $+9.0$~pp accuracy on paired seeds, and in the scenario that contains the behaviourally-clean attacker it leads every aggregate metric by $+49.8$~pp accuracy over the strongest rule adapter ($p<0.0001$). The gain belongs to the representation: with the encoder, the input width and the early-stopping rule held fixed, no arrangement of the auxiliary heads changes the detection rates, and the same holds for alternative training objectives. The blocks are not free, and their costs are reported alongside the gains. The executable implementation is a supervised trust-stream pipeline, and the limits of what the evaluation supports are stated rather than left implicit.}
 
 % Keywords
-\keyword{UAV networks; trust management; task allocation; zero trust; reproducible simulation}
+\keyword{UAV networks; trust management; malicious node detection; task allocation; reproducible simulation}
   
 % The fields PACS, MSC, and JEL may be left empty or commented out if not applicable
 %\PACS{J0101}
@@ -164,7 +164,7 @@ UAV swarms used for inspection, sensing, and emergency response rely on nodes th
 
 Trust management addresses this problem by updating a node score from recent observations. Existing schemes use fuzzy fusion, anomaly profiles, provenance, or group decisions \cite{benfriha2024fuba,akram2024galtrust,ge2021uavpro,hu2025gdm}. Their scores, however, are often evaluated only as detector outputs. In a mission, the practical question is what changes after a node becomes risky: whether it may receive a sensitive task, how much traffic it may relay, and when it should be isolated. This study examines that narrower trust-to-allocation question.
 
-We present S-TIM (Spatio-Temporal Trust Inference Model) as a spatio-temporal trust evaluation method and as a reproducible proof of concept rather than a deployment-ready zero-trust architecture. The implementation generates five trust-factor streams, fits a supervised encoder, and uses its risk output in a model-based task-allocation simulation. Although the architecture was motivated by parameterized multi-agent decision making, the released training procedure is not reinforcement learning: there is no sampled return, Bellman target, policy-gradient update, or online interaction with an environment. Calling the executable model MARL would therefore overstate what was implemented.
+We present S-TIM (Spatio-Temporal Trust Inference Model) as a spatio-temporal trust evaluation method and as a reproducible proof of concept. The implementation generates five trust-factor streams, fits a supervised encoder, and uses its risk output in a model-based task-allocation simulation. The released training procedure is a supervised one: the risk, action and value targets all come from the simulator's labels, and the encoder is fitted on held-out training seeds with a seed-level validation split.
 
 The blindness described above is specific to attacks that live in a node's own
 behaviour, and it is therefore silent about the attacker that matters most when
@@ -183,7 +183,7 @@ The study asks three bounded questions. First, how should generated trust stream
 \textbf{Problem statement.}
 This paper addresses a trust-layer decision problem for fixed identities: how should a risk estimate derived from noisy multi-factor evidence affect a subsequent task-allocation decision? The empirical scope is a generated trust-stream benchmark. It does not cover admission control, Sybil resistance, real-time distributed execution, flight deployment, or the validation of absolute position integrity; the spatial result below is a statement about what a trust aggregator can and cannot resolve from the trust stream itself, not a position-verification scheme.
 
-Figure~\ref{fig:Proposed} gives the executed pipeline, and Figure~\ref{fig:update} places it inside the intended deployment, marking the parts that the implementation does not run. The contributions are consequently limited to the following:
+Figure~\ref{fig:Proposed} gives the executed pipeline, and Figure~\ref{fig:update} gives the system design the method is written for, marking the parts the implementation leaves open. The contributions are consequently limited to the following:
 
 \begin{itemize}
     \item a documented generator for behavioural, communication, energy, task, and historical trust streams under three temporal attack patterns and one spatially-inconsistent pattern, in which a subset of the malicious population reports telemetry drawn from the benign distribution while standing in an airspace cell whose radio field differs from the one it reports;
@@ -192,7 +192,7 @@ Figure~\ref{fig:Proposed} gives the executed pipeline, and Figure~\ref{fig:updat
     \item a controlled identification of the mechanism, with a reproducible supervised encoder on disjoint training and evaluation seeds: with the encoder, the input width and the early-stopping rule held fixed, switching every auxiliary loss off, supervising only the attack-modality head, or supervising all four changes no detection metric, and an information probe shows why, since the auxiliary target is already 96.7\% recoverable from the marginal features alone. The block ablations of the same model locate the gain in the representation: removing the shape block lowers on--off detection from 88.0\% to 72.0\%, and removing the neighbourhood block lowers the behaviourally-clean attacker from 83.6\% to 2.1\%, so the gain is a property of the evidence the model is given rather than of the aggregation rules the evidence is meant to feed;
 \end{itemize}
 
-The remainder of this paper reviews related work, defines the intended architecture and executable subset, reports the trust-stream experiments, and closes with limitations.
+The remainder of this paper reviews related work, states the system design and the part of it that is implemented and evaluated, reports the trust-stream experiments, and closes with limitations.
 
 \section{Related Work}
 Trust evaluation for UAV networks now includes reputation models, evidence fusion, blockchain support, and learning-based designs. Yet low-altitude UAV studies rarely integrate zero-trust verification, distributed trust learning, uncertainty aggregation, and mission incentives. We review four related areas: UAV trust management, position-aware trust and integrity monitoring, zero-trust assessment, and MARL for UAV networking and security.
@@ -277,7 +277,7 @@ The implementation presented here addresses only part of this gap: it evaluates 
 \section{System Model}
 \label{sec:system_model}
 
-We consider a low-altitude UAV swarm executing a cooperative mission in an infrastructure-scarce environment. This section separates the intended system from the subset that is implemented and evaluated here.
+We consider a low-altitude UAV swarm executing a cooperative mission in an infrastructure-scarce environment. This section states the system the method is designed for, and marks which parts of it the implementation and the evaluation cover.
 
 \subsection{Problem Definition}
 \label{sec:problem_definition}
@@ -296,7 +296,7 @@ subject to bounded trust scores and an incentive budget. This is a conceptual ob
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{pipeline.png}
-\caption{The executed pipeline. Every box on the solid path is run by the released implementation: the trust-stream generator, the three evidence blocks, the shared encoder, the risk head, the fixed decision threshold, the allocation proxy and the task-success proxy. The auxiliary heads are trained but not consumed by inference. The implementation runs one supervised network over per-node features; it has no on-board agents, no multi-agent fusion, no closed state-feedback loop and no reinforcement learning.}
+\caption{The executed pipeline. Every box on the solid path is run by the released implementation: the trust-stream generator, the three evidence blocks, the shared encoder, the risk head, the fixed decision threshold, the allocation proxy and the task-success proxy. The auxiliary heads are trained but not consumed by inference. The implementation runs one supervised network over per-node features; the pipeline is a feed-forward pass from the generated streams to the task-success proxy, with no closed state-feedback loop.}
 \label{fig:Proposed}
 \end{figure}
 
@@ -411,7 +411,7 @@ Furthermore, the framework supports \textbf{anomaly detection} through statistic
 where $\mu_m(t)$ and $\sigma_m(t)$ are the mean and standard deviation of trust factor $m$ across the swarm, $\chi^2_{\alpha,5}$ is the chi-squared threshold with 5 degrees of freedom at significance level $\alpha = 0.05$. This redundancy and diversity in trust evidence form the foundation for robust and adaptive trust management in UAV swarms, enabling the detection of sophisticated attacks that may manipulate multiple dimensions simultaneously.
 
 \subsection{Spatio-Temporal Risk Model and Allocation Proxy}
-\label{sec:marl_formulation}
+\label{sec:system_design}
 The intended architecture divides observation across local agents and forwards their estimates to a decision node. The executable artifact is simpler. It applies one shared supervised network independently to each node's diagnostic feature vector. Agent assignments do not enter the feature extractor, and neither confidence-weighted fusion nor budget projection is executed. We retain the broader formulation below to define a possible deployment target, but distinguish it from the evaluated model.
 
 \subsubsection{Dec-POMDP Elements}
@@ -468,7 +468,7 @@ Let $y_k \in \{0,1\}$ be the simulator label used during training. Let $\boldsym
 \end{aligned}
 \label{eq:implemented_loss}
 \end{equation}
-The primary term is weighted binary cross-entropy with a positive-class weight of 2.0. There is no reward return or temporal-difference target in Eq.~\ref{eq:implemented_loss}; the value target is $0.8$ for benign nodes and $-0.4$ for malicious nodes. The action target also depends on the ground-truth class. Training uses seeds 0--9 and a fixed decision threshold of 0.60. Evaluation seeds 1000--1049 are not used for fitting. The method is therefore a multi-task supervised classifier, not an offline or online reinforcement-learning algorithm.
+The primary term is weighted binary cross-entropy with a positive-class weight of 2.0. The loss in Eq.~\ref{eq:implemented_loss} is a weighted binary cross-entropy on the risk head plus three auxiliary terms; every target is a label-derived quantity, the value target being $0.8$ for benign nodes and $-0.4$ for malicious nodes, and the action target depending on the ground-truth class. Training uses seeds 0--9 and a fixed decision threshold of 0.60. Evaluation seeds 1000--1049 are not used for fitting. The method is a multi-task supervised classifier over per-node features.
 
 The following aggregation equations specify an unevaluated extension for deployments in which several agents observe the same node. They are not invoked by the released Python evaluation.
 
@@ -531,7 +531,7 @@ over the observers that saw node $k$ at time $t+1$ in the proposed deployment; t
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{deployment.png}
-\caption{The same pipeline inside the intended deployment. Solid boxes are executed by the released implementation; dashed boxes are design extensions: multi-observer aggregation, the action-dependent state update and the constraint budget. The feedback loop is not closed in the implementation, and the observation streams are consumed centrally rather than by on-board agents.}
+\caption{The same pipeline inside the system design the method is written for. Solid boxes are the parts the released implementation runs and the paper evaluates; dashed boxes are the parts it leaves open: merging the observations of several agents over one node, a state update that depends on the selected action, and a constraint budget. Those three are stated in Section~\ref{sec:system_design} as a possible extension, and none of them is exercised by the experiments reported here.}
 \label{fig:update}
 \end{figure}
 
@@ -565,7 +565,7 @@ Table~\ref{alg:stim} consolidates the S-TIM trust evaluation and incentive loop 
 
 \begin{table}[!htbp]
 \centering
-\caption{S-TIM trust evaluation and incentive cycle for one update interval $\Delta t$.}
+\caption{S-TIM trust evaluation and the allocation cycle it drives, for one update interval $\Delta t$.}
 \label{alg:stim}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}rX@{}}
@@ -1015,7 +1015,7 @@ If the published table cannot separate the proposed model from the rule-based co
 
 A benchmark of this family therefore does not run out of separability by being made quieter; it runs out only when the attacker's evidence is not in its own channels at all, which is the case the spatial scenario of Section~\ref{sec:spatial_scenario} constructs and the only place in this manuscript where the method groups separate. The measurements above are a diagnosis of where the comparison can and cannot be made, not a claim that a harder benchmark would favour the proposed model.
 
-The released material is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine agent-local observations and aggregation, and run the packet-trace study that the replication package carries, with attack parameters held out from training and with a scenario whose attacker is level-indistinguishable, so that the two blind-spot claims are tested on packet data rather than only on generated streams. The comparison this paper does not make is between two learners on the identical feature vector, which would separate the representation from the network as cleanly as the block ablation separates the blocks from one another; the replication package carries the trained comparators that such a study would need. Reinforcement-learning claims would additionally require environment interaction, reward-defined returns, and comparison with supervised and non-learning policies. Until those experiments are available, S-TIM should be described as a supervised trust-stream proof of concept rather than a validated MARL or zero-trust deployment.
+The released material is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine agent-local observations and aggregation, and run the packet-trace study that the replication package carries, with attack parameters held out from training and with a scenario whose attacker is level-indistinguishable, so that the two blind-spot claims are tested on packet data rather than only on generated streams. The comparison this paper does not make is between two learners on the identical feature vector, which would separate the representation from the network as cleanly as the block ablation separates the blocks from one another; the replication package carries the trained comparators that such a study would need. A comparison with a learned policy, and the environment interaction and reward-defined returns such a comparison would need, would establish whether the allocation result carries over to a controller that optimises the objective rather than applying a fixed rule. Until those experiments are available, S-TIM should be described as a supervised trust-stream proof of concept, and its claims are limited to the detection and allocation results reported here.
 
 %%%%%%%%%%%%%
 \vspace{6pt} 

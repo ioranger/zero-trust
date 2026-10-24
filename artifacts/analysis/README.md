@@ -63,6 +63,7 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `audit_numbers.py` | Locates every occurrence of the quantities the manuscript quotes repeatedly, so the values can be compared across the abstract, the tables and the conclusions. |
 | `switch_interval_column_check.py` | Measures the switch-interval statistic of the shape block across nodes on the generated streams, which is how the claim that the column is degenerate there was checked and found false. |
 | `same_vector_control.py` | Prints the fusion arm, in which every learned comparator receives the identical 23-dimensional vector, the same threshold and the same seeds: the comparison that separates the representation from the network, and the one the manuscript does not report. |
+| `list_marl_zeros.py` | Lists the sentences in the manuscript that name multi-agent reinforcement learning or zero trust, separating the self-positioning contrasts from the related work that is kept. |
 | `bold_table_cells.py` | Sets the bold cells: the proposed model's lead in the comparison tables, the best value in the column in the ablation tables. |
 | `table_type_sizes.py` | Measures the type size each table ends up with in the built PDF and reports the factor that would give it a common size. |
 | `set_table_scales.py` | Sets the tables' resizebox factors so that they share a type size and none overflows the text width. |
