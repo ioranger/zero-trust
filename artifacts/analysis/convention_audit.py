@@ -14,6 +14,7 @@ TEX = ROOT / "paper" / "template.tex"
 
 # abbreviation -> the expansion the manuscript should use at first mention
 ABBREVIATIONS = {
+    "S-TIM": "Spatio-Temporal Trust Inference Model",
     "AUC": "area under the curve",
     "FPR": "false positive rate",
     "TPR": "true positive rate",
