@@ -130,6 +130,10 @@ python -u artifacts/scripts/summarize_results.py       --config artifacts/config
 
 ## The packet-level trace path
 
+The manuscript no longer reports the packet-level results. The path below
+stays in the package so that the external check the manuscript describes can
+be run, but its numbers are not among the results the paper prints.
+
 The bundled ns-3 trace holds 49 update steps, which is shorter than the
 feature extractor's minimum window, so the table it produced measured a harness
 mismatch rather than the detector. The path for a real multi-seed validation
