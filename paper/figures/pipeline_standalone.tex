@@ -1,0 +1,13 @@
+% Standalone wrapper: compiles the executed-pipeline figure on its own so it can
+% be rasterised into paper/figures/pipeline.png. The MDPI class does not load
+% TikZ, and the manuscript therefore includes the rasterised figure rather
+% than the TikZ source.
+%
+%   pdflatex -interaction=nonstopmode pipeline_standalone.tex
+
+\documentclass[border=6pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\begin{document}
+\input{pipeline_tikz.tex}
+\end{document}

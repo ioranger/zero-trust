@@ -183,7 +183,7 @@ The study asks three bounded questions. First, how should generated trust stream
 \textbf{Problem statement.}
 This paper addresses a trust-layer decision problem for fixed identities: how should a risk estimate derived from noisy multi-factor evidence affect a subsequent task-allocation decision? The empirical scope is a generated trust-stream benchmark. It does not cover admission control, Sybil resistance, real-time distributed execution, flight deployment, or the validation of absolute position integrity; the spatial result below is a statement about what a trust aggregator can and cannot resolve from the trust stream itself, not a position-verification scheme.
 
-Figure~\ref{fig:Proposed} gives the intended deployment architecture. Only its trust-stream classifier and allocation proxy are exercised in the released artifact. The contributions are consequently limited to the following:
+Figure~\ref{fig:Proposed} gives the executed pipeline, and Figure~\ref{fig:update} places it inside the intended deployment, marking the parts that the artifact does not run. The contributions are consequently limited to the following:
 
 \begin{itemize}
     \item a documented generator for behavioural, communication, energy, task, and historical trust streams under three temporal attack patterns and one spatially-inconsistent pattern, in which a subset of the malicious population reports telemetry drawn from the benign distribution while standing in an airspace cell whose radio field differs from the one it reports;
@@ -295,8 +295,8 @@ subject to bounded trust scores and an incentive budget. This is a conceptual ob
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.85\textwidth]{ov2.png}
-\caption{Intended S-TIM deployment architecture. The released artifact implements the T1--T5 trust-stream features, a shared supervised network, and a model-based allocation proxy. Parallel on-board agents, confidence-weighted fusion, and a closed deployment feedback loop remain design elements rather than experimentally validated components.}
+\includegraphics[width=\textwidth]{pipeline.png}
+\caption{The executed pipeline. Every box on the solid path is run by the released artifact: the trust-stream generator, the three evidence blocks, the shared encoder, the risk head, the fixed decision threshold, the allocation proxy and the task-success proxy. The auxiliary heads are trained but not consumed by inference. The artifact runs one supervised network over per-node features; it has no on-board agents, no multi-agent fusion, no closed state-feedback loop and no reinforcement learning.}
 \label{fig:Proposed}
 \end{figure}
 
@@ -346,7 +346,7 @@ S-TIM represents credibility with five trust dimensions. They are not statistica
 \subsubsection{Trust Factor Decomposition}
 T1 denotes behavioural consistency, T2 communication reliability, T3 energy behaviour, and T4 task quality. T5 is an exponentially smoothed mean of T1--T4. Equations~\ref{eq:T1}--\ref{eq:T4} describe how these quantities could be obtained from telemetry. In the main experiment, however, the artifact samples normalised T1--T4 values directly from attack-dependent distributions and computes T5 from those samples; it does not simulate the raw packet, position, energy, or task variables in these equations.
 
-As illustrated in Figure \ref{fig:Proposed}, the trust evaluation is decomposed into multiple trust branches, each corresponding to a distinct trust factor. Let the overall trust score of UAV node $i$ at time $t$ be denoted as $T_i(t) \in [0, 10]$, which is a function of five fundamental trust dimensions (the formal aggregation mechanism is presented in Section~\ref{sec:multi_factor_aggregation}),
+The trust evaluation is decomposed into multiple trust branches, each corresponding to a distinct trust factor. Let the overall trust score of UAV node $i$ at time $t$ be denoted as $T_i(t) \in [0, 10]$, which is a function of five fundamental trust dimensions (the formal aggregation mechanism is presented in Section~\ref{sec:multi_factor_aggregation}),
 where each trust branch $T_i^{(m)}(t) \in [0, 1]$ is defined as follows:
 
 \begin{itemize}
@@ -526,12 +526,12 @@ where $\sigma_{obs}^2 = 0.5$ is the observation noise variance, so that new obse
 \begin{equation}\label{eq:obs_aggregation}
 T_k^{obs}(t+1) = \frac{1}{|\mathcal{M}_k(t+1)|} \sum_{j \in \mathcal{M}_k(t+1)} T_{jk}^{obs}(t+1)
 \end{equation}
-over the agents that observed node $k$ at time $t+1$. Because the fusion is a convex combination of two bounded terms and the decay maps $[0, 10]$ into itself, the update stays in $[0, 10]$ for all $t$; it does not establish convergence, and the released simulator does not close the action-to-future-state loop. Figure~\ref{fig:update} summarises the loop and marks which of its elements the released artifact implements.
+over the observers that saw node $k$ at time $t+1$ in the proposed deployment; the artifact fuses a single stream and does not use this term. Because the fusion is a convex combination of two bounded terms and the decay maps $[0, 10]$ into itself, the update stays in $[0, 10]$ for all $t$; it does not establish convergence, and the released simulator does not close the action-to-future-state loop. Figure~\ref{fig:update} summarises the loop and marks which of its elements the released artifact implements.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{update.png}
-\caption{Proposed state-update and allocation loop. Solidly implemented elements in the artifact are trust-stream generation, feature extraction, risk inference, and a task-allocation proxy. Confidence fusion, budgeted incentives, and action-dependent future trust remain unvalidated extensions.}
+\includegraphics[width=\textwidth]{deployment.png}
+\caption{The same pipeline inside the intended deployment. Solid boxes are executed by the released artifact; dashed boxes are design extensions: multi-observer aggregation, the action-dependent state update and the constraint budget. The feedback loop is not closed in the artifact, and the observation streams are consumed centrally rather than by on-board agents.}
 \label{fig:update}
 \end{figure}
 

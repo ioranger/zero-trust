@@ -1,9 +1,12 @@
-﻿% Simplified method-flow figure.
-% Shows ONLY the executed artifact path (no multi-agent, no ground control,
-% no closed update loop, no RL claim).
-% Requires tikz + arrows.meta + positioning
-% (tikz and positioning are loaded by Definitions/mdpi).
-
+﻿% The executed artifact pipeline.
+%
+% It shows ONLY what the released artifact runs: the trust-stream generator,
+% the three evidence blocks, the shared encoder, the risk head, the decision
+% threshold, the allocation proxy and the task-success proxy, with the
+% auxiliary heads marked as trained but not consumed. There is no multi-agent
+% layer, no ground control, no closed update loop and no reinforcement
+% learning, because the artifact has none of them.
+%
 % (tikz itself is loaded by Definitions/mdpi; the libraries are pulled in here
 %  so this file compiles standalone as well as inside the MDPI class.)
 \usetikzlibrary{arrows.meta,positioning,calc}
@@ -23,23 +26,29 @@
   tag/.style={font=\sffamily\tiny, text=black!60, align=center}
 ]
 
-% ============ Row 1: evidence generation -> encoding -> risk ============
-\node[stage, text width=17mm] (gen) {
+% ============ Row 1: evidence -> evidence blocks -> encoding -> risk ============
+\node[stage, text width=19mm] (gen) {
   \textbf{Trust-stream}\\[-2pt]\textbf{generator}\\[-2pt]{\tiny 500 steps, warm-up 100}};
 
-\node[stage, right=of gen, text width=23mm] (t14) {
-  \textbf{T1--T4}\\[-2pt]behav.\ $\cdot$ comm.\\[-2pt]energy $\cdot$ task\\[-2pt]{\tiny sampled per attack profile}};
+\node[stage, right=of gen, text width=21mm] (t14) {
+  \textbf{T1--T4}\\[-2pt]behav.\ $\cdot$ comm.\\[-2pt]energy $\cdot$ task\\[-2pt]{\tiny per node, per step}};
 
-\node[stage, right=of t14, text width=24mm] (t5) {
+\node[stage, right=of t14, text width=22mm] (t5) {
   \textbf{EMA memory}\\[-2pt]{\small $T_5^{t}\!=\!0.84\,T_5^{t-1}\!+\!0.16\,\bar{T}_{1:4}$}\\[-2pt]{\tiny derived from T1--T4}};
 
-\node[stage, right=of t5, text width=24mm] (feat) {
-  \textbf{13 diagnostic}\\[-2pt]\textbf{features}\\[-2pt]{\tiny low quantile $\cdot$ slope}\\[-2pt]{\tiny low-score run $\cdot$ gap}};
+\node[stage, right=of t5, text width=34mm, minimum height=20mm] (feat) {
+  \textbf{Evidence blocks}\\[1pt]
+  {\tiny marginal: 13 window summaries}\\[-1pt]
+  {\tiny $+$ temporal shape: 5 statistics}\\[-1pt]
+  {\tiny $+$ neighbourhood: 5 statistics}\\[2pt]
+  {\tiny 13 / 18 / 23 features by scenario}\\[2pt]
+  {\tiny\itshape shape closes the intermittent blind spot}\\[-1pt]
+  {\tiny\itshape neighbourhood closes the clean-behaviour one}};
 
 \node[stage, right=of feat, text width=19mm] (enc) {
   \textbf{Shared encoder}\\[-2pt]{\small $h_k\!=\!f_\theta(\mathbf{x}_k)$}};
 
-\node[used, right=of enc, text width=18mm] (risk) {
+\node[used, right=of enc, text width=17mm] (risk) {
   \textbf{Risk head}\\[-2pt]{\small $p_k\!=\!\sigma(g_r(h_k))$}};
 
 \draw[line] (gen) -- (t14);
@@ -49,21 +58,32 @@
 \draw[line] (enc)  -- (risk);
 
 % ============ Evaluated decision path ============
-\node[used, below=7mm of risk, text width=18mm] (dec) {
+\node[used, below=8mm of risk, text width=17mm] (dec) {
   \textbf{Decision}\\[-2pt]{\small $p_k>0.60$}};
-\node[used, below=5mm of dec, text width=26mm] (alloc) {
-  \textbf{Allocation proxy}\\[-2pt]{\tiny one common rule, all methods}};
-\node[used, below=5mm of alloc, text width=26mm] (tsr) {
+\node[used, below=5mm of dec, text width=30mm] (alloc) {
+  \textbf{Allocation proxy}\\[-2pt]{\tiny one common rule for every method}};
+\node[used, below=5mm of alloc, text width=30mm] (tsr) {
   \textbf{Task-success proxy}\\[-2pt]{\tiny 220 assignments / trial}};
 
 \draw[line] (risk) -- (dec);
 \draw[line] (dec)  -- (alloc);
 \draw[line] (alloc) -- (tsr);
 
-% ============ Auxiliary head, off the evaluated path ============
-\node[unused, below=7mm of enc, text width=27mm] (aux) {
+% ============ Auxiliary heads, off the evaluated path ============
+\node[unused, below=9mm of enc, xshift=-8mm, text width=28mm] (aux) {
   \textbf{Auxiliary heads}\\[-2pt]$\mathbf{\omega}_k,\ \mathbf{q}_k^{\pi},\ v_k$\\[-2pt]{\tiny trained, not consumed}};
 \draw[ghostline] (enc) -- (aux);
+
+% ============ What each block is for ============
+\node[tag, below=1mm of feat] {};
+
+% ============ Training protocol, filling the lower left ============
+\node[stage, below=10mm of t14, text width=44mm] (train) {
+  \textbf{Training protocol}\\[-1pt]
+  {\tiny offline, on simulator labels}\\[-1pt]
+  {\tiny 60 training seeds, 12 held out}\\[-1pt]
+  {\tiny early stopping on validation risk loss}};
+\draw[ghostline] (gen.south) -- (train.north);
 
 % ============ Legend ============
 \node[tag, anchor=west] at ([xshift=-2mm,yshift=-5mm]gen.south west) {

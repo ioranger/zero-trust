@@ -1,0 +1,13 @@
+% Standalone wrapper: compiles the deployment figure on its own so it can be
+% rasterised into paper/figures/deployment.png. The MDPI class does not load
+% TikZ, and the manuscript therefore includes the rasterised figure rather
+% than the TikZ source.
+%
+%   pdflatex -interaction=nonstopmode deployment_standalone.tex
+
+\documentclass[border=6pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\begin{document}
+\input{deployment_tikz.tex}
+\end{document}
