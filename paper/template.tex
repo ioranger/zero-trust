@@ -673,7 +673,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
   \footnotesize
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.86\textwidth}{!}{%
+  \resizebox{0.73\textwidth}{!}{%
   \begin{tabular}{l c c c}
     \toprule
     Method & Accuracy & F-score & TSR proxy \\
@@ -710,6 +710,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
     \emph{Gap, proposed model (18 dims) minus rule-based} & $+3.0$ to $+51.0$ & $+16.0$ to $+80.0$ & \textbf{$+50.0$ to $+88.0$} \\
     \bottomrule
   \end{tabular}}
+\par
 \vspace{2pt}
 \raggedright\scriptsize
 The five shape statistics are worth $+16.0$~pp of on--off detection to the proposed model: without them the same network reaches 72.0\% on the intermittent attackers, with them 88.0\%. The rule adapters, which do not consume these columns, are unchanged at 38.0\%. For the three otherwise competent rule adapters the collapse is specific to the intermittent attack, with MFA, FUBA and GDM-DTM at 93.0--96.0\% and 66.0--82.0\% on constant and dormant attackers against 20.0--38.0\% on on--off ones. The benign column of the same runs separates nothing: benign specificity stays between 91.8\% and 99.8\% for the rule adapters and at 97.4\% for the proposed model, so what separates the groups is the intermittent attacker rather than a general difference in flagging rate.
@@ -738,7 +739,7 @@ This section therefore reports the regime in which the question is answerable, u
   \footnotesize
   \setlength{\tabcolsep}{5pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{\textwidth}{!}{%
+  \resizebox{0.96\textwidth}{!}{%
   \begin{tabular}{l c c c c c c}
     \toprule
     Feature set & AUC & Accuracy & F-score & constant & dormant & on--off \\
@@ -779,8 +780,8 @@ Two properties make this the paper's strongest single result. The comparison is 
   \footnotesize
   \setlength{\tabcolsep}{5pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{l c c c}
+  \resizebox{0.41\textwidth}{!}{%
+  \begin{tabular}{l c c}
     \toprule
     Duty cycle & S-TIM & GDM-DTM \\
     \midrule
@@ -865,6 +866,7 @@ The artifact originally shipped one converted trace of 49 update steps, and it s
   \footnotesize
   \setlength{\tabcolsep}{5pt}
   \renewcommand{\arraystretch}{1.12}
+  \resizebox{0.84\textwidth}{!}{%
   \begin{tabular}{l c c c c c c c}
     \toprule
     Method & Accuracy & F-score & Recall & AUC & constant & dormant & on--off \\
@@ -876,8 +878,8 @@ The artifact originally shipped one converted trace of 49 update steps, and it s
     AHP-Entropy & 0.980 & 0.963 & 0.933 & 1.000 & 0.96 & 1.00 & 0.86 \\
     S-TIM (ours) & 0.930 & 0.863 & 0.767 & 0.966 & 0.800 & 0.737 & 0.743 \\
     \bottomrule
-  \end{tabular}
-\vspace{2pt}
+  \end{tabular}}
+\par\vspace{2pt}
 \raggedright\scriptsize
 Means over the five traces. The values are reproducible with \texttt{artifacts/analysis/multitrace\_validation.py}.
 \end{table}
@@ -894,7 +896,7 @@ Everything reported so far concerns attackers whose behaviour is visible in thei
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.99\textwidth}{!}{%
+  \resizebox{0.96\textwidth}{!}{%
   \begin{tabular}{l c c c c c c c c}
     \toprule
     Method & Accuracy & F-score & TSR & constant & dormant & on--off & position-inc. & class mean \\
@@ -907,6 +909,7 @@ Everything reported so far concerns attackers whose behaviour is visible in thei
     S-TIM (ours) & \textbf{93.8} & \textbf{89.4} & \textbf{88.9} & 87.2 & 93.4 & 91.7 & \textbf{83.6} & \textbf{89.0} \\
     \bottomrule
   \end{tabular}}
+\par
 \vspace{2pt}
 \raggedright\scriptsize
 Reproducible from \texttt{configs/spatial\_position.json}; the paired per-seed tests are in \texttt{analysis/paired\_method\_comparison.py}, the class-mean column and the class populations in \texttt{analysis/spatial\_arms\_final\_compare.py}, and the cell-by-cell check in \texttt{analysis/verify\_new\_tables.py}. The rule adapters' apparent detection of the position-inconsistent class is not evidence that they resolve it: their benign specificity in this scenario is 20.7--30.3\%, and Section~\ref{sec:spatial_scenario} shows that their scores sit at the trivial-classifier level.
@@ -925,7 +928,7 @@ A headline table invites the question a reviewer asks first, which is whether th
   \footnotesize
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.82\textwidth}{!}{%
+  \resizebox{0.97\textwidth}{!}{%
   \begin{tabular}{l c c c c c}
     \toprule
     Configuration & field amp. & position ratio & S-TIM accuracy & S-TIM F-score & best rule accuracy \\
@@ -937,6 +940,7 @@ A headline table invites the question a reviewer asks first, which is whether th
     position ratio 0.50 & 0.45 & 0.50 & 93.7 & 89.3 & 43.4 \\
     \bottomrule
   \end{tabular}}
+\par
 \vspace{2pt}
 \raggedright\scriptsize
 Reproducible from \texttt{configs/spatial\_position\_field030.json}, \texttt{configs/spatial\_position\_field060.json}, \texttt{configs/spatial\_position\_ratio020.json} and \texttt{configs/spatial\_position\_ratio050.json}. The last column is the best of the five rule adapters, which is the strongest traditional comparator. All columns are means over the same 19 evaluation seeds.
@@ -951,9 +955,9 @@ Table~\ref{tab:spatial_blocks} collects every arm run in this scenario. Rows 1--
   \caption{Every arm run in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Rows 1--5 are the proposed model under feature-block, auxiliary-supervision and fusion variants. Entries are detection rates in percent, benign spec. being one minus the false-positive rate, and Accuracy the overall mean. Bold marks the best value in the column.}
   \label{tab:spatial_blocks}
   \footnotesize
-  \setlength{\tabcolsep}{5pt}
+  \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.86\textwidth}{!}{%
+  \resizebox{0.99\textwidth}{!}{%
   \begin{tabular}{l c c c c c c}
     \toprule
     Arm & constant & dormant & on--off & position-inconsistent & benign spec. & Accuracy \\
@@ -965,6 +969,7 @@ Table~\ref{tab:spatial_blocks} collects every arm run in this scenario. Rows 1--
     S-TIM, 23 dims, block-routed fusion & 87.6 & 93.7 & 92.1 & 83.8 & 95.7 & 93.5 \\
     \bottomrule
   \end{tabular}}
+\par
 \vspace{2pt}
 \raggedright\scriptsize
 The S-TIM rows are reproducible from \texttt{configs/spatial\_position\_13dim.json}, \texttt{configs/spatial\_position\_nofeat.json}, \texttt{configs/spatial\_position.json}, \texttt{configs/spatial\_position\_riskonly.json} and \texttt{configs/spatial\_position\_gated.json}. The paired per-seed tests, the effect sizes and the block-by-block decomposition are in \texttt{analysis/modality\_complementarity.py} and \texttt{analysis/SPATIAL\_STUDY.md}; the operating-point diagnostic is in \texttt{analysis/operating\_point\_probe.py}.
@@ -991,9 +996,9 @@ The gain in Table~\ref{tab:baseline_comparison} is a property of the representat
   \caption{Four-arm architecture control. All arms share the encoder, the 18-dimensional input, the optimiser, the 12-seed validation split and the early-stopping rule; only the auxiliary loss terms differ. The modality column reports the accuracy of the four-class attack-modality head on the validation seeds; a head whose loss weight is zero receives no gradient and stays at its initialisation, which the chance level of 0.250 exposes.}
   \label{tab:arch_controls}
   \footnotesize
-  \setlength{\tabcolsep}{5pt}
+  \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{1.15}
-  \resizebox{0.97\textwidth}{!}{%
+  \resizebox{0.99\textwidth}{!}{%
   \begin{tabular}{l c c c c c c}
     \toprule
     Arm & modality head & modality head accuracy & on--off & Accuracy & F-score & TSR \\
@@ -1004,6 +1009,7 @@ The gain in Table~\ref{tab:baseline_comparison} is a property of the representat
     All four heads ($w=0.30$) & on & \textbf{0.985} & 86.0 & 97.1 & 95.6 & 90.2 \\
     \bottomrule
   \end{tabular}}
+\par
 \vspace{2pt}
 \raggedright\scriptsize
 Detection columns are the 50-seed evaluation means at the fixed 0.60 decision threshold. The four configurations are reproducible from \texttt{configs/heads\_risk\_only.json}, \texttt{configs/heads\_mod\_only.json} and \texttt{configs/heads\_full.json}; the paired per-seed tests are in \texttt{analysis/arch\_control\_report.py}.
