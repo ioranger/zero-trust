@@ -57,6 +57,9 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `latex_warnings.py` | Reports the LaTeX warnings that matter: undefined references, overfull and underfull boxes, errors. |
 | `list_code_paths.py` | Lists the repository-internal file paths that appear in the manuscript, so none of them reaches a reviewer-facing paper. |
 | `list_repo_talk.py` | Lists the sentences that point at a place in the package rather than at the method or the result. |
+| `list_bold_cells.py` | Lists every bold cell of every table, so the emphasis can be checked against the table it sits in. |
+| `check_bold_semantics.py` | Checks that a bold cell in a method-comparison table marks a column the proposed model actually leads. |
+| `bold_table_cells.py` | Sets the bold cells: the proposed model's lead in the comparison tables, the best value in the column in the ablation tables. |
 | `table_type_sizes.py` | Measures the type size each table ends up with in the built PDF and reports the factor that would give it a common size. |
 | `set_table_scales.py` | Sets the tables' resizebox factors so that they share a type size and none overflows the text width. |
 | `fix_table_notes.py` | Puts each table's note on its own line below the table, rather than beside it. |

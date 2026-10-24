@@ -668,7 +668,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
 
 \begin{table}[!htbp]
   \centering
-  \caption{Performance comparison of S-TIM with baseline methods under the unified experimental setting (30\% malicious-node ratio, 15 UAVs, 5000 s simulation). The five rule-based comparators are listed. All values are mean $\pm$ standard deviation over 50 independent trials.}
+  \caption{Performance comparison of S-TIM with baseline methods under the unified experimental setting (30\% malicious-node ratio, 15 UAVs, 5000 s simulation). The five rule-based comparators are listed. All values are mean $\pm$ standard deviation over 50 independent trials. Bold marks the proposed model's advantage.}
   \label{tab:baseline_comparison}
   \footnotesize
   \setlength{\tabcolsep}{6pt}
@@ -682,7 +682,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
     FUBA \cite{benfriha2024fuba} & 87.2\% $\pm$ 8.2\% & 79.7\% $\pm$ 14.1\% & 82.2\% $\pm$ 3.7\% \\
     GALTrust \cite{akram2024galtrust} & 75.5\% $\pm$ 5.9\% & 39.3\% $\pm$ 21.8\% & 75.4\% $\pm$ 3.6\% \\
     AHP-Entropy & 77.6\% $\pm$ 6.0\% & 46.7\% $\pm$ 20.4\% & 76.8\% $\pm$ 3.4\% \\
-    GDM-DTM \cite{hu2025gdm} & \textbf{87.6\%} $\pm$ 8.0\% & 80.4\% $\pm$ 13.6\% & 82.2\% $\pm$ 3.5\% \\
+    GDM-DTM \cite{hu2025gdm} & 87.6\% $\pm$ 8.0\% & 80.4\% $\pm$ 13.6\% & 82.2\% $\pm$ 3.5\% \\
     S-TIM (ours) & \textbf{97.1\%} $\pm$ 4.3\% & \textbf{95.7\%} $\pm$ 6.3\% & \textbf{90.4\%} $\pm$ 2.3\% \\
     \bottomrule
   \end{tabular}}
@@ -693,7 +693,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
 
 \begin{table}[!htbp]
   \centering
-  \caption{Detection rate by \emph{method group} and attack strategy, 30\% malicious, 15 UAVs, mean over 50 seeds. The first row spans the five rule-based aggregators, whose range is wide only because GALTrust and AHP-Entropy are weak on every pattern; the two following rows are the proposed model with and without the five temporal-shape statistics.}
+  \caption{Detection rate by \emph{method group} and attack strategy, 30\% malicious, 15 UAVs, mean over 50 seeds. The first row spans the five rule-based aggregators, whose range is wide only because GALTrust and AHP-Entropy are weak on every pattern; the two following rows are the proposed model with and without the five temporal-shape statistics. Bold marks the proposed model's advantage.}
   \label{tab:method_class}
   \footnotesize
   \setlength{\tabcolsep}{6pt}
@@ -703,7 +703,7 @@ For each seed, we compute paired differences in accuracy, F-score, and the task-
     \toprule
     Method group (features consumed) & constant & dormant & on--off \\
     \midrule
-    Rule-based aggregation (marginal, quantile, weighted-mean summaries) & 48.0--96.0 & 18.0--82.0 & \textbf{0.0--38.0} \\
+    Rule-based aggregation (marginal, quantile, weighted-mean summaries) & 48.0--96.0 & 18.0--82.0 & 0.0--38.0 \\
     Proposed model, 13 dimensions (marginal block only) & 99.0 & 100.0 & \textbf{72.0} \\
     Proposed model, 18 dimensions ($+5$ shape statistics) & 99.0 & 98.0 & \textbf{88.0} \\
     \midrule
@@ -734,7 +734,7 @@ This section therefore reports the regime in which the question is answerable, u
 
 \begin{table}[!htbp]
   \centering
-  \caption{Probe-level evaluation with a logistic classifier (30 UAVs, 30\% malicious, 50 evaluation seeds, seed-disjoint 5-fold). This is the regime in which the aggregate metric still discriminates. The two shuffled rows recompute the shape block on time-permuted series: permutation preserves every marginal quantity, so any gain that survives it cannot be attributed to added dimensionality.}
+  \caption{Probe-level evaluation with a logistic classifier (30 UAVs, 30\% malicious, 50 evaluation seeds, seed-disjoint 5-fold). This is the regime in which the aggregate metric still discriminates. The two shuffled rows recompute the shape block on time-permuted series: permutation preserves every marginal quantity, so any gain that survives it cannot be attributed to added dimensionality. Bold marks the best value in the column.}
   \label{tab:probe_level}
   \footnotesize
   \setlength{\tabcolsep}{5pt}
@@ -891,7 +891,7 @@ Everything reported so far concerns attackers whose behaviour is visible in thei
 
 \begin{table}[!htbp]
   \centering
-  \caption{The published comparison, repeated in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Accuracy, F-score and TSR are the overall means; the four detection columns are per-attack-class detection rates and the last column is their equal-weight average over the four attack classes, which hold 52, 53, 53 and 82 of the 800 nodes respectively, the remaining 560 being benign. The rule-based comparators are evaluated under the main protocol, in which they never receive the neighbourhood block, because each of them scores one node at a time by construction. S-TIM leads on every aggregate metric and on the class average.}
+  \caption{The published comparison, repeated in the spatially inconsistent scenario (800 UAVs, malicious ratio 0.3, 19 evaluation seeds). Accuracy, F-score and TSR are the overall means; the four detection columns are per-attack-class detection rates and the last column is their equal-weight average over the four attack classes, which hold 52, 53, 53 and 82 of the 800 nodes respectively, the remaining 560 being benign. The rule-based comparators are evaluated under the main protocol, in which they never receive the neighbourhood block, because each of them scores one node at a time by construction. S-TIM leads on every aggregate metric and on the class average. Bold marks the proposed model's advantage.}
   \label{tab:spatial_main}
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -993,7 +993,7 @@ The gain in Table~\ref{tab:baseline_comparison} is a property of the representat
 
 \begin{table}[!htbp]
   \centering
-  \caption{Four-arm architecture control. All arms share the encoder, the 18-dimensional input, the optimiser, the 12-seed validation split and the early-stopping rule; only the auxiliary loss terms differ. The modality column reports the accuracy of the four-class attack-modality head on the validation seeds; a head whose loss weight is zero receives no gradient and stays at its initialisation, which the chance level of 0.250 exposes.}
+  \caption{Four-arm architecture control. All arms share the encoder, the 18-dimensional input, the optimiser, the 12-seed validation split and the early-stopping rule; only the auxiliary loss terms differ. The modality column reports the accuracy of the four-class attack-modality head on the validation seeds; a head whose loss weight is zero receives no gradient and stays at its initialisation, which the chance level of 0.250 exposes. Every row is a configuration of the proposed model, so bold marks the best value in the column, which is not always the published configuration.}
   \label{tab:arch_controls}
   \footnotesize
   \setlength{\tabcolsep}{2.5pt}
