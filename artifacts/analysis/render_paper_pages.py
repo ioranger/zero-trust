@@ -19,8 +19,10 @@ OUT = ROOT / "artifacts" / "analysis" / "paper_pages"
 WANTED = [
     ("abstract", "Trust scores are useful in a cooperative UAV mission"),
     ("main comparison table", "Performance comparison of S-TIM with baseline methods"),
-    ("method-class table", "Detection rate by"),
-    ("duty-cycle sweep", "On--off detection rate"),
+    ("method-group table", "Detection rate by"),
+    # The PDF renders the en dash of "on--off" as a hyphen, so the caption is
+    # matched on its wording rather than on the class name.
+    ("duty-cycle sweep", "detection rate (%) against duty cycle"),
     ("ns-3 packet table", "Packet-level validation on five multi-seed"),
     ("spatial main table", "The published comparison, repeated in the spatially"),
     ("spatial blocks table", "Every arm run in the spatially inconsistent"),
