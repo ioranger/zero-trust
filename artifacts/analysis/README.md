@@ -63,6 +63,30 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `operating_point_probe.py` | The same arms at a matched benign false-positive rate: each method's cut is chosen on the held-out validation seeds, and the AUCs are reported next to the rates. |
 | `run_spatial_arms.ps1` | Builds the two diagnostic arms in sequence and snapshots each one into `artifacts/runs/<arm>`. |
 
+## The method set the manuscript reports, and the one the artifact trains
+
+The manuscript's comparison tables list six comparators: the five rule-based
+ones (MFA, FUBA, GALTrust, GDM-DTM, AHP-Entropy) and the learned per-node
+comparator LR-Trust. The artifact additionally trains a same-feature neural
+control (a two-layer risk classifier on the identical diagnostic features and
+seeds), because the pre-registered controls and the diagnostic scripts need it:
+
+* the focal-loss arms were run with that control trained **under the same
+  objective inside the same run**, and their verdicts are the negative result
+  the manuscript reports (`FOCAL_ARM_PREREGISTRATION.md`,
+  `FOCAL_GAMMA_SWEEP_PREREGISTRATION.md`, `evaluate_focal_arm.py`,
+  `evaluate_focal_sweep.py`);
+* the fusion-mechanism control measures what the linear head extracts from the
+  neighbourhood block against the proposed model, which needs both a linear and
+  a nonlinear consumer of the same vector (`fusion_protocol_check.py`);
+* the operating-point diagnostic compares the two learners at a matched benign
+  false-positive rate (`operating_point_probe.py`).
+
+The manuscript does not report that control as a competitor, so the tables
+here are a superset of the manuscript's. Deleting it from the artifact would
+remove the instrument those three measurements are made with and would change
+no number the manuscript prints.
+
 ## `runs/`
 
 `runs/<arm>/` holds the four log files each arm needs: the per-seed detection

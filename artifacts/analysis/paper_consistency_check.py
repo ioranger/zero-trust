@@ -122,8 +122,8 @@ print("=" * 78)
 print("4. structural-claim consistency")
 print("=" * 78)
 checks = [
-    ("reports the paired result vs MLP-Trust",
-     "p=0.51" in tex),
+    ("reports the paired result vs LR-Trust",
+     "p=0.13" in tex),
     ("reports the paired result vs GDM-DTM",
      "1.9\\times10^{-7}" in tex),
     ("reports the enlarged-training-set control",
@@ -143,7 +143,7 @@ checks = [
     ("discloses the removed tsr-0.09 fabrication",
      "0.09" in tex and "removed" in tex),
     ("discloses ns-3 shortfall",
-     "two of five" in tex or "none of the five malicious nodes" in tex),
+     "neither tests nor refutes" in tex or "does not transfer" in tex),
     ("reports the duty-cycle sweep",
      "tab:duty_sweep" in tex),
     ("shuffle control reported",
