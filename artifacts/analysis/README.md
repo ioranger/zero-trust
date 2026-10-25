@@ -66,6 +66,7 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `list_marl_zeros.py` | Lists the sentences in the manuscript that name multi-agent reinforcement learning or zero trust, separating the self-positioning contrasts from the related work that is kept. |
 | `rename_agent_terms.py` | Renames the agent vocabulary of the manuscript to the observer vocabulary, with an assertion on every replacement so that a wrong edit cannot pass. |
 | `check_no_agent_terms.py` | Fails if the manuscript body or a figure source mentions an agent: the guard for the rule that the figures and the text describe the same pipeline. |
+| `check_abstract_claims.py` | Checks every qualitative claim the abstract makes against the tables the paper is built on, and prints the numbers each statement rests on. |
 | `render_figure.py` | Rasterises a standalone TikZ figure into the PNG the manuscript includes, pinned to the width of the PNG it replaces. |
 | `check_bibliography_coverage.py` | Checks that every bibliography entry is still cited and every citation resolves, which is what a removed related-work subsection can break. |
 | `bold_table_cells.py` | Sets the bold cells: the proposed model's lead in the comparison tables, the best value in the column in the ablation tables. |
