@@ -124,6 +124,57 @@ SPATIAL_FEATURE_NAMES: list[str] = [
     "spatial_std_dev",
 ]
 
+# --- factor ablation -------------------------------------------------------
+# Which trust factor every feature column is computed from. This mapping is
+# what makes a leave-one-factor-out control possible: dropping a factor
+# removes exactly the columns that carry information about it, and nothing
+# else about the run changes.
+#
+# The two directed cross-factor gaps read the channels as
+# (T2 + T3) - (T1 + T4), so each of them depends on four factors and both of
+# them disappear as soon as any one of those four is removed.
+FEATURE_FACTORS: dict[str, tuple[str, ...]] = {
+    "1-T1_recent": ("T1",),
+    "1-T2_recent": ("T2",),
+    "1-T4_recent": ("T4",),
+    "1-T5_recent": ("T5",),
+    "1-T1_q10": ("T1",),
+    "1-T4_q10": ("T4",),
+    "low_T1_T4_fraction_0.58": ("T1", "T4"),
+    "low_T1_T4_fraction_0.62": ("T1", "T4"),
+    "T1_T4_amplitude": ("T1", "T4"),
+    "T1_T4_std": ("T1", "T4"),
+    "T1_T4_positive_slope": ("T1", "T4"),
+    "directed_T2T3_minus_T1T4_gap": ("T1", "T2", "T3", "T4"),
+    "directed_low_quantile_gap": ("T1", "T2", "T3", "T4"),
+    # the temporal-shape block is computed on T1 and T4
+    **{name: ("T1", "T4") for name in SHAPE_FEATURE_NAMES},
+    # the neighbourhood block is computed on T1 and T4
+    **{name: ("T1", "T4") for name in SPATIAL_FEATURE_NAMES},
+}
+
+
+def disabled_factors(config: Config) -> list[str]:
+    """The trust factors the configuration asks the model not to see.
+
+    Off by default: the published configuration consumes every factor, and
+    only the leave-one-factor-out control switches it on.
+    """
+    raw = (config.raw.get("marl_training", {}) or {}).get("disabled_factors", []) or []
+    return [str(f) for f in raw]
+
+
+def factor_keep_mask(names: list[str], disabled: list[str]) -> np.ndarray:
+    """Keep a column unless it carries information about a disabled factor."""
+    if not disabled:
+        return np.ones(len(names), dtype=bool)
+    keep = []
+    for name in names:
+        factors = FEATURE_FACTORS.get(name)
+        keep.append(True if factors is None
+                    else not any(f in factors for f in disabled))
+    return np.array(keep, dtype=bool)
+
 
 def spatial_features_enabled(config: Config) -> bool:
     return bool((config.raw.get("spatial") or {}).get("features", False))
@@ -214,6 +265,15 @@ def extract_marl_policy_features(
         "directed_low_quantile_gap",
         *(extras if extras else MARL_EXTRA_FEATURES),
     ]
+    # The leave-one-factor-out control removes the columns that carry
+    # information about a factor the configuration disables. The mask is
+    # applied here, in the one function that both training and inference go
+    # through, so the two cannot disagree about the input width.
+    disabled = disabled_factors(config)
+    if disabled:
+        keep = factor_keep_mask(names, disabled)
+        features = features[:, keep]
+        names = [n for n, k in zip(names, keep) if k]
     return features, names
 
 
@@ -253,19 +313,31 @@ def baseline_feature_view(
 
 
 def heuristic_weight_targets(features: np.ndarray, names: Iterable[str]) -> np.ndarray:
-    """Derive soft trust-factor weight targets for the auxiliary policy head."""
+    """Derive soft trust-factor weight targets for the auxiliary policy head.
+
+    A column that the configuration has disabled is read as zero, so the
+    factor it belonged to is treated as carrying no evidence rather than as
+    making the target undefined.
+    """
 
     name_to_idx = {name: idx for idx, name in enumerate(names)}
+
+    def col(name: str, default: float = 0.0) -> np.ndarray:
+        idx = name_to_idx.get(name)
+        if idx is None:
+            return np.full(features.shape[0], default)
+        return features[:, idx]
+
     weakness = np.column_stack(
         [
-            features[:, name_to_idx["1-T1_recent"]] + features[:, name_to_idx["1-T1_q10"]],
-            features[:, name_to_idx["1-T2_recent"]],
+            col("1-T1_recent") + col("1-T1_q10"),
+            col("1-T2_recent"),
             np.full(features.shape[0], 0.15),
-            features[:, name_to_idx["1-T4_recent"]] + features[:, name_to_idx["1-T4_q10"]],
-            features[:, name_to_idx["1-T5_recent"]],
+            col("1-T4_recent") + col("1-T4_q10"),
+            col("1-T5_recent"),
         ]
     )
-    weakness[:, 2] += 0.25 * features[:, name_to_idx["directed_T2T3_minus_T1T4_gap"]]
+    weakness[:, 2] += 0.25 * col("directed_T2T3_minus_T1T4_gap")
     weakness = np.maximum(weakness, 0.05)
     return weakness / weakness.sum(axis=1, keepdims=True)
 

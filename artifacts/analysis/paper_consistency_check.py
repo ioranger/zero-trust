@@ -152,6 +152,16 @@ checks = [
      "13-feature variant" in tex or "13-dimensional" in tex),
     ("states the modality-head negative result",
      "attack-modality" in tex),
+    ("reports the leave-one-factor-out control",
+     "tab:factor_dependence" in tex),
+    ("states the measured cost of the two load-bearing dimensions",
+     "4.7~pp" in tex and "4.4~pp" in tex and "$p<0.0001$" in tex),
+    ("states that the remaining dimensions are inert",
+     "0.3~pp" in tex and "$p=0.57$" in tex and "$p=1.0$" in tex),
+    ("states that the communication dimension is harmful, not merely useless",
+     "1.3~pp" in tex and "$p=0.027$" in tex),
+    ("states that the comparators keep every dimension in the control",
+     "keep all five dimensions" in tex),
 ]
 for label_, ok in checks:
     print(f"  [{'x' if ok else ' '}] {label_}")

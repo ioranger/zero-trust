@@ -517,6 +517,103 @@ if rows:
 
 print()
 print("=" * 74)
+print("7e. tab:factor_dependence")
+print("=" * 74)
+
+FACTOR_ARMS = [
+    ("none (published configuration)", "published_recheck"),
+    ("T1 behavioural", "drop_T1"),
+    ("T2 communication", "drop_T2"),
+    ("T3 energy", "drop_T3"),
+    ("T4 task execution", "drop_T4"),
+    ("T5 historical", "drop_T5"),
+]
+
+
+def policy_width(run: str):
+    f = RUNS / run / "logs" / "marl_policy.json"
+    if not f.exists():
+        return None
+    return len(json.loads(f.read_text(encoding="utf-8"))["feature_names"])
+
+
+def paired_accuracy_difference(arm: str, reference: str):
+    """The mean of the per-seed accuracy differences, in percentage points.
+
+    This is the quantity the paired test is run on. It is not the difference
+    of the two rounded means, which can differ from it by a tenth of a point.
+    """
+    def series(run: str):
+        f = RUNS / run / "logs" / "per_seed_metrics.csv"
+        if not f.exists():
+            return None
+        d = pd.read_csv(f)
+        d = d[(d["scenario"].isin(["ratio", "figure_ratio"]))
+              & (d["n_uavs"] == 15) & (d["n_agents"] == 5)
+              & (d["malicious_ratio"].round(6) == round(0.30, 6))]
+        d = d[d["method"] == "S-TIM"].drop_duplicates(subset=["seed"])
+        return d.set_index("seed")["accuracy"] * 100
+
+    a = series(arm)
+    b = series(reference)
+    if a is None or b is None:
+        return None
+    common = a.index.intersection(b.index)
+    if not len(common):
+        return None
+    return float((a[common] - b[common]).mean())
+
+
+rows = table_rows("tab:factor_dependence")
+check("tab:factor_dependence is present", bool(rows))
+if rows:
+    parsed = {r[0]: r[1:] for r in rows}
+    ref = baseline_row("published_recheck", "S-TIM")
+    ref_width = policy_width("published_recheck")
+    for label, arm in FACTOR_ARMS:
+        if label not in parsed:
+            check(f"factor row present: {label}", False)
+            continue
+        cells = parsed[label]
+        base = baseline_row(arm, "S-TIM")
+        if base is None:
+            check(f"factor {label} / logs", False)
+            continue
+        # cells[0] is the number of columns removed, then accuracy, F-score,
+        # TSR, on--off detection and the paired accuracy difference.
+        for i, (col, value) in enumerate((
+                ("accuracy", base["accuracy"]),
+                ("F-score", base["f_score"]),
+                ("TSR", base["tsr"]))):
+            claimed = cells[1 + i] if len(cells) > 1 + i else "--"
+            check(f"factor {label} / {col}",
+                  abs(float(claimed) - value) < 0.06,
+                  f"tex={claimed} computed={value:.1f}")
+        onoff = mean_atk(arm, "S-TIM", "on-off")
+        claimed = cells[4] if len(cells) > 4 else "--"
+        check(f"factor {label} / on-off",
+              onoff is not None and abs(float(claimed) - onoff) < 0.06,
+              f"tex={claimed} computed={onoff:.1f}" if onoff is not None else "no log")
+        # the cost claim: how many columns the removed dimension took with it
+        width = policy_width(arm)
+        claimed = cells[0] if cells else "--"
+        if width is None or ref_width is None:
+            check(f"factor {label} / columns removed", False)
+        else:
+            check(f"factor {label} / columns removed",
+                  abs(float(claimed) - (ref_width - width)) < 0.5,
+                  f"tex={claimed} computed={ref_width - width}")
+        if label != "none (published configuration)" and ref is not None:
+            delta = paired_accuracy_difference(arm, "published_recheck")
+            claimed = cells[5] if len(cells) > 5 else "--"
+            m = re.match(r"([-+]?[0-9.]+)", claimed)
+            check(f"factor {label} / delta accuracy",
+                  delta is not None and m is not None
+                  and abs(float(m.group(1)) - delta) < 0.06,
+                  f"tex={claimed} computed={delta:+.2f}" if delta is not None else "no log")
+
+print()
+print("=" * 74)
 print("8. position-aware trust and integrity literature is cited")
 print("=" * 74)
 # The spatial claim rests on the attacker class being real and studied, and on

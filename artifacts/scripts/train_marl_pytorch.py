@@ -248,7 +248,15 @@ def main() -> None:
     # Separate normalisation for the per-node baselines.
     mean_plain = x_plain.mean(axis=0)
     std_plain = x_plain.std(axis=0) + 1e-6
-    risk_hint = xs[:, [0, 2, 4, 5, 10]].mean(axis=1)
+    # The risk hint is the average of the five standardised columns that
+    # carry the raw level of the two attacked channels. They are selected by
+    # name, not by position, so a configuration that disables a factor cannot
+    # silently shift the selection onto a different column.
+    hint_names = ["1-T1_recent", "1-T4_recent", "1-T1_q10", "1-T4_q10",
+                  "T1_T4_positive_slope"]
+    name_to_idx = {name: idx for idx, name in enumerate(feature_names)}
+    hint_idx = [name_to_idx[n] for n in hint_names if n in name_to_idx]
+    risk_hint = xs[:, hint_idx].mean(axis=1) if hint_idx else np.zeros(len(xs))
     risk_hint = 1.0 / (1.0 + np.exp(-risk_hint))
     weight_y = heuristic_weight_targets(x, feature_names).astype(np.float32)
     action_y = action_targets(y.astype(np.int64), risk_hint).astype(np.int64)
