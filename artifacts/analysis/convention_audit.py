@@ -40,6 +40,9 @@ def main() -> int:
     raw = TEX.read_text(encoding="utf-8")
     body = raw.split("\\begin{document}", 1)[-1]
     body = "\n".join(l for l in body.splitlines() if not l.lstrip().startswith("%"))
+    # the bibliography is not prose: an expansion that only appears in a
+    # reference title does not expand the abbreviation in the text
+    body = body.split("\\bibitem{", 1)[0]
     lines = body.splitlines()
 
     print("=" * 96)
@@ -47,12 +50,18 @@ def main() -> int:
     print("=" * 96)
     for abbr, expansion in ABBREVIATIONS.items():
         hits = [(i, l) for i, l in enumerate(lines, 1)
-                if re.search(r"(?<![A-Za-z])" + abbr + r"(?![A-Za-z])", l)]
+                if re.search(r"(?<![A-Za-z])" + abbr + r"s?(?![A-Za-z])", l)
+                and not re.match(r"^\s*\\Title\{", l)]
         if not hits:
             continue
         first = hits[0][1]
-        expanded = expansion.lower() in first.lower() or expansion.lower() in body.lower()
         where = hits[0][0]
+        # the expansion has to appear at the first use or shortly after it:
+        # a heading that carries the abbreviation is normally expanded in the
+        # sentence below it. The text is compared without line breaks, because
+        # an expansion may straddle two lines.
+        upto = " ".join(" ".join(lines[: where + 8]).split())
+        expanded = expansion.lower() in upto.lower()
         print(f"  {abbr:<6} first at L{where:<5} "
               f"{'expanded nearby' if expanded else 'NOT expanded at first use'}")
         if not expanded:
