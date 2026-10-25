@@ -271,12 +271,12 @@ We consider a low-altitude UAV swarm executing a cooperative mission in an infra
 
 \subsection{Problem Definition}
 \label{sec:problem_definition}
-At each update interval, the system receives partial and noisy observations of each UAV's behaviour, communication quality, energy state, task execution, and historical reputation. The objective is to infer a trust state that reflects the UAV's current behaviour and then use that state to regulate future participation through rewards, penalties, and task-allocation preferences. Formally, for each UAV $U_k$, S-TIM must output a global trust score $\mathcal{T}_k(t)$, a trust class $C_k(t)$, and an incentive action $\pi_{jk}(t)$ for the local Thinker Agent $j$ that supervises $U_k$:
+At each update interval, the system receives partial and noisy observations of each UAV's behaviour, communication quality, energy state, task execution, and historical reputation. The objective is to infer a trust state that reflects the UAV's current behaviour and then use that state to regulate future participation through rewards, penalties, and task-allocation preferences. Formally, for each UAV $U_k$, S-TIM must output a global trust score $\mathcal{T}_k(t)$, a trust class $C_k(t)$, and an incentive action $\pi_{jk}(t)$ for the local observer $j$ that supervises $U_k$:
 \begin{equation}
 \left(\mathcal{T}_k(t), C_k(t), \pi_{jk}(t)\right)
 = \Pi_{\theta}\!\left(o_j(t), \mathcal{H}_k(t)\right),
 \end{equation}
-where $o_j(t)$ is the partial observation available to agent $j$, $\mathcal{H}_k(t)$ is the recent trust-evidence history of node $k$, and $\Pi_{\theta}$ is the learned trust--incentive policy. The conceptual objective is to improve both malicious-node detection and mission continuity while respecting update-cycle resource budgets:
+where $o_j(t)$ is the partial observation available to observer $j$, $\mathcal{H}_k(t)$ is the recent trust-evidence history of node $k$, and $\Pi_{\theta}$ is the learned trust--incentive policy. The conceptual objective is to improve both malicious-node detection and mission continuity while respecting update-cycle resource budgets:
 \begin{equation}
 \max_{\Pi_{\theta}}\; \mathbb{E}\!\left[\lambda_1 F_1 + \lambda_2 \mathrm{TSR}
 - \lambda_3 C_{\mathrm{comm}} - \lambda_4 T_{\mathrm{eval}}\right],
@@ -402,16 +402,16 @@ where $\mu_m(t)$ and $\sigma_m(t)$ are the mean and standard deviation of trust 
 
 \subsection{Spatio-Temporal Risk Model and Allocation Proxy}
 \label{sec:system_design}
-The intended architecture divides observation across local agents and forwards their estimates to a decision node. The executable artifact is simpler. It applies one shared supervised network independently to each node's diagnostic feature vector. Agent assignments do not enter the feature extractor, and neither confidence-weighted fusion nor budget projection is executed. We retain the broader formulation below to define a possible deployment target, but distinguish it from the evaluated model.
+The intended architecture divides observation across local observers and forwards their estimates to a decision node. The executable artifact is simpler. It applies one shared supervised network independently to each node's diagnostic feature vector. Observer assignments do not enter the feature extractor, and neither confidence-weighted fusion nor budget projection is executed. We retain the broader formulation below to define a possible deployment target, but distinguish it from the evaluated model.
 
 \subsubsection{Dec-POMDP Elements}
-The intended architecture divides observation across local agents and forwards their estimates to a decision node. It is retained here to define a possible deployment target, and is distinguished throughout from the evaluated model, which applies one shared supervised network independently to each node's feature vector.
+The intended architecture divides observation across local observers and forwards their estimates to a decision node. It is retained here to define a possible deployment target, and is distinguished throughout from the evaluated model, which applies one shared supervised network independently to each node's feature vector.
 
 A swarm of $N$ UAV nodes is modelled as a decentralised partially observable Markov decision process (Dec-POMDP)~\cite{oliehoek2008optimal},
 \begin{equation}
 \mathcal{G} = \langle \mathcal{S}, \mathcal{O}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle
 \end{equation}
-where the state $s(t) = (\mathbf{T}_1(t), \dots, \mathbf{T}_N(t))$ collects the five-dimensional trust vectors of all nodes, the observation $o_j(t)$ of Thinker Agent $j$ contains the local trust sub-scores and its own confidence scores for its supervised subset $\mathcal{N}_j$, and the action $a_j(t)$ is a hybrid parameterized action: a continuous trust-weight vector $\boldsymbol{\omega}_j(t)$ on the probability simplex together with a discrete incentive vector $\boldsymbol{\pi}_j(t)$ whose entries are quantized into five bins from strong penalty to strong reward. The transition $\mathcal{P}$ is defined implicitly by the trust update equations of Section~\ref{sec:state_update}. Training is centralized and supervised, simulator labels determine the risk, action, and value targets, and the implementation does not emulate decentralized message exchange: it evaluates all per-node feature vectors in one process.
+where the state $s(t) = (\mathbf{T}_1(t), \dots, \mathbf{T}_N(t))$ collects the five-dimensional trust vectors of all nodes, the observation $o_j(t)$ of local observer $j$ contains the local trust sub-scores and its own confidence scores for its assigned observation set $\mathcal{N}_j$, and the action $a_j(t)$ is a hybrid parameterized action: a continuous trust-weight vector $\boldsymbol{\omega}_j(t)$ on the probability simplex together with a discrete incentive vector $\boldsymbol{\pi}_j(t)$ whose entries are quantized into five bins from strong penalty to strong reward. The transition $\mathcal{P}$ is defined implicitly by the trust update equations of Section~\ref{sec:state_update}. Training is centralized and supervised, simulator labels determine the risk, action, and value targets, and the implementation does not emulate decentralized message exchange: it evaluates all per-node feature vectors in one process.
 
 \subsubsection{Executable Encoder and Its Auxiliary Heads}
 The implemented encoder consumes per-node diagnostic features extracted from the post-warm-up trust streams. The first block contains thirteen \emph{marginal} statistics: recent weakness in T1, T2, T4, and T5; low-quantile T1/T4 evidence; low-score duration; T1/T4 amplitude and standard deviation; positive degradation slope; and directional cross-factor gaps. Every one of them is an aggregate over a fixed trailing window, so two nodes with identical window summaries receive identical feature vectors regardless of how differently their histories are shaped. A periodic attacker is summarised exactly like a noisy one.
@@ -460,9 +460,9 @@ Let $y_k \in \{0,1\}$ be the simulator label used during training. Let $\boldsym
 \end{equation}
 The primary term is weighted binary cross-entropy with a positive-class weight of 2.0. The loss in Eq.~\ref{eq:implemented_loss} is a weighted binary cross-entropy on the risk head plus three auxiliary terms; every target is a label-derived quantity, the value target being $0.8$ for benign nodes and $-0.4$ for malicious nodes, and the action target depending on the ground-truth class. Training uses seeds 0--9 and a fixed decision threshold of 0.60. Evaluation seeds 1000--1049 are not used for fitting. The method is a multi-task supervised classifier over per-node features.
 
-The following aggregation equations specify an unevaluated extension for deployments in which several agents observe the same node. They are not invoked by the released Python evaluation.
+The following aggregation equations specify an unevaluated extension for deployments in which several local observers report on the same node. They are not invoked by the released Python evaluation.
 
-\textbf{Total Trust Score Aggregation}: The Intelligent Decision Agent combines the individual trust scores from all Thinker Agents that have observed node $k$:
+\textbf{Total Trust Score Aggregation}: The decision node combines the individual trust scores from all local observers that have reported on node $k$:
 \begin{equation}\label{eq:ida_global}
 \mathcal{T}_k(t) = \frac{\sum_{j=1}^{M} \phi_{jk}(t) \cdot \hat{T}_{jk}(t)}{\sum_{j=1}^{M} \phi_{jk}(t)}
 \end{equation}
@@ -470,11 +470,11 @@ where the confidence weight $\phi_{jk}(t) \in [0, 1]$ is
 \begin{equation}\label{eq:ida_weight}
 \phi_{jk}(t) = \frac{\exp\left(-\gamma \cdot \varepsilon_{jk}(t)\right)}{\sum_{j'=1}^{M} \exp\left(-\gamma \cdot \varepsilon_{j'k}(t)\right)}
 \end{equation}
-with $\varepsilon_{jk}(t) = \frac{1}{t} \sum_{\tau=1}^{t} \left| \hat{T}_{jk}(\tau) - T_{jk}^{obs}(\tau) \right|$ the mean absolute error of agent $j$ for node $k$ over time and $\gamma = 2.0$ a scaling parameter. A deployment may then quantify the disagreement among local estimates as
+with $\varepsilon_{jk}(t) = \frac{1}{t} \sum_{\tau=1}^{t} \left| \hat{T}_{jk}(\tau) - T_{jk}^{obs}(\tau) \right|$ the mean absolute error of observer $j$ for node $k$ over time and $\gamma = 2.0$ a scaling parameter. A deployment may then quantify the disagreement among local estimates as
 \begin{equation}\label{eq:ida_uncertainty}
 \sigma_k^2(t) = \frac{\sum_{j=1}^{M} \phi_{jk}(t) \left( \hat{T}_{jk}(t) - \mathcal{T}_k(t) \right)^2}{\sum_{j=1}^{M} \phi_{jk}(t)} + \sigma_0^2
 \end{equation}
-where $\sigma_0^2 = 0.1$ is a variance floor; this weighted dispersion is not a Bayesian posterior variance unless a probabilistic observation model is supplied. The decision agent classifies nodes from the total score and the dispersion,
+where $\sigma_0^2 = 0.1$ is a variance floor; this weighted dispersion is not a Bayesian posterior variance unless a probabilistic observation model is supplied. The decision node classifies nodes from the total score and the dispersion,
 \begin{equation}\label{eq:ida_classification}
 C_k(t) =
 \begin{cases}
@@ -521,7 +521,7 @@ over the observers that saw node $k$ at time $t+1$ in the proposed deployment; t
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{deployment.png}
-\caption{The same pipeline inside the system design the method is written for. Solid boxes are the parts the released implementation runs and the paper evaluates; dashed boxes are the parts it leaves open: merging the observations of several agents over one node, a state update that depends on the selected action, and a constraint budget. Those three are stated in Section~\ref{sec:system_design} as a possible extension, and none of them is exercised by the experiments reported here.}
+\caption{The same pipeline inside the system design the method is written for. Solid boxes are the parts the released implementation runs and the paper evaluates; dashed boxes are the parts it leaves open: merging the observations of several local observers over one node, a state update that depends on the selected action, and a constraint budget. Those three are stated in Section~\ref{sec:system_design} as a possible extension, and none of them is exercised by the experiments reported here.}
 \label{fig:update}
 \end{figure}
 
@@ -540,7 +540,7 @@ This section defines the main evaluation metrics used throughout the experiments
 F_1 = \frac{2 \cdot \mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}.
 \end{aligned}
 \end{equation}
-Ground-truth labels are assigned at simulation initialization according to the attack model (Section~\ref{sec:threat_model}) and are never observable by the Thinker Agents during execution.
+Ground-truth labels are assigned at simulation initialization according to the attack model (Section~\ref{sec:threat_model}) and are never observable to the evaluated detector during execution.
 
 \textbf{Mission-Level Metric}: The task success rate (TSR) measures mission continuity independently of detection accuracy:
 \begin{equation}\label{eq:tsr}
@@ -560,10 +560,10 @@ Table~\ref{alg:stim} consolidates the S-TIM trust evaluation and incentive loop 
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}rX@{}}
 \toprule
-\multicolumn{2}{@{}l}{\textbf{Input:} Current trust vectors $\{\mathbf{T}_k(t)\}_{k=1}^{N}$ and agent assignments $\{\mathcal{N}_j\}_{j=1}^{M}$.}\\
+\multicolumn{2}{@{}l}{\textbf{Input:} Current trust vectors $\{\mathbf{T}_k(t)\}_{k=1}^{N}$ and observer assignments $\{\mathcal{N}_j\}_{j=1}^{M}$.}\\
 \multicolumn{2}{@{}l}{\textbf{Output:} Global trust scores $\{\mathcal{T}_k(t)\}_{k=1}^{N}$, classifications $\{C_k(t)\}_{k=1}^{N}$, and incentives $\{\pi_{jk}(t)\}$.}\\
 \midrule
-1 & For each Thinker Agent $j = 1,\dots,M$, collect local observations $o_j(t)=\{\mathbf{T}_k(t)\}_{k\in\mathcal{N}_j}$.\\
+1 & For each local observer $j = 1,\dots,M$, collect local observations $o_j(t)=\{\mathbf{T}_k(t)\}_{k\in\mathcal{N}_j}$.\\
 2 & Extract diagnostic features and compute $p_k$ and auxiliary heads using the frozen network in Eq.~\ref{eq:policy_heads}.\\
 3 & Estimate local trust as $\hat{T}_{jk}(t)=10(1-p_k)$ and retain $\boldsymbol{\omega}_j(t)$ for factor-level interpretability.\\
 4 & Apply the cross-validation check in Eq.~\ref{eq:consistency} and flag inconsistent nodes.\\
@@ -798,7 +798,7 @@ Trained on seeds 100--159 with twelve of those seeds held out for validation, th
 
 \subsection{Trust Evolution Analysis}
 \label{sec:trust_evolution}
-Figure~\ref{fig:trust_value_evolution} tracks the diagnostic trust index from the post-warm-up phase to 5000~s under $M \in \{2,5,10\}$. The curves are recomputed by repeatedly truncating each generated stream and applying the same fitted model. Because $M$ affects the generator's random seed but does not enter the policy features, these curves do not isolate an agent-count effect.
+Figure~\ref{fig:trust_value_evolution} tracks the diagnostic trust index from the post-warm-up phase to 5000~s under $M \in \{2,5,10\}$. The curves are recomputed by repeatedly truncating each generated stream and applying the same fitted model. Because $M$ affects the generator's random seed but does not enter the policy features, these curves do not isolate an effect of that parameter.
 
 Benign nodes remain mostly above 8.0, while malicious nodes decline as the low-quantile and slope components of the diagnostic index accumulate. Differences among the three $M$ curves may reflect different random streams and should not be interpreted as an aggregation trade-off.
 
@@ -809,7 +809,7 @@ After approximately 3800~s, the generated malicious index remains below the beni
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.72\textwidth]{trust_value_evolution.png}
-\caption{Diagnostic trust index on generated streams for three seed conditions labelled by $M$. Since $M$ is not a policy feature, the curves do not identify a causal agent-count effect. Lower values indicate higher predicted risk.}
+\caption{Diagnostic trust index on generated streams for three seed conditions labelled by $M$. Since $M$ is not a policy feature, the curves do not identify a causal effect of that parameter. Lower values indicate higher predicted risk.}
 \label{fig:trust_value_evolution}
 \end{figure}
 
@@ -1005,7 +1005,7 @@ If the published table cannot separate the proposed model from the rule-based co
 
 A benchmark of this family therefore does not run out of separability by being made quieter; it runs out only when the attacker's evidence is not in its own channels at all, which is the case the spatial scenario of Section~\ref{sec:spatial_scenario} constructs and the only place in this manuscript where the method groups separate. The measurements above are a diagnosis of where the comparison can and cannot be made, not a claim that a harder benchmark would favour the proposed model.
 
-The released material is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine agent-local observations and aggregation, and run the packet-trace study that the replication package carries, with attack parameters held out from training and with a scenario whose attacker is level-indistinguishable, so that the two blind-spot claims are tested on packet data rather than only on generated streams. The comparison this paper does not make is between two learners on the identical feature vector, which would separate the representation from the network as cleanly as the block ablation separates the blocks from one another; the replication package carries the trained comparators that such a study would need. A comparison with a learned policy, and the environment interaction and reward-defined returns such a comparison would need, would establish whether the allocation result carries over to a controller that optimises the objective rather than applying a fixed rule. Until those experiments are available, S-TIM should be described as a supervised trust-stream proof of concept, and its claims are limited to the detection and allocation results reported here.
+The released material is nevertheless useful as an auditable starting point. A defensible next study should replace the synthetic allocation rules with a common policy for all detectors, measure actual runtime and messages, implement genuine multi-point observations and aggregation, and run the packet-trace study that the replication package carries, with attack parameters held out from training and with a scenario whose attacker is level-indistinguishable, so that the two blind-spot claims are tested on packet data rather than only on generated streams. The comparison this paper does not make is between two learners on the identical feature vector, which would separate the representation from the network as cleanly as the block ablation separates the blocks from one another; the replication package carries the trained comparators that such a study would need. A comparison with a learned policy, and the environment interaction and reward-defined returns such a comparison would need, would establish whether the allocation result carries over to a controller that optimises the objective rather than applying a fixed rule. Until those experiments are available, S-TIM should be described as a supervised trust-stream proof of concept, and its claims are limited to the detection and allocation results reported here.
 
 %%%%%%%%%%%%%
 \vspace{6pt} 
