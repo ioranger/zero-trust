@@ -26,12 +26,20 @@ PDF = ROOT / "paper" / "template.pdf"
 OUT = ROOT / "artifacts" / "analysis" / "paper_pages"
 
 # (output name, page number)
+# every page that is kept in the folder, so that no snapshot goes stale
 PAGES = [
     ("page_01.png", 1),
+    ("page_02.png", 2),
+    ("page_03.png", 3),
+    ("page_04.png", 4),
+    ("page_05.png", 5),
     ("page_07.png", 7),
     ("page_13.png", 13),
     ("page_16.png", 16),
     ("page_17.png", 17),
+    ("page_18.png", 18),
+    ("page_19.png", 19),
+    ("page_20.png", 20),
     ("page_21.png", 21),
     ("page_22.png", 22),
     ("page_23.png", 23),
