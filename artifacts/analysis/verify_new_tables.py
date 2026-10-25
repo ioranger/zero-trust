@@ -529,6 +529,13 @@ FACTOR_ARMS = [
     ("T5 historical", "drop_T5"),
 ]
 
+# The table carries one block per scenario, and the row labels repeat, so the
+# rows are read in order and keyed by the block they belong to.
+FACTOR_BLOCKS = [
+    ("published", "published_recheck"),
+    ("spatial", "spatial_recheck"),
+]
+
 
 def policy_width(run: str):
     f = RUNS / run / "logs" / "marl_policy.json"
@@ -537,7 +544,38 @@ def policy_width(run: str):
     return len(json.loads(f.read_text(encoding="utf-8"))["feature_names"])
 
 
-def paired_accuracy_difference(arm: str, reference: str):
+def factor_rows():
+    """The rows of tab:factor_dependence, keyed by (block, row label).
+
+    The block headers are `\\multicolumn` rows, which carry no `&` and are
+    therefore not returned by table_rows(), so the tabular is read directly.
+    """
+    m = re.search(r"\\label\{" + re.escape("tab:factor_dependence") + r"\}", tex)
+    if not m:
+        return {}
+    tab = tex.find("\\begin{tabular}", m.start())
+    end = tex.find("\\end{tabular}", tab)
+    if tab < 0 or end < 0:
+        return {}
+    out = {}
+    block = None
+    for line in tex[tab:end].splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if "multicolumn" in s:
+            block = "spatial" if "patial" in s else "published"
+            continue
+        if "&" not in s or not s.endswith("\\\\"):
+            continue
+        cells = [strip_tex(c) for c in s[:-2].split("&")]
+        if block is None or not cells:
+            continue
+        out[(block, cells[0])] = cells[1:]
+    return out
+
+
+def paired_accuracy_difference(arm: str, reference: str, n_uavs: int = 15):
     """The mean of the per-seed accuracy differences, in percentage points.
 
     This is the quantity the paired test is run on. It is not the difference
@@ -549,7 +587,7 @@ def paired_accuracy_difference(arm: str, reference: str):
             return None
         d = pd.read_csv(f)
         d = d[(d["scenario"].isin(["ratio", "figure_ratio"]))
-              & (d["n_uavs"] == 15) & (d["n_agents"] == 5)
+              & (d["n_uavs"] == n_uavs) & (d["n_agents"] == 5)
               & (d["malicious_ratio"].round(6) == round(0.30, 6))]
         d = d[d["method"] == "S-TIM"].drop_duplicates(subset=["seed"])
         return d.set_index("seed")["accuracy"] * 100
@@ -566,18 +604,26 @@ def paired_accuracy_difference(arm: str, reference: str):
 
 rows = table_rows("tab:factor_dependence")
 check("tab:factor_dependence is present", bool(rows))
-if rows:
-    parsed = {r[0]: r[1:] for r in rows}
-    ref = baseline_row("published_recheck", "S-TIM")
-    ref_width = policy_width("published_recheck")
-    for label, arm in FACTOR_ARMS:
-        if label not in parsed:
-            check(f"factor row present: {label}", False)
+parsed = factor_rows()
+for block, ref_arm in FACTOR_BLOCKS:
+    if not (RUNS / ref_arm / "logs" / "per_seed_metrics.csv").exists():
+        print(f"  [SKIP] {block}: the arm {ref_arm} has not been run")
+        continue
+    ref = baseline_row(ref_arm, "S-TIM")
+    ref_width = policy_width(ref_arm)
+    for label, suffix in FACTOR_ARMS:
+        arm = ref_arm if label.startswith("none") else \
+            (suffix if block == "published" else f"spatial_{suffix}")
+        if (RUNS / arm / "logs" / "per_seed_metrics.csv").exists() is False:
+            print(f"  [SKIP] {block} / {label}: the arm {arm} has not been run")
             continue
-        cells = parsed[label]
+        if (block, label) not in parsed:
+            check(f"factor {block} row present: {label}", False)
+            continue
+        cells = parsed[(block, label)]
         base = baseline_row(arm, "S-TIM")
         if base is None:
-            check(f"factor {label} / logs", False)
+            check(f"factor {block} {label} / logs", False)
             continue
         # cells[0] is the number of columns removed, then accuracy, F-score,
         # TSR, on--off detection and the paired accuracy difference.
@@ -586,28 +632,28 @@ if rows:
                 ("F-score", base["f_score"]),
                 ("TSR", base["tsr"]))):
             claimed = cells[1 + i] if len(cells) > 1 + i else "--"
-            check(f"factor {label} / {col}",
+            check(f"factor {block} {label} / {col}",
                   abs(float(claimed) - value) < 0.06,
                   f"tex={claimed} computed={value:.1f}")
         onoff = mean_atk(arm, "S-TIM", "on-off")
         claimed = cells[4] if len(cells) > 4 else "--"
-        check(f"factor {label} / on-off",
+        check(f"factor {block} {label} / on-off",
               onoff is not None and abs(float(claimed) - onoff) < 0.06,
               f"tex={claimed} computed={onoff:.1f}" if onoff is not None else "no log")
         # the cost claim: how many columns the removed dimension took with it
         width = policy_width(arm)
         claimed = cells[0] if cells else "--"
         if width is None or ref_width is None:
-            check(f"factor {label} / columns removed", False)
+            check(f"factor {block} {label} / columns removed", False)
         else:
-            check(f"factor {label} / columns removed",
+            check(f"factor {block} {label} / columns removed",
                   abs(float(claimed) - (ref_width - width)) < 0.5,
                   f"tex={claimed} computed={ref_width - width}")
-        if label != "none (published configuration)" and ref is not None:
-            delta = paired_accuracy_difference(arm, "published_recheck")
+        if not label.startswith("none") and ref is not None:
+            delta = paired_accuracy_difference(arm, ref_arm, 15 if block == "published" else 800)
             claimed = cells[5] if len(cells) > 5 else "--"
             m = re.match(r"([-+]?[0-9.]+)", claimed)
-            check(f"factor {label} / delta accuracy",
+            check(f"factor {block} {label} / delta accuracy",
                   delta is not None and m is not None
                   and abs(float(m.group(1)) - delta) < 0.06,
                   f"tex={claimed} computed={delta:+.2f}" if delta is not None else "no log")

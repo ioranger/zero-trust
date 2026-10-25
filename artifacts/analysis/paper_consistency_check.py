@@ -162,6 +162,12 @@ checks = [
      "1.3~pp" in tex and "$p=0.027$" in tex),
     ("states that the comparators keep every dimension in the control",
      "keep all five dimensions" in tex),
+    ("states the spatial-scenario cost of the two load-bearing dimensions",
+     "18.2~pp" in tex and "18.9~pp" in tex),
+    ("states that the communication dimension is worth different things in the two scenarios",
+     "costs 0.7~pp" in tex and "gains 1.3~pp" in tex),
+    ("states that the energy dimension is inert in both scenarios",
+     "$+0.03$~pp" in tex),
 ]
 for label_, ok in checks:
     print(f"  [{'x' if ok else ' '}] {label_}")

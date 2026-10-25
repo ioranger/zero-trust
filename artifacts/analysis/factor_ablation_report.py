@@ -47,6 +47,7 @@ FAMILIES = {
     "published": {
         "prefix": "",
         "reference": "published_recheck",
+        "n_uavs": 15,
         "columns": [
             "1-T1_recent", "1-T2_recent", "1-T4_recent", "1-T5_recent",
             "1-T1_q10", "1-T4_q10",
@@ -60,6 +61,7 @@ FAMILIES = {
     "spatial": {
         "prefix": "spatial_",
         "reference": "spatial_recheck",
+        "n_uavs": 800,
         "columns": None,   # read from the arm's own policy
     },
 }
@@ -77,12 +79,12 @@ def arm_name(family: str, arm: str) -> str:
     return FAMILIES[family]["prefix"] + arm
 
 
-def load(arm: str):
+def load(arm: str, n_uavs: int = 15):
     base = RUNS / arm
     metrics = pd.read_csv(base / "logs" / "per_seed_metrics.csv")
     main = metrics[
         (metrics["scenario"].isin(["ratio", "figure_ratio"]))
-        & (metrics["n_uavs"] == 15)
+        & (metrics["n_uavs"] == n_uavs)
         & (metrics["n_agents"] == 5)
         & (metrics["malicious_ratio"].round(6) == round(0.30, 6))
     ].drop_duplicates(subset=["seed", "method"])
@@ -119,13 +121,17 @@ def report_family(family: str) -> list[str]:
     ref_arm = spec["reference"]
     arms = [ref_arm] + [arm_name(family, f"drop_{f}") for f in FACTOR_LABEL]
 
-    missing = [a for a in arms
-               if not (RUNS / a / "logs" / "per_seed_metrics.csv").exists()]
+    present = [a for a in arms
+               if (RUNS / a / "logs" / "per_seed_metrics.csv").exists()]
+    missing = [a for a in arms if a not in present]
+    if ref_arm not in present:
+        print(f"[FAIL] missing reference arm {ref_arm}")
+        return [f"{family}: missing reference arm"]
     if missing:
-        print(f"[FAIL] missing arms: {missing}")
-        return [f"{family}: missing arms"]
+        print(f"[note] {family}: arms not run: {', '.join(missing)}")
+    arms = present
 
-    data = {a: load(a) for a in arms}
+    data = {a: load(a, spec["n_uavs"]) for a in arms}
     columns = spec["columns"] or data[ref_arm][2]["feature_names"]
 
     print("=" * 98)
@@ -218,7 +224,7 @@ def report_family(family: str) -> list[str]:
     else:
         other = "spatial_position_23dim"
         if (RUNS / other / "logs" / "per_seed_metrics.csv").exists():
-            piv_o, _, _ = load(other)
+            piv_o, _, _ = load(other, FAMILIES["spatial"]["n_uavs"])
             diffs = []
             for met in ("accuracy", "f_score", "tsr"):
                 a = piv_o[met]["S-TIM"].mean() * 100
