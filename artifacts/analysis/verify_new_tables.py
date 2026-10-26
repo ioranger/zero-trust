@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 TEX = ROOT / "paper" / "template.tex"
@@ -657,6 +658,54 @@ for block, ref_arm in FACTOR_BLOCKS:
                   delta is not None and m is not None
                   and abs(float(m.group(1)) - delta) < 0.06,
                   f"tex={claimed} computed={delta:+.2f}" if delta is not None else "no log")
+
+print()
+print("=" * 74)
+print("7f. the column-level diagnostic behind the communication dimension")
+print("=" * 74)
+
+COLUMN_ARMS = [
+    ("col_nogaps", "the two directed cross-factor gaps removed"),
+    ("col_noT2direct", "the recent mean of T2 removed"),
+]
+
+
+def paired_p(run: str, metric: str, reference: str, n_uavs: int = 15) -> float:
+    """The two-sided p value of the paired per-seed difference."""
+    def series(arm):
+        f = RUNS / arm / "logs" / "per_seed_metrics.csv"
+        if not f.exists():
+            return None
+        d = pd.read_csv(f)
+        d = d[(d["scenario"].isin(["ratio", "figure_ratio"]))
+              & (d["n_uavs"] == n_uavs) & (d["n_agents"] == 5)
+              & (d["malicious_ratio"].round(6) == round(0.30, 6))]
+        d = d[d["method"] == "S-TIM"].drop_duplicates(subset=["seed"])
+        return d.set_index("seed")[metric] * 100
+
+    a = series(run)
+    b = series(reference)
+    if a is None or b is None:
+        return float("nan")
+    common = a.index.intersection(b.index)
+    d = (a[common] - b[common]).dropna()
+    n = len(d)
+    sd = float(d.std(ddof=1))
+    if n == 0 or sd == 0:
+        return float("nan")
+    t = float(d.mean()) / (sd / np.sqrt(n))
+    from math import erf, sqrt
+    return 2 * (1 - 0.5 * (1 + erf(abs(t) / sqrt(2))))
+
+
+for arm, label in COLUMN_ARMS:
+    check(f"column arm present: {arm}",
+          (RUNS / arm / "logs" / "per_seed_metrics.csv").exists(), label)
+    p = paired_p(arm, "accuracy", "published_recheck")
+    if p == p:  # not NaN
+        quoted = f"p={p:.2f}"
+        check(f"the prose quotes the accuracy p value of {arm}",
+              quoted in tex, f"computed {quoted}")
 
 print()
 print("=" * 74)

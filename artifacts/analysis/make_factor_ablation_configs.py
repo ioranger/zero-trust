@@ -43,6 +43,41 @@ FAMILIES = [
 # keep the result.
 COMBINED = ["T2", "T3", "T5"]
 
+# Column-level diagnostics. The communication dimension reaches the model
+# through three columns: its own recent mean and the two directed cross-factor
+# gaps, which read (T2 + T3) against (T1 + T4). Removing the dimension
+# removes all three at once, so these two arms separate the paths: one leaves
+# only the recent mean, the other leaves only the gaps.
+COLUMN_ARMS = [
+    ("col_nogaps", ["directed_T2T3_minus_T1T4_gap", "directed_low_quantile_gap"]),
+    ("col_noT2direct", ["1-T2_recent"]),
+]
+
+
+def write_column_variant(base: dict, dst: Path, disabled: list[str],
+                         src_name: str, purpose: str) -> bool:
+    cfg = json.loads(json.dumps(base))
+    cfg["marl_training"]["disabled_features"] = disabled
+    cfg["description"] = (
+        f"Column-level diagnostic on {purpose}: the proposed model does not see "
+        f"the feature columns {', '.join(disabled)}. Identical to "
+        f"configs/{src_name} in every other respect, including the generator, the "
+        f"attack mix, the train and evaluation seeds, the epochs, the "
+        f"early-stopping rule, the auxiliary weights and the decision threshold."
+    )
+    dst.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+
+    chk = json.loads(dst.read_text(encoding="utf-8"))
+    same = all(chk[k] == base[k] for k in base
+               if k not in ("marl_training", "description"))
+    mt_same = all(chk["marl_training"][k] == base["marl_training"][k]
+                  for k in base["marl_training"]
+                  if k not in ("disabled_factors", "disabled_features"))
+    print(f"wrote {dst.name}")
+    print(f"    disabled_features = {chk['marl_training']['disabled_features']}"
+          f"   everything else identical: {same and mt_same}")
+    return same and mt_same
+
 
 def write_variant(base: dict, dst: Path, disabled: list[str], src_name: str,
                   purpose: str) -> bool:
@@ -82,6 +117,11 @@ def main() -> int:
         if not write_variant(base, CONFIGS / f"{prefix}drop_T2_T3_T5.json",
                              COMBINED, src_name, purpose):
             return 1
+
+        for suffix, disabled in COLUMN_ARMS:
+            if not write_column_variant(base, CONFIGS / f"{prefix}{suffix}.json",
+                                         disabled, src_name, purpose):
+                return 1
     return 0
 
 

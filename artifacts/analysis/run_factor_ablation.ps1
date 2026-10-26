@@ -35,6 +35,7 @@ foreach ($arm in $armList) {
         '^published_recheck$' { 'artifacts/configs/default.json'; break }
         '^spatial_recheck$'   { 'artifacts/configs/spatial_position.json'; break }
         '^spatial_drop_(.+)$' { "artifacts/configs/spatial_factor_ablation_drop_$($Matches[1]).json"; break }
+        '^spatial_col_(.+)$'  { "artifacts/configs/spatial_factor_ablation_col_$($Matches[1]).json"; break }
         default                { "artifacts/configs/factor_ablation_$arm.json" }
     }
     Write-Output "=== $arm ($cfg) ==="

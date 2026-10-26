@@ -74,6 +74,16 @@ FACTOR_LABEL = {
     "T5": "T5 historical",
 }
 
+# The communication dimension reaches the model through three columns: its own
+# recent mean and the two directed cross-factor gaps. Removing the dimension
+# removes all three at once, so these two arms separate the paths.
+COLUMN_ARMS = [
+    ("col_nogaps",
+     "the two directed cross-factor gaps removed, the recent mean of T2 kept"),
+    ("col_noT2direct",
+     "the recent mean of T2 removed, the two gaps kept"),
+]
+
 
 def arm_name(family: str, arm: str) -> str:
     return FAMILIES[family]["prefix"] + arm

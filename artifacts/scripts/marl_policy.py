@@ -176,6 +176,17 @@ def factor_keep_mask(names: list[str], disabled: list[str]) -> np.ndarray:
     return np.array(keep, dtype=bool)
 
 
+def disabled_features(config: Config) -> list[str]:
+    """Feature columns the configuration asks the model not to see.
+
+    Off by default. The factor-level control removes everything a dimension
+    carries; this one removes named columns, which is what a diagnostic on a
+    single mechanism needs.
+    """
+    raw = (config.raw.get("marl_training", {}) or {}).get("disabled_features", []) or []
+    return [str(f) for f in raw]
+
+
 def spatial_features_enabled(config: Config) -> bool:
     return bool((config.raw.get("spatial") or {}).get("features", False))
 
@@ -272,6 +283,14 @@ def extract_marl_policy_features(
     disabled = disabled_factors(config)
     if disabled:
         keep = factor_keep_mask(names, disabled)
+        features = features[:, keep]
+        names = [n for n, k in zip(names, keep) if k]
+    # The column-level control removes named columns only, which is what a
+    # diagnostic on one mechanism needs: the factor control removes everything
+    # a dimension carries, this one leaves the rest of the dimension in place.
+    off = disabled_features(config)
+    if off:
+        keep = np.array([n not in off for n in names])
         features = features[:, keep]
         names = [n for n, k in zip(names, keep) if k]
     return features, names
