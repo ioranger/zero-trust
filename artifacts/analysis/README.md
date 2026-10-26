@@ -71,6 +71,8 @@ python -u artifacts/analysis/finalise_modality_study.py    # modality ladder + f
 | `run_factor_ablation.ps1` | Builds the leave-one-factor-out arms, one per removed dimension, and snapshots each of them. |
 | `factor_ablation_report.py` | Reports what each trust dimension is worth to the proposed model, checks that the comparators do not move across the arms, and checks that the published configuration re-run reproduces the committed table. |
 | `column_diagnostic_report.py` | Paired statistics for the column-level diagnostic that separates the two paths by which the communication dimension reaches the model. |
+| `audit_float_correspondence.py` | Checks every figure and table of the manuscript against its data source, and every prose claim against the configuration that backs it: seed counts, training-set sizes, the mechanisms the manuscript says are implemented, and the boxes each figure draws. |
+| `audit_floats.py` | Enumerates every float with its caption, the page it lands on and every place it is referred to. |
 | `render_figure.py` | Rasterises a standalone TikZ figure into the PNG the manuscript includes, pinned to the width of the PNG it replaces. |
 | `check_bibliography_coverage.py` | Checks that every bibliography entry is still cited and every citation resolves, which is what a removed related-work subsection can break. |
 | `bold_table_cells.py` | Sets the bold cells: the proposed model's lead in the comparison tables, the best value in the column in the ablation tables. |

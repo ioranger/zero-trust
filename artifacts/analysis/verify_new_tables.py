@@ -755,7 +755,7 @@ for fact, why in (
     ("$+13.0$~pp", "the TSR gain over the strongest rule adapter"),
     ("0.964--0.983", "the modality head accuracy across the data-efficiency arms"),
     ("0.4~pp", "the largest data-efficiency spread at a fixed training-set size"),
-    ("90 node-level training rows", "the size of the smallest training set"),
+    ("90 node-level rows", "the size of the smallest validation split"),
     ("$+46.6$~pp", "the smallest accuracy advantage in the robustness sweep"),
     ("$+52.3$~pp", "the largest accuracy advantage in the robustness sweep"),
     ("$+41.7$~pp", "the smallest F-score advantage in the robustness sweep"),
