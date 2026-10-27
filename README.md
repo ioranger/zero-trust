@@ -65,6 +65,15 @@ The executable replication package is under `artifacts/`. See `artifacts/README.
 
 The currently committed artifact outputs are intentionally preserved because they support the manuscript tables and figures.
 
+## Working on this manuscript
+
+`artifacts/ops/` holds the operating layer: the scripts that keep the
+development tree and the git worktree in step, and the state of the manuscript
+itself. Start with [`artifacts/ops/STATE.md`](artifacts/ops/STATE.md) for
+where the paper stands and what is still open, and
+[`artifacts/ops/README.md`](artifacts/ops/README.md) for the working cycle and
+the checks that guard the manuscript.
+
 ## File Classification
 
 - **Current manuscript PDF**: `paper/template.pdf`
