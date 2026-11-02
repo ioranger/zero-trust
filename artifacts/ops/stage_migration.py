@@ -85,6 +85,10 @@ def walk(base_rel: str):
         if any(fnmatch.fnmatch(r, g) for g in EXCLUDE_GLOBS):
             skipped.append(r)
             continue
+        # Office lock files: they exist only while a document is open.
+        if f.name.startswith("~$"):
+            skipped.append(r)
+            continue
         if f.suffix in {".aux", ".log", ".out", ".fls", ".fdb_latexmk",
                         ".bbl", ".blg"}:
             skipped.append(r)
