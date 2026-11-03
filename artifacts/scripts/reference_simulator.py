@@ -171,6 +171,10 @@ def simulate_trust_stream(
         return simulate_trust_stream_spatial(
             config, seed, n_uavs, malicious_ratio, n_agents)
 
+    if channel_profile_cfg(config):
+        return simulate_trust_stream_channel_profile(
+            config, seed, n_uavs, malicious_ratio, n_agents)
+
     rng = stable_rng(config, seed, n_uavs, malicious_ratio, n_agents)
     onoff_period = 90
     onoff_active = int(round(onoff_period * onoff_duty))
@@ -263,6 +267,131 @@ def simulate_trust_stream(
         history = 0.84 * history + 0.16 * values.mean(axis=1)
         streams[step, :, :4] = values
         streams[step, :, 4] = history
+
+    return streams, malicious, attack_types
+
+
+# --- channel-focused adversary --------------------------------------------
+# The published generator drives all four observable channels down together,
+# so a dimension that is removed from the input is largely redundant with the
+# three that were kept: the evidence the removed dimension carried is still
+# present in the dimensions the attacker also drives down. That is a property
+# of the adversary, not of the representation.
+#
+# The manuscript's own threat model says something stronger than the
+# published generator implements -- an adversary may manipulate any subset of
+# the five dimensions independently. The generator below is that case rather
+# than the published one: every attacker manipulates exactly one dimension and
+# is bit-identical to a benign node on the other four, so the only evidence
+# that exists about an attacker is the evidence on the dimension it
+# manipulates. Removing that dimension removes all of the evidence about the
+# attacker that used it.
+#
+# The dimension T5 is supplied here by the peer-reputation channel rather than
+# recomputed locally as an exponential average of T1--T4, because a memory
+# term that is a function of the other four cannot be manipulated on its own
+# and the threat model allows the memory dimension to be manipulated on its
+# own. This is a property of the scenario, not of the published generator,
+# which keeps T5 as the local exponential average.
+CHANNEL_PROFILE_DIMENSIONS = ("T1", "T2", "T3", "T4", "T5")
+
+
+def channel_profile_cfg(config: Config) -> dict | None:
+    """Return the channel-profile block when enabled, else None."""
+    block = config.raw.get("channel_profile") or {}
+    return block if block.get("enabled") else None
+
+
+def channel_profile_plan(config: Config, seed: int, n_uavs: int,
+                         malicious_ratio: float, n_agents: int):
+    """The attacker plan of the channel-focused adversary.
+
+    Returns the attacker nodes, the dimension each one manipulates, the
+    temporal pattern each one uses, the step at which each dormant attacker
+    starts, the shared node bias and the random state. The generator and the
+    analysis script both call this, so the plan a report prints is the plan
+    the generator used.
+    """
+    block = channel_profile_cfg(config) or {}
+    rng = stable_rng(config, seed, n_uavs, malicious_ratio, n_agents)
+    n_mal = malicious_count(n_uavs, malicious_ratio)
+    nodes = np.sort(rng.choice(n_uavs, n_mal, replace=False))
+    focus = np.array([k % len(CHANNEL_PROFILE_DIMENSIONS) for k in range(n_mal)],
+                      dtype=int)
+    patterns = [str(p) for p in
+                (block.get("patterns") or ["constant", "dormant", "on-off"])]
+    # The pattern rotates with the seed, so over the evaluation seeds every
+    # dimension meets every pattern. Without the rotation the dimension and
+    # the difficulty of the pattern would be confounded, and an arm could
+    # look cheap because of the pattern rather than because of the dimension.
+    klass = [patterns[(k + int(seed)) % len(patterns)] for k in range(n_mal)]
+    switches = {int(node): config.warmup_steps + int(rng.integers(20, 70))
+                for node in nodes}
+    node_bias = rng.normal(0.0, node_bias_scale(config), size=(n_uavs, 5))
+    return nodes, focus, klass, switches, node_bias, rng
+
+
+def simulate_trust_stream_channel_profile(
+    config: Config,
+    seed: int,
+    n_uavs: int,
+    malicious_ratio: float,
+    n_agents: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Trust streams for the channel-focused adversary.
+
+    Every attacker manipulates exactly one dimension and looks like a benign
+    node on the other four, so the dimension it manipulates is the only place
+    where evidence about it exists. The attack_type strings carry the
+    dimension as a prefix (``T3:on-off``), which is what makes the
+    per-dimension breakdown possible downstream.
+    """
+    block = channel_profile_cfg(config) or {}
+    nodes, focus, klass, switches, node_bias, rng = channel_profile_plan(
+        config, seed, n_uavs, malicious_ratio, n_agents)
+
+    malicious = np.zeros(n_uavs, dtype=bool)
+    malicious[nodes] = True
+    attack_types = np.array(["benign"] * n_uavs, dtype=object)
+    focus_channel = np.full(n_uavs, -1, dtype=int)
+    attacker_pattern = np.array([""] * n_uavs, dtype=object)
+    for k, node in enumerate(nodes):
+        attack_types[node] = f"{CHANNEL_PROFILE_DIMENSIONS[focus[k]]}:{klass[k]}"
+        focus_channel[node] = focus[k]
+        attacker_pattern[node] = klass[k]
+
+    outage = rng.random((config.steps, n_uavs)) < 0.03
+    noise = rng.normal(0.0, 0.10, (config.steps, n_uavs, 5))
+
+    benign_reference = np.array([0.80, 0.76, 0.72, 0.80, 0.78])
+    depression = float(block.get("depression", 0.40))
+    outage_drop = np.array([0.22, 0.26, 0.08, 0.17, 0.19])
+
+    is_constant = attacker_pattern == "constant"
+    is_dormant = attacker_pattern == "dormant"
+    is_onoff = attacker_pattern == "on-off"
+    switch = np.array([switches.get(node, config.steps) for node in range(n_uavs)])
+
+    streams = np.zeros((config.steps, n_uavs, 5), dtype=float)
+    for step in range(config.steps):
+        wave = (0.045 * np.sin(step / 23.0 + np.arange(n_uavs) * 0.9)[:, None]
+                + 0.025 * math.cos(step / 47.0))
+        base = benign_reference[None, :] + node_bias + wave
+
+        active = is_constant.copy()
+        if step >= config.warmup_steps:
+            active |= is_dormant & (step >= switch)
+            active |= is_onoff & (((step - config.warmup_steps) // 45) % 2 == 0)
+        if active.any():
+            rows = np.where(active & (focus_channel >= 0))[0]
+            channels = focus_channel[rows]
+            base[rows, channels] -= depression
+
+        # The outage applies to every node, attacker or not. Applying it to
+        # the benign nodes only would leave the attackers with a statistic
+        # the benign population does not have.
+        base = base - (outage[step][:, None] * outage_drop)
+        streams[step] = np.clip(base + noise[step], 0.02, 0.98)
 
     return streams, malicious, attack_types
 
@@ -610,6 +739,34 @@ def extract_policy_features(config: Config, streams: np.ndarray) -> np.ndarray:
             directed_low_quantile_gap,
         ]
     )
+
+
+def extract_dimension_aligned_features(config: Config, streams: np.ndarray):
+    """Equal-size blocks of statistics, one block per trust dimension.
+
+    Every statistic of a block is computed from that dimension alone, so a
+    leave-one-dimension-out arm removes exactly the columns that carry the
+    removed dimension and nothing else. The statistics are the ones the
+    published representation already uses for T1 and T4, applied to all five
+    dimensions, so that no dimension is priced through a different number of
+    columns than another.
+    """
+    post = streams[config.warmup_steps:]
+    recent = streams[-120:].mean(axis=0)
+    q10 = np.quantile(post, 0.10, axis=0)
+    early = post[:100].mean(axis=0)
+    late = post[-100:].mean(axis=0)
+    cols = []
+    names = []
+    for k in range(len(CHANNEL_PROFILE_DIMENSIONS)):
+        tag = CHANNEL_PROFILE_DIMENSIONS[k]
+        cols.append(1.0 - recent[:, k])
+        cols.append(1.0 - q10[:, k])
+        cols.append((post[:, :, k] < 0.58).mean(axis=0))
+        cols.append(np.maximum(0.0, early[:, k] - late[:, k]))
+        names.extend([f"1-{tag}_recent", f"1-{tag}_q10",
+                      f"low_{tag}_fraction_0.58", f"{tag}_positive_slope"])
+    return np.column_stack(cols), names
 
 
 def stim_scores(

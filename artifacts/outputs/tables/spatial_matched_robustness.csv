@@ -1,0 +1,6 @@
+configuration,best_rule_accuracy,best_rule_f_score,stim_accuracy,stim_f_score,margin_accuracy
+headline,68.8,18.3,93.8,89.4,25.0
+field amplitude 0.30,69.6,16.4,92.9,88.0,23.3
+field amplitude 0.60,70.0,11.3,92.4,87.4,22.4
+position ratio 0.20,69.0,19.9,94.5,90.8,25.5
+position ratio 0.50,68.6,16.6,93.7,89.3,25.1

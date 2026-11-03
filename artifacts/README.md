@@ -67,6 +67,88 @@ checkpoints, and training traces before the evaluation script runs.
 `artifacts/outputs/logs/marl_policy.json` or
 `artifacts/outputs/logs/learned_baselines.json` does not exist.
 
+## Channel-Focused Leave-One-Dimension-Out Study
+
+The published leave-one-factor-out control prices the five trust dimensions
+against the published generator, in which the adversary drives all four
+observable channels down together, so the evidence one dimension carries is
+largely duplicated in the dimensions that were kept. The study in this section
+is the stronger adversary the manuscript's threat model allows: one that
+manipulates a single dimension at a time, so that the dimension an attacker
+manipulates is the only place where evidence about it exists. The
+representation in this scenario is dimension-aligned, four columns per
+dimension and each computed from that dimension alone, and the temporal-shape
+block is off, because it is computed on T1 and T4 and would carry one
+dimension's evidence into another dimension's arm.
+The arms come in one family: the deployment arms, in which the input carries a
+subset of the five dimensions and nothing else. They are grouped by the number of
+dimensions the deployment observes, k: the leave-one-dimension-out arms observe
+four, the three-dimension arms observe three, the two-dimension arms observe two,
+and the single-dimension arms observe one. The reference observes all five. The
+enumeration is exhaustive: all thirty-one non-empty subsets of the five dimensions
+are trained and evaluated under one protocol, one arm each, so no budget and no
+subset is missing. Together they price the dimension set from every side and form
+a single monotone budget series whose bands do not overlap, in which the
+configuration that observes all five dimensions is the best arm on every metric:
+no dimension is dispensable, because removing any one of them costs accuracy, and
+no dimension is sufficient on its own, because a deployment that observes a single
+dimension cannot see the attackers that use the other four.
+
+```bash
+.venv/bin/python artifacts/analysis/make_channel_profile_configs.py
+.venv/bin/python artifacts/analysis/run_channel_profile_ablation.py --work-root /tmp/zt_channel_profile
+.venv/bin/python artifacts/analysis/channel_profile_ablation_report.py
+.venv/bin/python artifacts/analysis/make_budget_table.py
+.venv/bin/python artifacts/analysis/plot_dimension_budget.py
+```
+
+The runner trains and evaluates every arm in its own working tree, because the
+checkpoint path of the training script is fixed relative to the root of the
+configuration, and it keeps the five files per arm that the report reads in
+`artifacts/analysis/runs/`. The configurations are `configs/channel_profile.json`,
+its `configs/channel_profile_drop_T*.json` variants, which remove one dimension
+from the input, and its `configs/channel_profile_only_T*.json` variants, which
+keep every one, two and three dimension subset and nothing else. The single
+two-dimension subset that has no `only_` configuration of its own, {T1, T4}, is
+the leave-three-dimensions-out configuration `channel_profile_drop_T2_T3_T5`. The paired per-seed result
+of the leave-one-dimension-out arms is written to
+`artifacts/outputs/tables/channel_profile_ablation.csv`, the single-dimension
+arms to `artifacts/outputs/tables/channel_profile_only_dimension.csv`, the whole
+budget series to `artifacts/outputs/tables/channel_profile_dimension_budget.csv`
+and its LaTeX body to `artifacts/outputs/tables/channel_profile_dimension_budget.tex`,
+and the code-level component arms run on this generator to
+`artifacts/outputs/tables/channel_profile_component_ablation.csv`. The figure
+`paper/figures/dimension_budget.png` is drawn from the budget table by
+`artifacts/analysis/plot_dimension_budget.py`.
+
+## Spatial Scenario at a Matched Operating Point
+
+The spatially inconsistent scenario compares six methods, and the five rule-based
+comparators carry fixed thresholds that were set in the spatially uniform
+generator. In that scenario those thresholds land at a 70--79% benign
+false-positive rate: the comparators flag roughly three quarters of the benign
+population, so their per-class detection rates at those thresholds are not
+comparable to a detector's. This study places every method at a common benign
+false-positive rate, using the recipe the manuscript already applies to its
+probe-level tables: the cut is the one whose achievable benign false-positive
+rate is closest to 5%, selected on the twelve held-out validation seeds of the
+headline spatial configuration and then applied unchanged to the twenty
+evaluation seeds. The proposed model keeps its deployed cut of 0.60, which
+selects 3.9%, so the comparators are moved and the proposed model is not
+re-tuned.
+
+```bash
+python -u artifacts/analysis/spatial_matched_operating_point.py
+```
+
+The script first reproduces the deployed-threshold numbers of the published
+table cell for cell from the same code path, so that the corrected columns and
+the published ones come from one computation. It then reports the matched-rate
+numbers, the paired per-seed tests of the proposed model against the strongest
+comparator on each metric, and the strongest rule adapter at the matched rate
+for every configuration of the robustness table. The console transcript is kept
+as `artifacts/analysis/spatial_matched_operating_point.txt`.
+
 ## ns-3 Trace Path
 
 To generate packet/mobility traces in an ns-3 source tree:
@@ -138,10 +220,17 @@ reimplementations unless official code and original feature pipelines are added.
 - `artifacts/outputs/tables/scalability.csv`: swarm-size scalability results.
 - `artifacts/outputs/tables/correlation.csv`: trust-factor Pearson correlations.
 - `artifacts/outputs/tables/statistical_tests.csv`: paired tests with Holm correction.
+- `artifacts/outputs/tables/channel_profile_ablation.csv`: paired per-seed cost of each trust dimension under the channel-focused adversary.
+- `artifacts/outputs/tables/channel_profile_only_dimension.csv`: paired per-seed cost of each single-dimension arm under the channel-focused adversary.
+- `artifacts/outputs/tables/channel_profile_dimension_budget.csv`: the dimension-budget series, all thirty-one deployment arms grouped by the number of dimensions they observe.
+- `artifacts/outputs/tables/channel_profile_component_ablation.csv`: code-level component ablation run on the channel-focused generator.
 - `artifacts/outputs/tables/ns3_trace_validation.csv`: single-trace ns-3-derived sanity-check results.
+- `artifacts/outputs/tables/spatial_matched_operating_point.csv`: the six methods of the spatially inconsistent scenario at their deployed thresholds and at a matched benign false-positive rate.
+- `artifacts/outputs/tables/spatial_matched_robustness.csv`: the strongest rule adapter at the matched rate, for every configuration of the robustness table.
 - `artifacts/outputs/figures/trust_value_evolution.png`: generated trust evolution figure.
 - `artifacts/outputs/figures/ratio_dynamics_tsr.png`: generated comparative evaluation figure.
 - `artifacts/outputs/figures/pipeline.png`: the executed pipeline (built from `paper/figures/pipeline_tikz.tex`).
+- `paper/figures/dimension_budget.png`: accuracy and detection against the observation budget of a deployment.
 - `artifacts/outputs/figures/deployment.png`: the intended deployment and its unimplemented extensions (built from `paper/figures/deployment_tikz.tex`).
 - `artifacts/outputs/figures/marl_training_trace.png`: PyTorch training diagnostics.
 
@@ -151,6 +240,7 @@ Training uses seeds 0--9. Evaluation uses seeds 1000--1049.
 ## Interpretation Boundaries
 
 - The main benchmark samples normalized T1--T4 trust factors directly and derives T5 recursively. Physical-layer descriptors do not drive the main tables.
+- The channel-focused scenario changes two things relative to the published generator: the adversary manipulates one dimension at a time, and T5 is supplied by an external reputation channel instead of being recomputed locally from T1--T4, because a term that is a function of the other four cannot be manipulated on its own. It is reported alongside the published leave-one-factor-out control, not in place of it, and it does not change any published number.
 - The model is **supervised**. It does not implement temporal-difference learning, policy gradients, or online adaptation, so it is not a reinforcement learner despite the historical file name `train_marl_pytorch.py`.
 - The encoder carries auxiliary trust-weight, action and value heads. Inference consumes **only the risk logit**, and those targets are deterministic functions of the input and the class label. On paired seeds the encoder is statistically indistinguishable from a same-feature single-head MLP (p = 0.51, 0.56, 0.26). The manuscript reports this as a null result and does not claim the heads help.
 - Detection accuracy is saturated at this difficulty for learned methods: every learned variant exceeds 97% on the aggregate metric. The representation question is therefore evaluated separately in `analysis/probe_level_eval.py`, where a logistic probe still discriminates (91.6% with 13 marginal features, 95.3% with the shape block added).

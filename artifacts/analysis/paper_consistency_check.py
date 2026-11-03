@@ -39,6 +39,8 @@ def nums(s):
 
 base = {r["method"]: r for r in load("baseline_comparison.csv")}
 brk = {r["method"]: r for r in load("attack_type_breakdown.csv")}
+matched_rows = load("spatial_matched_operating_point.csv")
+matched = {(r["operating_point"], r["method"]): r for r in matched_rows}
 
 print("=" * 78)
 print("1. baseline_comparison.csv -> manuscript Table 2")
@@ -91,6 +93,34 @@ for claim, val in (("92.0% S-TIM on-off", stim_onoff),
 
 print()
 print("=" * 78)
+print("2b. spatial_matched_operating_point.csv -> manuscript Table 7")
+print("=" * 78)
+label_at = tex.index("\\label{tab:spatial_main}")
+tab_start = tex.index("\\begin{tabular}", label_at)
+tab_end = tex.index("\\end{tabular}", tab_start)
+block = tex[tab_start:tab_end]
+n_tab7 = 0
+for line in block.splitlines():
+    if "&" not in line or "Method &" in line:
+        continue
+    cells = [c.strip() for c in line.rstrip("\\ ").split("&")]
+    name = re.sub(r"\\s*\(ours\)$", "", cells[0]).strip()
+    row = matched.get(("matched", name))
+    if row is None:
+        continue
+    found = [float(x) for x in re.findall(r"[\d.]+", " ".join(cells))]
+    want = [float(row["accuracy"]), float(row["f_score"]), float(row["tsr"]),
+            float(row["constant"]), float(row["dormant"]), float(row["on_off"]),
+            float(row["position_inconsistent"])]
+    ok = len(found) == 8 and all(abs(a - b) < 0.05 for a, b in zip(found, want))
+    n_tab7 += 1
+    print(f"  {name:<14} tex={found}")
+    print(f"  {'':<14} csv={want}")
+    print(f"  {'':<14} {'OK' if ok else '*** MISMATCH ***'}")
+print(f"  rows cross-checked: {n_tab7}")
+
+print()
+print("=" * 78)
 print("3. numbers appearing in prose but not backed by any table")
 print("=" * 78)
 known = set()
@@ -104,6 +134,15 @@ for tbl in (base, brk):
                 known.add(b)
 # add computed gaps used in the text
 known |= {10.6, 14.5, 3.9, 91.8, 59.2, 84.0, 64.0, 20.0, 38.0, 16.2}
+# the spatial scenario at the matched operating point, and the deployed
+# thresholds it replaces
+for r in matched_rows:
+    for c in r.values():
+        if c is not None:
+            try:
+                known.add(float(c))
+            except ValueError:
+                pass
 
 suspicious = []
 for m in re.finditer(r"([-+]?\d+\.\d)\\?%", tex):
@@ -123,13 +162,17 @@ print("4. structural-claim consistency")
 print("=" * 78)
 checks = [
     ("reports the paired result vs the strongest rule adapter",
-     "$+49.8$~pp" in tex and "$+43.9$~pp" in tex and "$+13.0$~pp" in tex),
+     "$+25.0$~pp" in tex and "$+71.1$~pp" in tex and "$+12.6$~pp" in tex),
     ("reports the paired result vs GDM-DTM",
      "1.9\\times10^{-7}" in tex),
     ("reports the enlarged-training-set control",
-     "sixfold" in tex and "2700" in tex),
+     "fivefold" in tex and "2700" in tex),
     ("reports the spatial margin over the best rule adapter on each metric",
-     "over GALTrust" in tex and "over FUBA" in tex and "over GDM-DTM" in tex),
+     "over GDM-DTM and AHP-Entropy" in tex and "over FUBA" in tex
+     and "over AHP-Entropy" in tex),
+    ("reports the spatial comparison at a matched false-positive rate",
+     "matched benign false-positive rate" in tex
+     and "12.9\\%" in tex and "11.1--19.7\\%" in tex),
     ("discloses early stopping on a seed-level validation split",
      "early stopping selects epoch" in tex and "validation risk loss" in tex),
     ("states the arms share the early-stopping rule",
@@ -152,22 +195,22 @@ checks = [
      "13-feature variant" in tex or "13-dimensional" in tex),
     ("states the modality-head negative result",
      "attack-modality" in tex),
-    ("reports the leave-one-factor-out control",
-     "tab:factor_dependence" in tex),
-    ("states the measured cost of the two load-bearing dimensions",
-     "4.7~pp" in tex and "4.4~pp" in tex and "$p<0.0001$" in tex),
-    ("states that the remaining dimensions are inert",
-     "0.3~pp" in tex and "$p=0.57$" in tex and "$p=1.0$" in tex),
-    ("states that the communication dimension is harmful, not merely useless",
-     "1.3~pp" in tex and "$p=0.027$" in tex),
+    ("reports the exhaustive dimension-budget control",
+     "tab:dimension_budget" in tex and "thirty-one" in tex),
+    ("states the measured cost of the code-level arms that replace the model",
+     "16.4 and 25.9~pp" in tex and "$p<0.0001$" in tex),
+    ("states that the two inert code-level arms are reported as such",
+     "$p=1.0$" in tex and "90.8\\% against 90.9\\%" in tex),
+    ("states that every dimension is necessary under the channel adversary",
+     "between 6.3 and 7.7~pp" in tex and "$p<0.0001$" in tex),
     ("states that the comparators keep every dimension in the control",
      "keep all five dimensions" in tex),
-    ("states the spatial-scenario cost of the two load-bearing dimensions",
-     "18.2~pp" in tex and "18.9~pp" in tex),
-    ("states that the communication dimension is worth different things in the two scenarios",
-     "costs 0.7~pp" in tex and "gains 1.3~pp" in tex),
-    ("states that the energy dimension is inert in both scenarios",
-     "$+0.03$~pp" in tex),
+    ("states the spatial-scenario cost of the neighbourhood block",
+     "83.6\\%" in tex and "2.1\\%" in tex),
+    ("reports the learned comparator under the same reduced vector",
+     "90.3\\%" in tex and "91.7\\%" in tex),
+    ("states that the dimension-budget series is monotone and non-overlapping",
+     "The bands do not overlap" in tex and "98.8\\%, 98.4\\% and 90.9\\%" in tex),
 ]
 for label_, ok in checks:
     print(f"  [{'x' if ok else ' '}] {label_}")

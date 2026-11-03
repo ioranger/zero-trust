@@ -13,7 +13,9 @@ from typing import Dict, Iterable, Tuple
 
 import numpy as np
 
-from reference_simulator import Config, extract_policy_features
+from reference_simulator import (Config, channel_profile_cfg,
+                                 extract_dimension_aligned_features,
+                                 extract_policy_features)
 
 
 MARL_EXTRA_FEATURES: list[str] = []
@@ -153,6 +155,19 @@ FEATURE_FACTORS: dict[str, tuple[str, ...]] = {
     **{name: ("T1", "T4") for name in SPATIAL_FEATURE_NAMES},
 }
 
+# The channel-focused scenario prices the five dimensions against each other,
+# so it uses a dimension-aligned representation: four columns per dimension,
+# each computed from that dimension alone. Adding the mapping here is what
+# lets the leave-one-dimension-out control remove exactly the columns of the
+# removed dimension in that scenario as well.
+for _k in range(1, 6):
+    _tag = f"T{_k}"
+    FEATURE_FACTORS[f"1-{_tag}_recent"] = (_tag,)
+    FEATURE_FACTORS[f"1-{_tag}_q10"] = (_tag,)
+    FEATURE_FACTORS[f"low_{_tag}_fraction_0.58"] = (_tag,)
+    FEATURE_FACTORS[f"{_tag}_positive_slope"] = (_tag,)
+del _k, _tag
+
 
 def disabled_factors(config: Config) -> list[str]:
     """The trust factors the configuration asks the model not to see.
@@ -247,6 +262,15 @@ def extract_marl_policy_features(
     a checkpoint trained with the temporal-shape block is always scored with
     the feature width it was trained on.
     """
+    if channel_profile_cfg(config):
+        # The channel-focused scenario prices the five dimensions against each
+        # other, so its representation is dimension-aligned: four columns per
+        # dimension, each computed from that dimension alone. The temporal
+        # shape and neighbourhood blocks are not part of it, because both are
+        # computed on T1 and T4 and would carry one dimension's evidence
+        # into another dimension's arm.
+        features, names = extract_dimension_aligned_features(config, streams)
+        return apply_feature_masks(config, features, names)
     if use_shape is None:
         use_shape = shape_features_enabled(config)
     base = extract_policy_features(config, streams)
@@ -276,10 +300,18 @@ def extract_marl_policy_features(
         "directed_low_quantile_gap",
         *(extras if extras else MARL_EXTRA_FEATURES),
     ]
-    # The leave-one-factor-out control removes the columns that carry
-    # information about a factor the configuration disables. The mask is
-    # applied here, in the one function that both training and inference go
-    # through, so the two cannot disagree about the input width.
+    return apply_feature_masks(config, features, names)
+
+
+def apply_feature_masks(config: Config, features: np.ndarray,
+                         names: list[str]) -> Tuple[np.ndarray, list[str]]:
+    """Drop the columns the configuration disables.
+
+    The leave-one-factor-out control removes the columns that carry
+    information about a factor the configuration disables. The mask is
+    applied in the one function that both training and inference go through,
+    so the two cannot disagree about the input width.
+    """
     disabled = disabled_factors(config)
     if disabled:
         keep = factor_keep_mask(names, disabled)
@@ -388,7 +420,10 @@ def modality_targets(attack_types) -> np.ndarray:
     """
     out = np.empty(len(attack_types), dtype=np.int64)
     for i, at in enumerate(attack_types):
-        key = str(at).strip().lower()
+        # The channel-focused scenario tags an attack type with the dimension
+        # it manipulates ("T3:on-off"). Only the pattern part of the tag is a
+        # modality.
+        key = str(at).strip().lower().split(":")[-1]
         out[i] = MODALITY_INDEX.get(key, MODALITY_INDEX["benign"])
     return out
 

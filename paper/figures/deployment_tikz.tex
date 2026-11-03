@@ -2,8 +2,8 @@
 %
 % The boxes are the same ones as in the executed pipeline, plus the parts of
 % the intended deployment that the artifact does not run: multi-observer
-% aggregation, the action-dependent state update and the constraint budget.
-% Every proposed part is drawn dashed and says so.
+% aggregation and the constraint budget. Every proposed part is drawn dashed
+% and says so.
 %
 % (tikz itself is loaded by Definitions/mdpi; the libraries are pulled in here
 %  so this file compiles standalone as well as inside the MDPI class.)
@@ -46,19 +46,12 @@
 % ---------------- lower row ----------------
 \node[stage, below=13mm of fac, xshift=-15mm, text width=24mm] (mem) {
   \textbf{Trust memory}\\[-2pt]{\tiny historical score\\[-2pt]recent evidence window}};
-\node[prop, below=13mm of risk, text width=28mm] (upd) {
-  \textbf{Proposed state update}\\[-2pt]{\tiny decayed prior + observation\\[-2pt]not executed in artifact}};
-\node[used, right=of upd, text width=28mm] (alloc) {
+\node[used, below=13mm of risk, text width=28mm] (alloc) {
   \textbf{Allocation proxy}\\[-2pt]{\tiny score-weighted task sampling\\[-2pt]simulator-specific rules}};
 
 \draw[ghostline] (mem.north east) -- node[above, font=\sffamily\tiny, text=black!55] {temporal evidence} (fac.south west);
-\draw[propline] (agg.south) -- (upd.north east);
-\draw[line] (upd) -- (alloc);
-
-% the closed loop the artifact does not close
-\draw[propline] (alloc.south) -- ++(0,-7mm) -| (fac.south);
-\coordinate (fb) at ($(fac.south)!0.5!(alloc.south)$);
-\node[tag, text=violet!60!black, anchor=south] at ([yshift=-27mm]fb) {proposed feedback (not executed)};
+\draw[propline] (agg.south) -- (alloc.north east);
+\draw[line] (risk.south) -- (alloc.north);
 
 % ---------------- title and legend ----------------
 \node[tag, anchor=south west] at ([yshift=5mm]obs.north west) {
