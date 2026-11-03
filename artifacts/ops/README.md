@@ -49,8 +49,20 @@ git -C 'F:\zero trust\gitwork' commit -F <message file>
 powershell -NoProfile -ExecutionPolicy Bypass -File 'F:\zero trust\realdata\push_retry.ps1'
 ```
 
-## The checks that guard the manuscript
+## Protocol templates
 
+`prompts/inter_swarm_trust_exchange.md` is the prompt template for the
+cross-swarm extension: two swarm managers exchange the five trust branches
+through their on-device agents, verify the peer's branches against their own
+observation, and fuse them with the confidence weights of Section 3.5. It
+carries the peer modes that turn the exchange into a test of colluding peer
+reports, which the manuscript currently lists as a stress case it does not
+cover.
+
+The template is written against the S-TIM notation and its equations belong
+to the deployment formulation, not to the executed artifact, so a run driven
+by it is an extension experiment and not a reproduction.
+## The checks that guard the manuscript
 Run all of them after a change to the manuscript. Each one fails loudly rather
 than reporting a difference quietly.
 
