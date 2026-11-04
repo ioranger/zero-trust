@@ -62,6 +62,23 @@ cover.
 The template is written against the S-TIM notation and its equations belong
 to the deployment formulation, not to the executed artifact, so a run driven
 by it is an extension experiment and not a reproduction.
+
+`prompts/inter_swarm_cooperation_agreement.md` is the prompt template for the
+agreement layer above it: the two managers negotiate a joint mission
+arrangement (split, relay, track sharing) and cooperate only when both
+accept. It reuses the same fusion, three-class decision and incentive band as
+the trust exchange, adds the bilateral-consent gate, and carries the two peer
+modes that only exist at this level (`silent`, `late_accept`). Its audit
+question is whether every joint mission in the run has an `ACCEPT` from both
+managers for the same term id, timestamped before the first `MONITOR` for
+that mission.
+
+`prompts/inter_swarm_manager_communication.md` is the message-level template:
+what one manager sends to the other manager, carrying the five trust branches
+of one node. `prompts/inter_swarm_manager_communication_filled.md` is the same
+template with every placeholder replaced by real numbers, so a run can be
+started from it directly.
+
 ## The checks that guard the manuscript
 Run all of them after a change to the manuscript. Each one fails loudly rather
 than reporting a difference quietly.
