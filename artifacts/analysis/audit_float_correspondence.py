@@ -67,6 +67,30 @@ def table_rows(label: str) -> list[list[str]]:
     return rows
 
 
+def caption_before(text: str, label: str) -> str | None:
+    """The caption of the float with this label, or None.
+
+    In this manuscript the caption precedes the label, so the caption is the
+    last \\caption{ before the label. The braces are balanced, because a
+    caption that contains \\ref{...} would otherwise be cut at the first
+    closing brace it meets.
+    """
+    m = re.search(r"\\label\{" + re.escape(label) + r"\}", text)
+    if not m:
+        return None
+    start = text.rfind("\\caption{", 0, m.start())
+    if start < 0:
+        return None
+    i = start + len("\\caption{")
+    depth = 1
+    while i < len(text) and depth:
+        c = text[i]
+        if c in "{}" and (i == 0 or text[i - 1] != "\\"):
+            depth += 1 if c == "{" else -1
+        i += 1
+    return text[start + len("\\caption{"): i - 1].strip()
+
+
 def num(cell: str) -> float:
     m = re.match(r"[-+]?[\d.]+", cell.replace(",", ""))
     return float(m.group(0)) if m else float("nan")
@@ -205,14 +229,7 @@ def main() -> int:
     check("no caption or note still says 19 evaluation seeds",
           "19 evaluation seeds" not in text)
     for label in ("tab:spatial_main", "tab:spatial_blocks"):
-        # the caption precedes the label in this manuscript
-        idx = text.index("\\label{" + label + "}")
-        cap = None
-        for m in re.finditer(r"\\caption\{(.+?)\}\s*\n", text, re.S):
-            if m.end() < idx:
-                cap = m.group(1)
-            else:
-                break
+        cap = caption_before(text, label)
         check(f"{label} states the seed count",
               cap is not None and f"{n_spatial} evaluation seeds" in cap)
 
@@ -261,10 +278,28 @@ def main() -> int:
                 "Auxiliary heads"):
         check(f"figure 1 draws the '{box}' box", box in pipeline)
     deployment = (FIGURES / "deployment_tikz.tex").read_text(encoding="utf-8")
-    for box in ("Proposed aggregation", "Proposed state update", "Proposed constraint"):
+    for box in ("Proposed aggregation", "Proposed constraint"):
         check(f"figure 2 draws the '{box}' box", box in deployment)
-    check("figure 2 marks the three extensions as not executed",
-          deployment.count("not executed in artifact") >= 2)
+    # The state-update mechanism was removed from the manuscript and from the
+    # replication package, so the figure must not draw it any more either.
+    check("figure 2 no longer draws the removed state-update box",
+          "Proposed state update" not in deployment)
+    # Two design extensions are drawn dashed, and the caption calls them the
+    # parts the implementation leaves open. Both properties are checked, so
+    # the figure cannot quietly start claiming fewer extensions than the
+    # caption promises.
+    n_prop = len(re.findall(r"\\node\[prop\b", deployment))
+    check("figure 2 draws exactly the two design extensions the caption names",
+          n_prop == 2, f"{n_prop} dashed node(s)")
+    check("figure 2 marks the aggregation extension as not executed",
+          "not executed in artifact" in deployment)
+    cap_dep = caption_before(text, "fig:deployment")
+    check("the caption of figure 2 says the dashed boxes are left open",
+          cap_dep is not None and "dashed boxes are the parts it leaves open" in cap_dep)
+    check("the caption of figure 2 says neither extension is exercised",
+          cap_dep is not None and "neither of them is exercised" in cap_dep)
+    check("the manuscript no longer refers to the removed state-update figure",
+          "fig:update" not in text)
 
     print()
     print("=" * 96)

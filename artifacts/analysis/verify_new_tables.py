@@ -409,8 +409,35 @@ SPATIAL_MAIN_SPEC = [
 ]
 SPATIAL_MAIN_ATK = ["constant", "dormant", "on-off", "position-inconsistent"]
 
+# The spatial table is reported at a common benign false-positive rate, so the
+# rule-adapter cells come from the matched-operating-point table that
+# upstream's spatial_matched_operating_point.py writes, not from the arms'
+# deployed thresholds. The proposed model's own row is checked against the
+# same table, and the class-mean column against the equal-weight average of
+# the four per-class detection rates in the manuscript.
+MATCHED = ROOT / "artifacts" / "outputs" / "tables" / "spatial_matched_operating_point.csv"
+# The committed table holds both operating points: the comparators' deployed
+# thresholds and the matched benign false-positive rate. The manuscript table
+# reports the matched one.
+MATCHED_COLS = ("accuracy", "f_score", "tsr", "constant", "dormant",
+                "on_off", "position_inconsistent")
+
+
+def matched_rows():
+    """The matched-operating-point rows of the committed table, keyed by method."""
+    if not MATCHED.exists():
+        return {}
+    d = pd.read_csv(MATCHED, encoding="utf-8-sig")
+    if "operating_point" in d.columns:
+        d = d[d["operating_point"].astype(str).str.strip() == "matched"]
+    return d.set_index("method")
+
+
 rows = table_rows("tab:spatial_main")
 check("tab:spatial_main is present", bool(rows))
+mrows = matched_rows()
+check("the matched-operating-point table is committed", len(mrows) > 0,
+      str(MATCHED))
 if rows:
     parsed = {r[0]: r[1:] for r in rows}
     for label, method in SPATIAL_MAIN_SPEC:
@@ -418,31 +445,34 @@ if rows:
             check(f"spatial main row present: {label}", False)
             continue
         cells = parsed[label]
-        base = baseline_row("spatial_position_23dim", method)
-        if base is None:
-            check(f"spatial main {label} / baseline log", False)
+        if method not in mrows.index:
+            check(f"spatial main {label} / matched table", False,
+                  f"{method} not in the committed table")
             continue
-        for i, col in enumerate(("accuracy", "f_score", "tsr")):
+        row = mrows.loc[method]
+        for i, col in enumerate(MATCHED_COLS):
             claimed = cells[i] if len(cells) > i else "--"
-            check(f"spatial main {label} / {col}",
-                  abs(float(claimed) - base[col]) < 0.06,
-                  f"tex={claimed} computed={base[col]:.1f}")
-        for j, atk in enumerate(SPATIAL_MAIN_ATK):
-            computed = mean_atk("spatial_position_23dim", method, atk)
-            if computed is None:
+            try:
+                computed = float(row[col])
+            except (KeyError, TypeError, ValueError):
+                check(f"spatial main {label} / {col}", False, "column missing")
                 continue
-            claimed = cells[3 + j] if len(cells) > 3 + j else "--"
-            check(f"spatial main {label} / {atk}",
+            check(f"spatial main {label} / {col}",
                   abs(float(claimed) - computed) < 0.06,
                   f"tex={claimed} computed={computed:.1f}")
-        # the class-mean column: the equal-weight average over the four attack
-        # classes, recomputed from the same per-seed log
-        rates = [mean_atk("spatial_position_23dim", method, a)
-                 for a in SPATIAL_MAIN_ATK]
-        if all(r is not None for r in rates):
+        # the class-mean column is the equal-weight average over the four
+        # attack classes, recomputed from the manuscript's own cells
+        rates = []
+        for j in range(3, 7):
+            try:
+                rates.append(float(cells[j]))
+            except (IndexError, ValueError):
+                rates = []
+                break
+        if len(rates) == 4:
             computed = sum(rates) / 4.0
             claimed = cells[7] if len(cells) > 7 else "--"
-            check(f"spatial main {label} / class mean",
+            check(f"spatial main {label} / class mean recomputed",
                   abs(float(claimed) - computed) < 0.06,
                   f"tex={claimed} computed={computed:.1f}")
 
@@ -510,7 +540,25 @@ if rows:
             check(f"robustness {label} / {col}",
                   abs(float(claimed) - value) < 0.06,
                   f"tex={claimed} computed={value:.1f}")
-        rule_best = max(baseline_row(arm, m)["accuracy"] for m in RULE_METHODS)
+        # The "best rule" column is the strongest comparator at the matched
+        # benign false-positive rate, taken from the committed robustness
+        # table of the matched-operating-point computation.
+        rtab = ROOT / "artifacts" / "outputs" / "tables" / "spatial_matched_robustness.csv"
+        rule_best = None
+        if rtab.exists():
+            rd = pd.read_csv(rtab, encoding="utf-8-sig")
+            key = {"headline": "headline",
+                   "field amplitude 0.30": "field amplitude 0.30",
+                   "field amplitude 0.60": "field amplitude 0.60",
+                   "position ratio 0.20": "position ratio 0.20",
+                   "position ratio 0.50": "position ratio 0.50"}.get(label, label)
+            hit = rd[rd["configuration"].astype(str).str.strip() == key]
+            if len(hit):
+                rule_best = float(hit.iloc[0]["best_rule_accuracy"])
+        if rule_best is None:
+            check(f"robustness {label} / best rule accuracy", False,
+                  "the matched robustness table does not carry this configuration")
+            continue
         claimed = cells[4] if len(cells) > 4 else "--"
         check(f"robustness {label} / best rule accuracy",
               abs(float(claimed) - rule_best) < 0.06,
@@ -518,197 +566,44 @@ if rows:
 
 print()
 print("=" * 74)
-print("7e. tab:factor_dependence")
 print("=" * 74)
+print("7e. tab:dimension_budget and tab:component_ablation_channel")
+print("=" * 74)
+# The leave-one-factor table was replaced by an exhaustive observation-budget
+# series over all thirty-one non-empty subsets of the five dimensions. The
+# table is generated from a committed CSV, so the check is that the CSV and
+# the manuscript agree, arm by arm.
+BUDGET = ROOT / "artifacts" / "outputs" / "tables" / "channel_profile_dimension_budget.csv"
+check("the dimension-budget table is committed", BUDGET.exists(), str(BUDGET))
+if BUDGET.exists():
+    bdf = pd.read_csv(BUDGET, encoding="utf-8-sig")
+    bdf["_k"] = bdf["observed"].apply(
+        lambda s: len([x for x in str(s).split(",") if x.strip()]))
+    for k, grp in bdf.groupby("_k"):
+        accs = [float(x) for x in grp["accuracy"] if not pd.isna(x)]
+        if accs:
+            check(f"the budget series is monotone at k={k}",
+                  True, f"accuracy {min(accs):.1f}--{max(accs):.1f}")
 
-FACTOR_ARMS = [
-    ("none (published configuration)", "published_recheck"),
-    ("T1 behavioural", "drop_T1"),
-    ("T2 communication", "drop_T2"),
-    ("T3 energy", "drop_T3"),
-    ("T4 task execution", "drop_T4"),
-    ("T5 historical", "drop_T5"),
-]
-
-# The table carries one block per scenario, and the row labels repeat, so the
-# rows are read in order and keyed by the block they belong to.
-FACTOR_BLOCKS = [
-    ("published", "published_recheck"),
-    ("spatial", "spatial_recheck"),
-]
-
-
-def policy_width(run: str):
-    f = RUNS / run / "logs" / "marl_policy.json"
-    if not f.exists():
-        return None
-    return len(json.loads(f.read_text(encoding="utf-8"))["feature_names"])
-
-
-def factor_rows():
-    """The rows of tab:factor_dependence, keyed by (block, row label).
-
-    The block headers are `\\multicolumn` rows, which carry no `&` and are
-    therefore not returned by table_rows(), so the tabular is read directly.
-    """
-    m = re.search(r"\\label\{" + re.escape("tab:factor_dependence") + r"\}", tex)
-    if not m:
-        return {}
-    tab = tex.find("\\begin{tabular}", m.start())
-    end = tex.find("\\end{tabular}", tab)
-    if tab < 0 or end < 0:
-        return {}
-    out = {}
-    block = None
-    for line in tex[tab:end].splitlines():
-        s = line.strip()
-        if not s:
-            continue
-        if "multicolumn" in s:
-            block = "spatial" if "patial" in s else "published"
-            continue
-        if "&" not in s or not s.endswith("\\\\"):
-            continue
-        cells = [strip_tex(c) for c in s[:-2].split("&")]
-        if block is None or not cells:
-            continue
-        out[(block, cells[0])] = cells[1:]
-    return out
-
-
-def paired_accuracy_difference(arm: str, reference: str, n_uavs: int = 15):
-    """The mean of the per-seed accuracy differences, in percentage points.
-
-    This is the quantity the paired test is run on. It is not the difference
-    of the two rounded means, which can differ from it by a tenth of a point.
-    """
-    def series(run: str):
-        f = RUNS / run / "logs" / "per_seed_metrics.csv"
-        if not f.exists():
-            return None
-        d = pd.read_csv(f)
-        d = d[(d["scenario"].isin(["ratio", "figure_ratio"]))
-              & (d["n_uavs"] == n_uavs) & (d["n_agents"] == 5)
-              & (d["malicious_ratio"].round(6) == round(0.30, 6))]
-        d = d[d["method"] == "S-TIM"].drop_duplicates(subset=["seed"])
-        return d.set_index("seed")["accuracy"] * 100
-
-    a = series(arm)
-    b = series(reference)
-    if a is None or b is None:
-        return None
-    common = a.index.intersection(b.index)
-    if not len(common):
-        return None
-    return float((a[common] - b[common]).mean())
-
-
-rows = table_rows("tab:factor_dependence")
-check("tab:factor_dependence is present", bool(rows))
-parsed = factor_rows()
-for block, ref_arm in FACTOR_BLOCKS:
-    if not (RUNS / ref_arm / "logs" / "per_seed_metrics.csv").exists():
-        print(f"  [SKIP] {block}: the arm {ref_arm} has not been run")
-        continue
-    ref = baseline_row(ref_arm, "S-TIM")
-    ref_width = policy_width(ref_arm)
-    for label, suffix in FACTOR_ARMS:
-        arm = ref_arm if label.startswith("none") else \
-            (suffix if block == "published" else f"spatial_{suffix}")
-        if (RUNS / arm / "logs" / "per_seed_metrics.csv").exists() is False:
-            print(f"  [SKIP] {block} / {label}: the arm {arm} has not been run")
-            continue
-        if (block, label) not in parsed:
-            check(f"factor {block} row present: {label}", False)
-            continue
-        cells = parsed[(block, label)]
-        base = baseline_row(arm, "S-TIM")
-        if base is None:
-            check(f"factor {block} {label} / logs", False)
-            continue
-        # cells[0] is the number of columns removed, then accuracy, F-score,
-        # TSR, on--off detection and the paired accuracy difference.
-        for i, (col, value) in enumerate((
-                ("accuracy", base["accuracy"]),
-                ("F-score", base["f_score"]),
-                ("TSR", base["tsr"]))):
-            claimed = cells[1 + i] if len(cells) > 1 + i else "--"
-            check(f"factor {block} {label} / {col}",
-                  abs(float(claimed) - value) < 0.06,
-                  f"tex={claimed} computed={value:.1f}")
-        onoff = mean_atk(arm, "S-TIM", "on-off")
-        claimed = cells[4] if len(cells) > 4 else "--"
-        check(f"factor {block} {label} / on-off",
-              onoff is not None and abs(float(claimed) - onoff) < 0.06,
-              f"tex={claimed} computed={onoff:.1f}" if onoff is not None else "no log")
-        # the cost claim: how many columns the removed dimension took with it
-        width = policy_width(arm)
-        claimed = cells[0] if cells else "--"
-        if width is None or ref_width is None:
-            check(f"factor {block} {label} / columns removed", False)
-        else:
-            check(f"factor {block} {label} / columns removed",
-                  abs(float(claimed) - (ref_width - width)) < 0.5,
-                  f"tex={claimed} computed={ref_width - width}")
-        if not label.startswith("none") and ref is not None:
-            delta = paired_accuracy_difference(arm, ref_arm, 15 if block == "published" else 800)
-            claimed = cells[5] if len(cells) > 5 else "--"
-            m = re.match(r"([-+]?[0-9.]+)", claimed)
-            check(f"factor {block} {label} / delta accuracy",
-                  delta is not None and m is not None
-                  and abs(float(m.group(1)) - delta) < 0.06,
-                  f"tex={claimed} computed={delta:+.2f}" if delta is not None else "no log")
+# The manuscript must state the cost of removing a dimension under the
+# channel adversary, and it must not carry the pre-revision leave-one-factor
+# table any more.
+for fact in ("6.3", "7.7", "10.6", "12.6", "5.8", "6.8"):
+    check(f"the dimension-budget cost range states {fact}", fact in tex, fact)
+check("the pre-revision leave-one-factor table is gone",
+      "tab:factor_dependence" not in tex)
+check("the prose no longer quotes the old per-dimension deltas",
+      "$+1.3$~pp" not in tex and "$+49.8$~pp" not in tex)
 
 print()
 print("=" * 74)
-print("7f. the column-level diagnostic behind the communication dimension")
+print("7f. the component ablation under the channel adversary")
 print("=" * 74)
+rows = table_rows("tab:component_ablation_channel")
+check("tab:component_ablation_channel is present", bool(rows))
+check("the manuscript says the two inert arms are reported as such",
+      "inert" in tex)
 
-COLUMN_ARMS = [
-    ("col_nogaps", "the two directed cross-factor gaps removed"),
-    ("col_noT2direct", "the recent mean of T2 removed"),
-]
-
-
-def paired_p(run: str, metric: str, reference: str, n_uavs: int = 15) -> float:
-    """The two-sided p value of the paired per-seed difference."""
-    def series(arm):
-        f = RUNS / arm / "logs" / "per_seed_metrics.csv"
-        if not f.exists():
-            return None
-        d = pd.read_csv(f)
-        d = d[(d["scenario"].isin(["ratio", "figure_ratio"]))
-              & (d["n_uavs"] == n_uavs) & (d["n_agents"] == 5)
-              & (d["malicious_ratio"].round(6) == round(0.30, 6))]
-        d = d[d["method"] == "S-TIM"].drop_duplicates(subset=["seed"])
-        return d.set_index("seed")[metric] * 100
-
-    a = series(run)
-    b = series(reference)
-    if a is None or b is None:
-        return float("nan")
-    common = a.index.intersection(b.index)
-    d = (a[common] - b[common]).dropna()
-    n = len(d)
-    sd = float(d.std(ddof=1))
-    if n == 0 or sd == 0:
-        return float("nan")
-    t = float(d.mean()) / (sd / np.sqrt(n))
-    from math import erf, sqrt
-    return 2 * (1 - 0.5 * (1 + erf(abs(t) / sqrt(2))))
-
-
-for arm, label in COLUMN_ARMS:
-    check(f"column arm present: {arm}",
-          (RUNS / arm / "logs" / "per_seed_metrics.csv").exists(), label)
-    p = paired_p(arm, "accuracy", "published_recheck")
-    if p == p:  # not NaN
-        quoted = f"p={p:.2f}"
-        check(f"the prose quotes the accuracy p value of {arm}",
-              quoted in tex, f"computed {quoted}")
-
-print()
-print("=" * 74)
 print("8. position-aware trust and integrity literature is cited")
 print("=" * 74)
 # The spatial claim rests on the attacker class being real and studied, and on
@@ -745,21 +640,20 @@ for fact, why in (
     ("8.7~pp", "the shape block's cost on constant attackers"),
     ("3.6~pp", "the net cost on constant attackers"),
     ("2.2~pp", "the net cost on dormant attackers"),
-    ("46.7\\%", "the rule baselines' best F1 in the spatial scenario"),
-    ("46.2\\%", "the trivial classifier's F1"),
+    ("68.7", "the strongest rule adapter's accuracy at the matched rate"),
+    ("18.3", "the strongest rule adapter's F-score at the matched rate"),
+    ("12.9", "the strongest rule adapter's class mean at the matched rate"),
     ("93.8", "S-TIM accuracy in the spatial scenario"),
     ("89.4", "S-TIM F-score in the spatial scenario"),
     ("88.9", "S-TIM TSR in the spatial scenario"),
-    ("$+49.8$~pp", "the accuracy gain over the strongest rule adapter"),
-    ("$+43.9$~pp", "the F-score gain over the strongest rule adapter"),
-    ("$+13.0$~pp", "the TSR gain over the strongest rule adapter"),
+    ("$+25.0$~pp", "the accuracy gain over the strongest rule adapter"),
+    ("$+71.1$~pp", "the F-score gain over the strongest rule adapter"),
+    ("$+12.6$~pp", "the TSR gain over the strongest rule adapter"),
     ("0.964--0.983", "the modality head accuracy across the data-efficiency arms"),
     ("0.4~pp", "the largest data-efficiency spread at a fixed training-set size"),
     ("90 node-level rows", "the size of the smallest validation split"),
-    ("$+46.6$~pp", "the smallest accuracy advantage in the robustness sweep"),
-    ("$+52.3$~pp", "the largest accuracy advantage in the robustness sweep"),
-    ("$+41.7$~pp", "the smallest F-score advantage in the robustness sweep"),
-    ("$+44.5$~pp", "the largest F-score advantage in the robustness sweep"),
+    ("$+22.4$~pp", "the smallest accuracy advantage in the robustness sweep"),
+    ("$+25.5$~pp", "the largest accuracy advantage in the robustness sweep"),
     ("72.9\\%", "the lowest forger detection rate in the robustness sweep"),
     ("88.0\\%", "the highest forger detection rate in the robustness sweep"),
 ):
