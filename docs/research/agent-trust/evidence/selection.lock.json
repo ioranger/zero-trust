@@ -1,0 +1,335 @@
+{
+  "policies": {
+    "queue": {
+      "threshold": 0.35,
+      "mean_effective_completed_tasks": 41.9375,
+      "mean_admission_coverage": 0.6458333333333334,
+      "mean_energy_j": 1534.69262125,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 41.9375,
+          "mean_admission_coverage": 0.6458333333333334,
+          "mean_energy_j": 1534.69262125,
+          "feasible": true
+        }
+      ]
+    },
+    "static": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 53.625,
+      "mean_admission_coverage": 0.6223958333333334,
+      "mean_energy_j": 1293.5801093750001,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 46.75,
+          "mean_admission_coverage": 0.646484375,
+          "mean_energy_j": 1448.38658625,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.5,
+          "mean_admission_coverage": 0.6223958333333334,
+          "mean_energy_j": 1280.3058253125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 53.625,
+          "mean_admission_coverage": 0.6223958333333334,
+          "mean_energy_j": 1293.5801093750001,
+          "feasible": true
+        }
+      ]
+    },
+    "direct": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 52.8125,
+      "mean_admission_coverage": 0.625,
+      "mean_energy_j": 1323.4439834375,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 47.25,
+          "mean_admission_coverage": 0.63671875,
+          "mean_energy_j": 1423.3755262500001,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.625,
+          "mean_admission_coverage": 0.6243489583333334,
+          "mean_energy_j": 1325.1679409375,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 52.8125,
+          "mean_admission_coverage": 0.625,
+          "mean_energy_j": 1323.4439834375,
+          "feasible": true
+        }
+      ]
+    },
+    "recent": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 53.8125,
+      "mean_admission_coverage": 0.6217447916666666,
+      "mean_energy_j": 1291.8784571875,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 46.5625,
+          "mean_admission_coverage": 0.6484375,
+          "mean_energy_j": 1456.94880125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.75,
+          "mean_admission_coverage": 0.6223958333333334,
+          "mean_energy_j": 1280.3058253125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 53.8125,
+          "mean_admission_coverage": 0.6217447916666666,
+          "mean_energy_j": 1291.8784571875,
+          "feasible": true
+        }
+      ]
+    },
+    "m1": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 53.625,
+      "mean_admission_coverage": 0.6223958333333334,
+      "mean_energy_j": 1293.5801093750001,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 47.125,
+          "mean_admission_coverage": 0.646484375,
+          "mean_energy_j": 1439.23227125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.5,
+          "mean_admission_coverage": 0.6204427083333334,
+          "mean_energy_j": 1274.054806875,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 53.625,
+          "mean_admission_coverage": 0.6223958333333334,
+          "mean_energy_j": 1293.5801093750001,
+          "feasible": true
+        }
+      ]
+    },
+    "m2": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 53.8125,
+      "mean_admission_coverage": 0.6217447916666666,
+      "mean_energy_j": 1291.8784571875,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 46.8125,
+          "mean_admission_coverage": 0.646484375,
+          "mean_energy_j": 1443.81073625,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.6875,
+          "mean_admission_coverage": 0.6204427083333334,
+          "mean_energy_j": 1274.054806875,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 53.8125,
+          "mean_admission_coverage": 0.6217447916666666,
+          "mean_energy_j": 1291.8784571875,
+          "feasible": true
+        }
+      ]
+    },
+    "m3": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 55.125,
+      "mean_admission_coverage": 0.640625,
+      "mean_energy_j": 1345.244958125,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 47.5,
+          "mean_admission_coverage": 0.5944010416666666,
+          "mean_energy_j": 1365.709113125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 54.375,
+          "mean_admission_coverage": 0.6334635416666666,
+          "mean_energy_j": 1346.619540625,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 55.125,
+          "mean_admission_coverage": 0.640625,
+          "mean_energy_j": 1345.244958125,
+          "feasible": true
+        }
+      ]
+    },
+    "mlp": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 52.0625,
+      "mean_admission_coverage": 0.6373697916666666,
+      "mean_energy_j": 1359.1723171875,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 50.875,
+          "mean_admission_coverage": 0.6432291666666667,
+          "mean_energy_j": 1380.2459275,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 51.5,
+          "mean_admission_coverage": 0.638671875,
+          "mean_energy_j": 1383.3304171875,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 52.0625,
+          "mean_admission_coverage": 0.6373697916666666,
+          "mean_energy_j": 1359.1723171875,
+          "feasible": true
+        }
+      ]
+    },
+    "gbdt": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 54.5625,
+      "mean_admission_coverage": 0.630859375,
+      "mean_energy_j": 1330.0704915625,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 53.9375,
+          "mean_admission_coverage": 0.6315104166666666,
+          "mean_energy_j": 1313.956060625,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 54.25,
+          "mean_admission_coverage": 0.6315104166666666,
+          "mean_energy_j": 1325.4439328125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 54.5625,
+          "mean_admission_coverage": 0.630859375,
+          "mean_energy_j": 1330.0704915625,
+          "feasible": true
+        }
+      ]
+    },
+    "mlp_team": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 53.9375,
+      "mean_admission_coverage": 0.654296875,
+      "mean_energy_j": 1403.1546834375,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 53.5,
+          "mean_admission_coverage": 0.65625,
+          "mean_energy_j": 1407.1603415625,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 52.875,
+          "mean_admission_coverage": 0.6588541666666666,
+          "mean_energy_j": 1414.0016678125,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 53.9375,
+          "mean_admission_coverage": 0.654296875,
+          "mean_energy_j": 1403.1546834375,
+          "feasible": true
+        }
+      ]
+    },
+    "gbdt_team": {
+      "threshold": 0.5,
+      "mean_effective_completed_tasks": 57.375,
+      "mean_admission_coverage": 0.6588541666666666,
+      "mean_energy_j": 1398.618880625,
+      "feasible": true,
+      "candidates": [
+        {
+          "threshold": 0.2,
+          "mean_effective_completed_tasks": 56.625,
+          "mean_admission_coverage": 0.6536458333333334,
+          "mean_energy_j": 1397.028254375,
+          "feasible": true
+        },
+        {
+          "threshold": 0.35,
+          "mean_effective_completed_tasks": 57,
+          "mean_admission_coverage": 0.658203125,
+          "mean_energy_j": 1399.7854762499999,
+          "feasible": true
+        },
+        {
+          "threshold": 0.5,
+          "mean_effective_completed_tasks": 57.375,
+          "mean_admission_coverage": 0.6588541666666666,
+          "mean_energy_j": 1398.618880625,
+          "feasible": true
+        }
+      ]
+    }
+  },
+  "primary_reference_baseline": "gbdt_team",
+  "chosen_on": "calibration only, before test generation",
+  "test_data_used": false,
+  "calibration_sha256": "fd3ae5b8505896c21ffcc67a5266f276793b560f9a48548d8c11152f2ebea8d1",
+  "models_lock_sha256": "d6b374144926b365128bc6365be1c3b23d38c98d32abea1edd0b4114f5ada9a1",
+  "source_sha256": {
+    "trustlab/core.py": "76b16718929607dfef84cb049bbbd1883aea4f6b2220955ab6d1fc50f082854d",
+    "trustlab/behaviors.py": "3eb5ed5ec64ac44e95ef888c1e80c5e7bc2355c4cf0fafd7128077a11797556a",
+    "trustlab/completion/__init__.py": "f93005b504c638c6937eb5cb741ca93cab6aa4447906e840c49696fb33dec20e",
+    "trustlab/completion/environment.py": "76d23782ee86815750b927f3a70f2428208e20e8681bdbf33d6be606e9b0c2de",
+    "trustlab/completion/evidence.py": "7ae7c53d574ebf06849c84a11f7dbedaad86f4d0a79bfe639eae0bd4501be145",
+    "trustlab/completion/learners.py": "0f8c7f1d859afd38c4beb3baa2a4a35412cb106b156210e77e19e2c189120209",
+    "trustlab/completion/study.py": "5aaa2f130b6daf98ae1d1c44d488df41213857680a97d9a23928837e681d7e7d"
+  },
+  "locked_utc": "2026-10-12T06:55:59.694364+00:00"
+}
